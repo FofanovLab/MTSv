@@ -1,7 +1,7 @@
 [package]
 name = "vedro"
 version = "0.4.0"
-authors = ["Adam Perry <adam.n.perry@gmail.com>"]
+authors = ["Adam Perry <adam.n.perry@gmail.com>", "Tsosie Schneider <tes87@nau.edu>"]
 
 [dependencies]
 bincode = { version = "0.5", features = ["rustc-serialize"] }

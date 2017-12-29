@@ -28,7 +28,7 @@ pub unsafe trait IndexType : Copy + Ord + fmt::Debug + 'static
 {
     fn new(x: usize) -> Self;
     fn index(&self) -> usize;
-    fn max() -> Self;
+    fn maximum() -> Self;
 }
 
 unsafe impl IndexType for usize {
@@ -37,7 +37,7 @@ unsafe impl IndexType for usize {
     #[inline(always)]
     fn index(&self) -> Self { *self }
     #[inline(always)]
-    fn max() -> Self { ::std::usize::MAX }
+    fn maximum() -> Self { ::std::usize::MAX }
 }
 
 unsafe impl IndexType for u32 {
@@ -46,7 +46,7 @@ unsafe impl IndexType for u32 {
     #[inline(always)]
     fn index(&self) -> usize { *self as usize }
     #[inline(always)]
-    fn max() -> Self { ::std::u32::MAX }
+    fn maximum() -> Self { ::std::u32::MAX }
 }
 
 unsafe impl IndexType for u16 {
@@ -55,7 +55,7 @@ unsafe impl IndexType for u16 {
     #[inline(always)]
     fn index(&self) -> usize { *self as usize }
     #[inline(always)]
-    fn max() -> Self { ::std::u16::MAX }
+    fn maximum() -> Self { ::std::u16::MAX }
 }
 
 unsafe impl IndexType for u8 {
@@ -64,7 +64,7 @@ unsafe impl IndexType for u8 {
     #[inline(always)]
     fn index(&self) -> usize { *self as usize }
     #[inline(always)]
-    fn max() -> Self { ::std::u8::MAX }
+    fn maximum() -> Self { ::std::u8::MAX }
 }
 
 /// Node identifier.
@@ -87,7 +87,7 @@ impl<Ix: IndexType> NodeIndex<Ix>
     #[inline]
     pub fn end() -> Self
     {
-        NodeIndex(IndexType::max())
+        NodeIndex(IndexType::maximum())
     }
 
     fn _into_edge(self) -> EdgeIndex<Ix> {
@@ -126,7 +126,7 @@ impl<Ix: IndexType> EdgeIndex<Ix>
     /// to end an adjacency list.
     #[inline]
     pub fn end() -> Self {
-        EdgeIndex(IndexType::max())
+        EdgeIndex(IndexType::maximum())
     }
 
     fn _into_node(self) -> NodeIndex<Ix> {
@@ -424,7 +424,7 @@ impl<N, E, Ty, Ix> Graph<N, E, Ty, Ix>
         let node = Node{weight: weight, next: [EdgeIndex::end(), EdgeIndex::end()]};
         let node_idx = NodeIndex::new(self.nodes.len());
         // check for max capacity, except if we use usize
-        assert!(Ix::max().index() == !0 || NodeIndex::end() != node_idx);
+        assert!(Ix::maximum().index() == !0 || NodeIndex::end() != node_idx);
         self.nodes.push(node);
         node_idx
     }
@@ -461,7 +461,7 @@ impl<N, E, Ty, Ix> Graph<N, E, Ty, Ix>
     pub fn add_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> EdgeIndex<Ix>
     {
         let edge_idx = EdgeIndex::new(self.edges.len());
-        assert!(Ix::max().index() == !0 || EdgeIndex::end() != edge_idx);
+        assert!(Ix::maximum().index() == !0 || EdgeIndex::end() != edge_idx);
         let mut edge = Edge {
             weight: weight,
             node: [a, b],
@@ -1581,7 +1581,7 @@ impl<Ix: IndexType> WalkNeighbors<Ix> {
 /// for more information.
 #[derive(Clone, Debug)]
 pub struct WalkEdges<Ix: IndexType = DefIndex> {
-    next: EdgeIndex<Ix>, // a valid index or EdgeIndex::max()
+    next: EdgeIndex<Ix>, // a valid index or EdgeIndex::maximum()
     direction: EdgeDirection,
 }
 
