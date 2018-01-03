@@ -3,21 +3,21 @@ extern crate log;
 
 extern crate bio;
 extern crate clap;
-extern crate vedro;
+extern crate mtsv;
 
 
 use bio::io::fasta;
 use clap::{App, Arg};
 use std::path::Path;
-use vedro::builder;
-use vedro::util;
+use mtsv::builder;
+use mtsv::util;
 
 fn main() {
 
-    let args = App::new("vedro-build")
+    let args = App::new("mtsv-build")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
-        .about("Index construction for vedro metagenomics binning tool.")
+        .about("Index construction for mtsv metagenomics binning tool.")
         .arg(Arg::with_name("FASTA")
             .short("f")
             .long("fasta")
@@ -27,7 +27,7 @@ fn main() {
         .arg(Arg::with_name("INDEX")
             .short("i")
             .long("index")
-            .help("Absolute path to vedro index file.")
+            .help("Absolute path to mtsv index file.")
             .takes_value(true)
             .required(true))
         .arg(Arg::with_name("VERBOSE")

@@ -1,7 +1,7 @@
 [package]
-name = "vedro"
+name = "mtsv"
 version = "0.4.0"
-authors = ["Adam Perry <adam.n.perry@gmail.com>"]
+authors = ["Adam Perry <adam.n.perry@gmail.com>", "Tsosie Schneider <tes87@nau.edu>"]
 
 [dependencies]
 bincode = { version = "0.5", features = ["rustc-serialize"] }
@@ -14,6 +14,7 @@ flate2 = "0.2"
 itertools = "0.4"
 log = "0.3"
 rustc-serialize = "0.3"
+serde = "1.0"
 ssw = { path = "ssw" }
 stopwatch = "0.0.6"
 tar = "0.4"

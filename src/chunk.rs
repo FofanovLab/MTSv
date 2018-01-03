@@ -11,10 +11,10 @@ pub fn write_db_chunks(records: &Database,
                        base_filename: &str,
                        out_path: &Path,
                        chunk_gbs: f32)
-                       -> VedroResult<Vec<PathBuf>> {
+                       -> mtsvResult<Vec<PathBuf>> {
 
     if !out_path.is_dir() {
-        return Err(VedroError::MissingFile(format!("{} is not a directory",
+        return Err(mtsvError::MissingFile(format!("{} is not a directory",
                                                    out_path.to_string_lossy())));
     }
 

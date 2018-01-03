@@ -3,16 +3,16 @@ extern crate log;
 
 extern crate clap;
 
-extern crate vedro;
+extern crate mtsv;
 
 use clap::{App, Arg};
 
-use vedro::binner;
-use vedro::util;
+use mtsv::binner;
+use mtsv::util;
 
 fn main() {
 
-    let args = App::new("vedro")
+    let args = App::new("mtsv")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about("Metagenomics binning tool.")
@@ -25,7 +25,7 @@ fn main() {
         .arg(Arg::with_name("INDEX")
             .short("i")
             .long("index")
-            .help("Absolute path to vedro index file.")
+            .help("Absolute path to mtsv index file.")
             .takes_value(true)
             .required(true))
         .arg(Arg::with_name("VERBOSE")

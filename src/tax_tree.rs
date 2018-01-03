@@ -76,10 +76,10 @@ pub struct TreeWithIndices {
 }
 
 impl TreeWithIndices {
-    /// Taking an iterator of vedro findings, determine which are "informative" according to the
+    /// Taking an iterator of mtsv findings, determine which are "informative" according to the
     /// provided settings and write out a `read -> taxonomic ID` mapping. Executes in parallel.
     pub fn find_and_write_informatives<W: Write + Send + Sync>(&self,
-                        all_hits: Box<Iterator<Item=VedroResult<(String, BTreeSet<TaxId>)>>>,
+                        all_hits: Box<Iterator<Item=mtsvResult<(String, BTreeSet<TaxId>)>>>,
                         num_threads: usize,
                         lca: LcaSetting,
                         logical: LogicalSetting,
@@ -94,7 +94,7 @@ impl TreeWithIndices {
             if let Ok((read_id, hits)) = r {
                 Some((read_id, self.informative_parent(&hits, lca, logical)))
             } else {
-                error!("Problem parsing vedro findings: {:?}", r);
+                error!("Problem parsing mtsv findings: {:?}", r);
                 exit(1);
             }
         },
@@ -291,7 +291,7 @@ impl TreeWithIndices {
     }
 
     /// Construct a taxonomic tree index from a filename.
-    pub fn from_node_dump<R: BufRead>(node_dump: R) -> VedroResult<Self> {
+    pub fn from_node_dump<R: BufRead>(node_dump: R) -> mtsvResult<Self> {
         info!("Found nodes.dmp, tokenizing and lexing taxon nodes...");
         let (children, ranks) = try!(Self::tokenize_nodes(node_dump));
 
@@ -352,7 +352,7 @@ impl TreeWithIndices {
     /// Parse the node dump file from NCBI into structures of loose nodes.
     fn tokenize_nodes<R: BufRead>
         (contents: R)
-         -> VedroResult<(BTreeMap<TaxId, Vec<TaxId>>, BTreeMap<TaxId, Rank>)> {
+         -> mtsvResult<(BTreeMap<TaxId, Vec<TaxId>>, BTreeMap<TaxId, Rank>)> {
 
         let mut ranks = BTreeMap::new();
         let mut children = BTreeMap::new();
@@ -369,17 +369,17 @@ impl TreeWithIndices {
 
             let taxid = match tokens.next().map(|t| t.parse::<TaxId>()) {
                 Some(Ok(t)) => t,
-                _ => return Err(VedroError::InvalidHeader(trimmed.to_string())),
+                _ => return Err(mtsvError::InvalidHeader(trimmed.to_string())),
             };
 
             let parentid = match tokens.next().map(|t| t.parse::<TaxId>()) {
                 Some(Ok(t)) => t,
-                _ => return Err(VedroError::InvalidHeader(trimmed.to_string())),
+                _ => return Err(mtsvError::InvalidHeader(trimmed.to_string())),
             };
 
             let rank = match tokens.next() {
                 Some(t) => Rank::from(t),
-                None => return Err(VedroError::InvalidHeader(trimmed.to_string())),
+                None => return Err(mtsvError::InvalidHeader(trimmed.to_string())),
             };
 
             children.entry(parentid).or_insert(Vec::new()).push(taxid);
