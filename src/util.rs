@@ -22,35 +22,35 @@ pub fn init_logging(level: LogLevelFilter) {
     let _ = builder.init();
 }
 
-/// Parse a reference sequence's read header in the format expected by vedro: `ACCESSION-TAXID`.
-pub fn parse_read_header(h: &str) -> VedroResult<(Gi, TaxId)> {
+/// Parse a reference sequence's read header in the format expected by mtsv: `ACCESSION-TAXID`.
+pub fn parse_read_header(h: &str) -> mtsvResult<(Gi, TaxId)> {
     let mut tokens = h.split('-');
 
     let gi = match tokens.next() {
         Some(t) => {
             match t.parse::<Gi>() {
                 Ok(t) => t,
-                Err(_) => return Err(VedroError::InvalidInteger(t.to_owned())),
+                Err(_) => return Err(mtsvError::InvalidInteger(t.to_owned())),
             }
         },
-        None => return Err(VedroError::InvalidHeader(String::from(h))),
+        None => return Err(mtsvError::InvalidHeader(String::from(h))),
     };
 
     let tax_id = match tokens.next() {
         Some(t) => {
             match t.parse::<TaxId>() {
                 Ok(t) => t,
-                Err(_) => return Err(VedroError::InvalidInteger(t.to_owned())),
+                Err(_) => return Err(mtsvError::InvalidInteger(t.to_owned())),
             }
         },
-        None => return Err(VedroError::InvalidHeader(String::from(h))),
+        None => return Err(mtsvError::InvalidHeader(String::from(h))),
     };
 
     if let None = tokens.next() {
         Ok((gi, tax_id))
     } else {
         // there's a second dash -- not the format we're expecting
-        Err(VedroError::InvalidHeader(String::from(h)))
+        Err(mtsvError::InvalidHeader(String::from(h)))
     }
 }
 

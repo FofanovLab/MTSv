@@ -1,4 +1,4 @@
-//! The metagenomic binner for vedro (note: actual lookups in `index`). Manages parallel execution
+//! The metagenomic binner for mtsv (note: actual lookups in `index`). Manages parallel execution
 //! of queries along with writing results.
 
 use bio::alphabets::dna::RevComp;
@@ -40,7 +40,7 @@ pub fn get_and_write_matching_bin_ids(fasta_path: &str,
                                       seed_size: usize,
                                       seed_gap: usize,
                                       min_seeds: usize)
-                                      -> VedroResult<()> {
+                                      -> mtsvResult<()> {
 
     info!("Opening FASTA query file...");
 
@@ -135,7 +135,7 @@ pub fn get_and_write_matching_bin_ids(fasta_path: &str,
 pub fn write_single_line<W: Write>(header: &str,
                                    matches: &BTreeSet<TaxId>,
                                    writer: &mut W)
-                                   -> VedroResult<()> {
+                                   -> mtsvResult<()> {
     if matches.len() == 0 {
         return Ok(());
     }

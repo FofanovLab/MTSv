@@ -5,14 +5,14 @@ extern crate log;
 
 extern crate bio;
 extern crate clap;
-extern crate vedro;
+extern crate mtsv;
 
 use bio::io::fasta;
 use clap::{App, Arg};
 use std::path::Path;
-use vedro::chunk::write_db_chunks;
-use vedro::io::parse_fasta_db;
-use vedro::util;
+use mtsv::chunk::write_db_chunks;
+use mtsv::io::parse_fasta_db;
+use mtsv::util;
 
 fn main() {
     let args = App::new("vedro-chunk")

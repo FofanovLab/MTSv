@@ -5,7 +5,7 @@ extern crate bio;
 extern crate clap;
 extern crate flate2;
 extern crate tar;
-extern crate vedro;
+extern crate mtsv;
 
 
 use clap::{App, Arg};
@@ -15,17 +15,17 @@ use std::io;
 use std::io::{Cursor, Read};
 use tar::Archive;
 
-use vedro::error::*;
-use vedro::io::write_to_file;
-use vedro::tax_tree::TreeWithIndices;
-use vedro::util;
+use mtsv::error::*;
+use mtsv::io::write_to_file;
+use mtsv::tax_tree::TreeWithIndices;
+use mtsv::util;
 
 fn main() {
 
-    let args = App::new("vedro-tree-build")
+    let args = App::new("mtsv-tree-build")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
-        .about("Index construction for vedro-inform read informativeness tool.")
+        .about("Index construction for mtsv-inform read informativeness tool.")
         .arg(Arg::with_name("NCBI_TREE")
             .short("d")
             .long("dump")
@@ -35,7 +35,7 @@ fn main() {
         .arg(Arg::with_name("INDEX")
             .short("i")
             .long("index")
-            .help("Output path to vedro-inform index file.")
+            .help("Output path to mtsv-inform index file.")
             .takes_value(true)
             .required(true))
         .arg(Arg::with_name("VERBOSE")
@@ -76,7 +76,7 @@ fn main() {
     }
 }
 
-fn get_node_dump_from_tar(p: &str) -> VedroResult<String> {
+fn get_node_dump_from_tar(p: &str) -> mtsvResult<String> {
     let mut archive = Archive::new(try!(GzDecoder::new(io::BufReader::new(try!(File::open(p))))));
 
     for entry in try!(archive.entries()) {
@@ -97,5 +97,5 @@ fn get_node_dump_from_tar(p: &str) -> VedroResult<String> {
         }
     }
 
-    Err(VedroError::MissingFile("nodes.dmp".to_string()))
+    Err(mtsvError::MissingFile("nodes.dmp".to_string()))
 }

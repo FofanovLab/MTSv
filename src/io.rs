@@ -14,7 +14,7 @@ use std::path::Path;
 use util::parse_read_header;
 
 /// Parse an arbitrary `Decodable` type from a file path.
-pub fn from_file<T>(p: &str) -> VedroResult<T>
+pub fn from_file<T>(p: &str) -> mtsvResult<T>
     where T: Decodable
 {
 
@@ -24,7 +24,7 @@ pub fn from_file<T>(p: &str) -> VedroResult<T>
 }
 
 /// Write an arbitrary `Encodable` type to a file path.
-pub fn write_to_file<T>(t: &T, p: &str) -> VedroResult<()>
+pub fn write_to_file<T>(t: &T, p: &str) -> mtsvResult<()>
     where T: Encodable
 {
 
@@ -34,7 +34,7 @@ pub fn write_to_file<T>(t: &T, p: &str) -> VedroResult<()>
 }
 
 /// Parse a FASTA database into a single map of all taxonomy IDs.
-pub fn parse_fasta_db<R>(records: R) -> VedroResult<Database>
+pub fn parse_fasta_db<R>(records: R) -> mtsvResult<Database>
     where R: Iterator<Item = io::Result<fasta::Record>>
 {
     let mut taxon_map = BTreeMap::new();
@@ -52,7 +52,7 @@ pub fn parse_fasta_db<R>(records: R) -> VedroResult<Database>
     Ok(taxon_map)
 }
 
-/// Return a lazy iterator which parses the findings of a vedro-binner run.
+/// Return a lazy iterator which parses the findings of a mtsv-binner run.
 ///
 /// The Option return type could indicate a few problems:
 ///
@@ -61,12 +61,12 @@ pub fn parse_fasta_db<R>(records: R) -> VedroResult<Database>
 ///
 pub fn parse_findings<'a, R: BufRead + 'a>
     (s: R)
-     -> Box<Iterator<Item = VedroResult<(String, BTreeSet<TaxId>)>> + 'a> {
+     -> Box<Iterator<Item = mtsvResult<(String, BTreeSet<TaxId>)>> + 'a> {
     // TODO: replace with -> impl Trait when stabilized
 
     // the BufRead::lines function handles lazily splitting on lines for us
     Box::new(s.lines().map(|l| {
-        l.map_err(|e| VedroError::from(e)).and_then(|l| {
+        l.map_err(|e| mtsvError::from(e)).and_then(|l| {
             let l = l.trim();
             // split from the right in case someone put colons in the read ID
             let mut halves = l.rsplitn(2, ':');
@@ -80,7 +80,7 @@ pub fn parse_findings<'a, R: BufRead + 'a>
             for taxid_raw in taxids {
                 let taxid = match taxid_raw.parse::<TaxId>() {
                     Ok(id) => id,
-                    Err(_) => return Err(VedroError::InvalidInteger(taxid_raw.to_string())),
+                    Err(_) => return Err(mtsvError::InvalidInteger(taxid_raw.to_string())),
                 };
 
                 hits.insert(taxid);
@@ -92,10 +92,10 @@ pub fn parse_findings<'a, R: BufRead + 'a>
                     if r.len() > 0 {
                         r.to_string()
                     } else {
-                        return Err(VedroError::InvalidHeader(l.to_string()));
+                        return Err(mtsvError::InvalidHeader(l.to_string()));
                     }
                 },
-                None => return Err(VedroError::InvalidHeader(l.to_string())),
+                None => return Err(mtsvError::InvalidHeader(l.to_string())),
             };
 
             Ok((read_id, hits))

@@ -1,4 +1,4 @@
-//! Collapse multiple vedro results/findings files into a single one.
+//! Collapse multiple mtsv results/findings files into a single one.
 
 use binner::write_single_line;
 use error::*;
@@ -6,8 +6,8 @@ use io::parse_findings;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufRead, Write};
 
-/// Given a list of vedro results file paths, collapse into a single one.
-pub fn collapse_files<R, W>(files: &mut [R], write_to: &mut W) -> VedroResult<()>
+/// Given a list of mtsv results file paths, collapse into a single one.
+pub fn collapse_files<R, W>(files: &mut [R], write_to: &mut W) -> mtsvResult<()>
     where R: BufRead,
           W: Write
 {

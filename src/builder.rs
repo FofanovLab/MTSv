@@ -9,12 +9,12 @@ use std::io;
 
 /// Build and write the metagenomic index to disk.
 ///
-/// The actual construction logic is in `vedro::index::MGIndex`, this just handles the I/O and
+/// The actual construction logic is in `mtsv::index::MGIndex`, this just handles the I/O and
 /// parsing.
 pub fn build_and_write_index<R>(records: R,
                                 index_path: &str,
                                 sample_interval: u32)
-                                -> VedroResult<()>
+                                -> mtsvResult<()>
     where R: Iterator<Item = io::Result<fasta::Record>>
 {
     let taxon_map = try!(parse_fasta_db(records));

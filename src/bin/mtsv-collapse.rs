@@ -2,21 +2,21 @@
 extern crate log;
 
 extern crate clap;
-extern crate vedro;
+extern crate mtsv;
 
 
 use clap::{App, Arg};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
-use vedro::collapse::collapse_files;
-use vedro::util;
+use mtsv::collapse::collapse_files;
+use mtsv::util;
 
 fn main() {
-    let args = App::new("vedro-collapse")
+    let args = App::new("mtsv-collapse")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
-        .about("Tool for combining the output of multiple separate vedro runs.")
+        .about("Tool for combining the output of multiple separate mtsv runs.")
         .arg(Arg::with_name("OUTPUT")
             .help("Path to write combined outupt file to.")
             .short("o")
@@ -25,7 +25,7 @@ fn main() {
             .required(true))
         .arg(Arg::with_name("FILES")
             .index(1)
-            .help("Path(s) to vedro results files to collapse")
+            .help("Path(s) to mtsv results files to collapse")
             .takes_value(true)
             .multiple(true)
             .required(true))

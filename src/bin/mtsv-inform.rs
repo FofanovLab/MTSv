@@ -5,27 +5,27 @@ extern crate bio;
 extern crate clap;
 extern crate flate2;
 extern crate tar;
-extern crate vedro;
+extern crate mtsv;
 
 
 use clap::{App, Arg};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
-use vedro::io::{from_file, parse_findings};
-use vedro::tax_tree::{LcaSetting, LogicalSetting, TreeWithIndices};
-use vedro::util;
+use mtsv::io::{from_file, parse_findings};
+use mtsv::tax_tree::{LcaSetting, LogicalSetting, TreeWithIndices};
+use mtsv::util;
 
 fn main() {
 
-    let args = App::new("vedro-inform")
+    let args = App::new("mtsv-inform")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
-        .about("Postprocessor for vedro results to determine which reads are \"informative.\"")
+        .about("Postprocessor for mtsv results to determine which reads are \"informative.\"")
         .arg(Arg::with_name("INPUT")
             .short("i")
             .long("input")
-            .help("Path to vedro results file.")
+            .help("Path to mtsv results file.")
             .takes_value(true)
             .required(true))
         .arg(Arg::with_name("OUTPUT")
@@ -37,7 +37,7 @@ fn main() {
         .arg(Arg::with_name("INDEX")
             .short("x")
             .long("index")
-            .help("Path to index built by vedro-tree-build utility.")
+            .help("Path to index built by mtsv-tree-build utility.")
             .takes_value(true)
             .required(true))
         .arg(Arg::with_name("GENUS")

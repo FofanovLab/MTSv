@@ -4,11 +4,11 @@ extern crate log;
 extern crate bio;
 extern crate clap;
 extern crate rustc_serialize;
-extern crate vedro;
+extern crate mtsv;
 
-use vedro::prep::*;
-use vedro::prep_config::*;
-use vedro::util;
+use mtsv::prep::*;
+use mtsv::prep_config::*;
+use mtsv::util;
 
 fn main() {
     let args = prep_cli_app().get_matches();
