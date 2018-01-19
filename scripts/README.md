@@ -62,15 +62,18 @@ optional arguments:
                         Output directory (default: ./)
 ```
 ### Example Slurm Script
+Change nauid to your nauid and modify `out_path` to test and run script
 ```
 #!/bin/bash
 #SBATCH --job-name=MTSv-extract
-#SBATCH --output=/scratch/nauid/output.txt      
+#SBATCH --output=/scratch/nauid/output.txt     
+
 module load anaconda/3.latest
 source activate biopy3
 
-python -u MTSv_extract.py test_1392 1392 \ /scratch/tf362/vedro/merge/merged_results.txt \
+python -u MTSv_extract.py test_1392 1392 \ 
+/scratch/tf362/vedro/merge/merged_results.txt \
 /scratch/tf362/vedro/inform/informative.txt \
 /scratch/tf362/vedro/readprep/seg50_minqual15-qualthresh-3.fasta \
---output /scratch/nauid/path/to/output/
+--out_path /scratch/nauid/path/to/output/
 ```
