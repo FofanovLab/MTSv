@@ -1,6 +1,9 @@
 import argparse
 import os.path as path
 from Bio import SeqIO
+from ete3 import NCBITaxa
+ncbi = NCBITaxa()
+ncbi.update_taxonomy_database()
 
 def path_type(input_path):
     if not path.isdir(input_path):
@@ -14,18 +17,29 @@ def file_type(input_file):
             "Not a valid file path: {}".format(input_file))
     return path.abspath(input_file)
 
-def get_outfile(_path, file_name, ext):
-    return path.join(_path, file_name + ext)
+def get_outfile(_path, file_name, taxid, ext):
+    return path.join(
+        _path, "{0}_{1}.{2}".format(
+            file_name, taxid, ext))
+
+def taxid_lookup(species_name):
+    return ncbi.get_name_translator(
+        [species_name])[species_name][0]
+
+def species_lookup(taxid):
+    return ncbi.get_taxid_translator(
+        [taxid])[taxid]
 
 def mtsv_extract(
-        project_name, taxid, all_data,
+        project_name, taxid, species, all_data,
         sig_data, read_fasta, out_path):
     all_out = get_outfile(
-        out_path, project_name, "_all.fasta")
+        out_path, project_name, taxid, "_all.fasta")
     sig_out = get_outfile(
-        out_path, project_name, "_signature.fasta")
-    all_read_ids = parse_data(all_data, taxid)
-    sig_read_ids = parse_data(sig_data, taxid)
+        out_path, project_name, taxid, "_signature.fasta")
+    all_read_ids = parse_data(all_data, str(taxid))
+    sig_read_ids = parse_data(sig_data, str(taxid))
+    print("Writing files for taxid {0} ({1})".format(taxid, species))
     write_sequences(
         read_fasta, all_read_ids, sig_read_ids,
         all_out, sig_out)
@@ -62,19 +76,14 @@ def parse_data(file_path, taxid):
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(
     prog='MTSv Extract',
-    description="Extracts all read sequences, including signature "
-                "reads, that aligned to a given taxid.",
+    description="Extracts all sequences, including signature "
+                "hits, that aligned to a given taxid or species name.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     PARSER.add_argument(
         "project_name", metavar='PROJECT_NAME', type=str,
         help="Project name and output file prefix"
-    )
-
-    PARSER.add_argument(
-        "taxid", metavar="TAXID", type=str,
-        help="Taxid to extract"
     )
 
     PARSER.add_argument(
@@ -97,11 +106,28 @@ if __name__ == "__main__":
         help="Output directory"
     )
 
-    ARGS = PARSER.parse_args()
 
+    LOOK_UP_GROUP = PARSER.add_mutually_exclusive_group(required=True)
+    LOOK_UP_GROUP.add_argument(
+        '-t', '--taxid', type=int, default=None,
+        help="Extract sequences by taxid" 
+    )
+
+    LOOK_UP_GROUP.add_argument(
+        '-s', '--species', type=str, default=None,
+        help="Extract sequences by species name"
+    )
+ 
+
+    ARGS = PARSER.parse_args()
+    if ARGS.taxid is None:
+        ARGS.taxid = taxid_lookup(ARGS.species)
+    else:
+        ARGS.species = species_lookup(ARGS.taxid)
 
     mtsv_extract(
         ARGS.project_name,
-        ARGS.taxid, ARGS.all,
+        ARGS.taxid, ARGS.species,
+        ARGS.all,
         ARGS.sig, ARGS.reads,
         ARGS.out_path)
