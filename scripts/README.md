@@ -21,8 +21,22 @@ $ source activate biopy3
 $ source deactivate
 ```
 
+### Install ETE Toolkit
+Activate environment
+```
+$ source activate biopy3
+```
+Use Conda to install toolkit
+```
+$ conda install -c etetoolkit ete3 ete_toolchain
+```
+Check installation
+```
+$ ete3 build check
+```
+
 # MTSv Extract
-The `MTSv_extract.py` script extracts all read sequences that aligned to a provided taxid.
+The `MTSv_extract.py` script extracts all read sequences that aligned to a provided taxid or species name.
 
 ### Input
 **Required Positional Arguments**  
@@ -31,7 +45,7 @@ The `MTSv_extract.py` script extracts all read sequences that aligned to a provi
 `signature_file`: Path to MTSv-inform output file  
 `reads_fasta`: Path to FASTA file produced from MTSv-readprep  
 
-**Required Mutually Exclusive Arguments**
+**Required Mutually Exclusive Arguments**  
 `taxid`: the taxid to extract  
 `species`: the species name to extract
 
@@ -39,8 +53,8 @@ The `MTSv_extract.py` script extracts all read sequences that aligned to a provi
 `out_path`: Directory to write output (Default: ./)
 
 ### Output
-`PROJECT_NAME_all.fasta`: Contains all sequence reads that aligned to taxid.  
-`PROJECT_NAME_signature.fasta`: Contains sequence reads that only aligned to this taxid and no other taxids.
+`PROJECT_NAME_TAXID_all.fasta`: Contains all sequence reads that aligned to taxid.  
+`PROJECT_NAME_TAXID_signature.fasta`: Contains sequence reads that only aligned to this taxid and no other taxids.
 
 ### Usage
 ```
@@ -76,9 +90,10 @@ Change nauid to your nauid and modify `out_path` to test and run script
 module load anaconda/3.latest
 source activate biopy3
 
-python -u MTSv_extract.py test_1392 1392 \
+python -u MTSv_extract.py test \
 /scratch/tf362/vedro/merge/merged_results.txt \
 /scratch/tf362/vedro/inform/informative.txt \
 /scratch/tf362/vedro/readprep/seg50_minqual15-qualthresh-3.fasta \
---output /scratch/nauid/path/to/output/
+--output /scratch/nauid/path/to/output/ \
+--taxid 1392
 ```
