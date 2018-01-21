@@ -27,10 +27,13 @@ The `MTSv_extract.py` script extracts all read sequences that aligned to a provi
 ### Input
 **Required Positional Arguments**  
 `project_name`: provide prefix that will be used to name all output files  
-`taxid`: the taxid to extract  
 `collapse_file`: Path to MTSv-collapse output file  
 `signature_file`: Path to MTSv-inform output file  
 `reads_fasta`: Path to FASTA file produced from MTSv-readprep  
+
+**Required Mutually Exclusive Arguments**
+`taxid`: the taxid to extract  
+`species`: the species name to extract
 
 **Optional Arguments**  
 `out_path`: Directory to write output (Default: ./)
@@ -42,16 +45,14 @@ The `MTSv_extract.py` script extracts all read sequences that aligned to a provi
 ### Usage
 ```
 python MTSv_extract.py --help
-usage: MTSv Extract [-h] [-o OUT_PATH]
-                    PROJECT_NAME TAXID COLLAPSE_FILE SIGNATURE_FILE
-                    READS_FASTA
+usage: MTSv Extract [-h] [-o OUT_PATH] (-t TAXID | -s SPECIES)
+                    PROJECT_NAME COLLAPSE_FILE SIGNATURE_FILE READS_FASTA
 
-Extracts all read sequences, including signature reads, that aligned to a
-given taxid.
+Extracts all sequences, including signature hits, that aligned to a given
+taxid or species name.
 
 positional arguments:
   PROJECT_NAME          Project name and output file prefix
-  TAXID                 Taxid to extract
   COLLAPSE_FILE         Path to MTSv-collapse output file
   SIGNATURE_FILE        Path to MTSv-inform output file
   READS_FASTA           Path to FASTA file from MTSv-readprep
@@ -60,20 +61,24 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUT_PATH, --out_path OUT_PATH
                         Output directory (default: ./)
+  -t TAXID, --taxid TAXID
+                        Extract sequences by taxid (default: None)
+  -s SPECIES, --species SPECIES
+                        Extract sequences by species name (default: None)
+
 ```
 ### Example Slurm Script
 Change nauid to your nauid and modify `out_path` to test and run script
 ```
 #!/bin/bash
 #SBATCH --job-name=MTSv-extract
-#SBATCH --output=/scratch/nauid/output.txt     
-
+#SBATCH --output=/scratch/nauid/output.txt      
 module load anaconda/3.latest
 source activate biopy3
 
-python -u MTSv_extract.py test_1392 1392 \ 
+python -u MTSv_extract.py test_1392 1392 \
 /scratch/tf362/vedro/merge/merged_results.txt \
 /scratch/tf362/vedro/inform/informative.txt \
 /scratch/tf362/vedro/readprep/seg50_minqual15-qualthresh-3.fasta \
---out_path /scratch/nauid/path/to/output/
+--output /scratch/nauid/path/to/output/
 ```
