@@ -120,7 +120,6 @@ if __name__ == "__main__":
  
 
     ARGS = PARSER.parse_args()
-    ncbi.update_taxonomy_database()
 
     if ARGS.taxid is None:
         ARGS.taxid = taxid_lookup(ARGS.species)
