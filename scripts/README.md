@@ -7,7 +7,7 @@ $ module load anaconda/3.latest
 ### Create Conda environment with Python3 and Biopython
 Only needs to be created once and only if you don't already have an environment with python3 and biopython. 
 ```
-$ conda create --name biopy3 python=3.5.2 biopython
+$ conda create --name biopy3 python=3.5.2 biopython pandas ete3
 ```
 The name `biopy3` can be changed to whatever name you want.
 
