@@ -94,6 +94,6 @@ python -u MTSv_extract.py test \
 /scratch/tf362/vedro/merge/merged_results.txt \
 /scratch/tf362/vedro/inform/informative.txt \
 /scratch/tf362/vedro/readprep/seg50_minqual15-qualthresh-3.fasta \
---output /scratch/nauid/path/to/output/ \
---taxid 1392
+--out_path /scratch/nauid/path/to/output/ \
+--taxid 9606 # human
 ```
