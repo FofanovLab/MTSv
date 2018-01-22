@@ -46,7 +46,10 @@ The `MTSv_summary.py` script summarizes the number of hits per taxon. The total 
 `--out_path`: Directory to write output (Default: ./)  
 
 ### Output
-An Excel file in the following format:  
+
+An Excel file <`out_path`/`program_name`_summary.xlsx> in the following format:  
+
+
 | TaxID | Division | Sci. Name          | Sample | Total Hits | Unique Hits | Signature Hits |
 |-------|----------|--------------------|--------|------------|-------------|----------------|
 | 1392  | Bacteria | Bacillus anthracis | 0      | 12         | 2           | 2              |
@@ -55,13 +58,14 @@ An Excel file in the following format:
 | 1396  | Bacteria | Bacillus cereus    | 0      | 10         | 1           | 0              |
 | 1396  | Bacteria | Bacillus cereus    | 1      | 13         | 1           | 0              |
 | 1396  | Bacteria | Bacillus cereus    | 2      | 15         | 1           | 0              |
+
 These results correspond to the following input file:
 ```
 R1_10_13_15:1392,1396
 R2_2_0_10:1392
 ```
 
-## Usage
+### Usage
 ```
 python MTSv_summary.py --help
 usage: MTSv Summary [-h] [-o OUT_PATH] PROJECT_NAME COLLAPSE_FILE
@@ -77,7 +81,21 @@ optional arguments:
   -o OUT_PATH, --out_path OUT_PATH
                         Output directory (default: ./)
 ```
+### Example Slurm Script
+Change nauid to your nauid and modify `out_path` to test and run script  
 
+```
+#!/bin/bash
+#SBATCH --job-name=MTSv-summary
+#SBATCH --output=/scratch/nauid/output.txt 
+
+module load anaconda/3.latest
+source activate biopy3
+
+python -u MTSv_summary.py test \
+/scratch/tf362/vedro/merge/merged_results.txt \
+--out_path /scratch/nauid/path/to/output/ \
+```
 
 # MTSv Extract
 The `MTSv_extract.py` script extracts all read sequences that aligned to a provided taxid or species name.
