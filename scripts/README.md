@@ -4,12 +4,12 @@
 $ module load anaconda/3.latest
 ```
 
-### Create Conda environment with Python3 and Biopython
-Only needs to be created once and only if you don't already have an environment with python3 and biopython. 
+### Create Conda environment with Python3 and required packages.
+The environment only needs to be created once.
 ```
 $ conda create --name biopy3 python=3.5.2 biopython pandas ete3
 ```
-The name `biopy3` can be changed to whatever name you want.
+The name `biopy3` can be changed to whatever name you want.  
 
 ### Activate Conda Environment
 ```
@@ -21,18 +21,12 @@ $ source activate biopy3
 $ source deactivate
 ```
 
-### Install ETE Toolkit
-Activate environment
+If you already have a Python3.5.2 environment you can just use conda to install the required packages.
 ```
-$ source activate biopy3
-```
-Use Conda to install toolkit
-```
+$ source activate ENV_NAME
 $ conda install -c etetoolkit ete3 ete_toolchain
-```
-Check installation
-```
-$ ete3 build check
+$ conda install pandas
+$ conda install biopython
 ```
 
 # MTSv Summary
@@ -98,7 +92,7 @@ python -u MTSv_summary.py test \
 ```
 
 # MTSv Extract
-The `MTSv_extract.py` script extracts all read sequences that aligned to a provided taxid or species name.
+The `MTSv_extract.py` script extracts all unique read sequences that aligned to a provided taxid or species name.
 
 ### Input
 **Required Positional Arguments**  
