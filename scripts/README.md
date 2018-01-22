@@ -35,6 +35,50 @@ Check installation
 $ ete3 build check
 ```
 
+# MTSv Summary
+The `MTSv_summary.py` script summarizes the number of hits per taxon. The total number of reads mapped, the number of unique mapped reads, and the number of signature hits per taxon per sample (samples are in the same order as the FASTQ files that were passed to `MTSv-readprep`).
+
+### Input
+**Required Positional Arguments**  
+`project_name`: Provide a prefix that will be used to name all output files.  
+`collapse_file`: Path to MTSv-collapse output file  
+**Optional Arguments**  
+`--out_path`: Directory to write output (Default: ./)  
+
+### Output
+An Excel file in the following format:  
+| TaxID | Division | Sci. Name          | Sample | Total Hits | Unique Hits | Signature Hits |
+|-------|----------|--------------------|--------|------------|-------------|----------------|
+| 1392  | Bacteria | Bacillus anthracis | 0      | 12         | 2           | 2              |
+| 1392  | Bacteria | Bacillus anthracis | 1      | 13         | 1           | 0              |
+| 1392  | Bacteria | Bacillus anthracis | 2      | 15         | 2           | 10             |
+| 1396  | Bacteria | Bacillus cereus    | 0      | 10         | 1           | 0              |
+| 1396  | Bacteria | Bacillus cereus    | 1      | 13         | 1           | 0              |
+| 1396  | Bacteria | Bacillus cereus    | 2      | 15         | 1           | 0              |
+These results correspond to the following input file:
+```
+R1_10_13_15:1392,1396
+R2_2_0_10:1392
+```
+
+## Usage
+```
+python MTSv_summary.py --help
+usage: MTSv Summary [-h] [-o OUT_PATH] PROJECT_NAME COLLAPSE_FILE
+
+Summarize number of hits for each taxa, including signature hits.
+
+positional arguments:
+  PROJECT_NAME          Project name and output file prefix
+  COLLAPSE_FILE         Path to MTSv-collapse output file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUT_PATH, --out_path OUT_PATH
+                        Output directory (default: ./)
+```
+
+
 # MTSv Extract
 The `MTSv_extract.py` script extracts all read sequences that aligned to a provided taxid or species name.
 
@@ -50,7 +94,7 @@ The `MTSv_extract.py` script extracts all read sequences that aligned to a provi
 `species`: the species name to extract
 
 **Optional Arguments**  
-`out_path`: Directory to write output (Default: ./)
+`--out_path`: Directory to write output (Default: ./)
 
 ### Output
 `PROJECT_NAME_TAXID_all.fasta`: Contains all sequence reads that aligned to taxid.  
