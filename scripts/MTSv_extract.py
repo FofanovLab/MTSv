@@ -26,6 +26,7 @@ def taxid_lookup(species_name):
         [species_name])[species_name][0]
 
 def species_lookup(taxid):
+    taxid = int(taxid)
     return ncbi.get_taxid_translator(
         [taxid])[taxid]
 
