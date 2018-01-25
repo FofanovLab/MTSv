@@ -7,13 +7,18 @@ $ module load anaconda/3.latest
 ### Create Conda environment with Python3 and required packages.
 The environment only needs to be created once.
 ```
-$ conda create --name biopy3 python=3.5.2 biopython pandas ete3
+$ conda create --name biopy3 python=3.5.2 biopython pandas
 ```
 The name `biopy3` can be changed to whatever name you want.  
 
 ### Activate Conda Environment
 ```
 $ source activate biopy3
+```
+
+### Install etetoolkit
+```
+$ conda install -c etetoolkit ete3 ete_toolchain
 ```
 
 ### Deactivate Conda Environment
