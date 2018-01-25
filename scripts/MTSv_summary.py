@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     
     outfile = path.join(
-        ARGS.out_path, "{0}_summary.xlsx".format(ARGS.project_name))
+        ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
     data_dict = {}
     
@@ -100,4 +100,4 @@ if __name__ == "__main__":
         "Total Hits", "Unique Hits", "Signature Hits"])
       
 
-    data_frame.to_excel(outfile, index=False) 
+    data_frame.to_csv(outfile, index=False) 
