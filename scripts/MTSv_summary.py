@@ -5,6 +5,7 @@ from  os import getcwd
 from os.path import expanduser
 from collections import defaultdict
 import pandas as pd
+NCBI = NCBITaxa()
 
 div_map = {2:'Bacteria', 10239: 'Viruses (excluding environmental sample',
            2157: 'Archaea', 12884: 'Viroids', 28384: "Other and synthetic sequences",
@@ -29,7 +30,7 @@ def file_type(input_file):
     return path.abspath(input_file)
 
 def tax2div(taxid):
-    lineage = ncbi.get_lineage(taxid)
+    lineage = NCBI.get_lineage(taxid)
     for level in lineage[::-1]:
         if level in div_map:
             return div_map[level]
@@ -60,14 +61,33 @@ if __name__ == "__main__":
         help="Output directory"
     )
 
+    PARSER.add_argument(
+        "--update", action="store_true",
+        help="Update taxdump"
+    )
+
+    PARSER.add_argument(
+        "--taxdump", type=file_type, default=None,
+        help="Alternative path to taxdump.
+             "Default is home directory where ete3 "
+             "automatically downloads the file."
+    )
 
     ARGS = PARSER.parse_args()
+    NCBI = NCBITaxa()
+    if ARGS.update:
+        NCBI.update_taxonomy_database()
 
-    ncbi = NCBITaxa()
-
+    if ARGS.taxdump is not None:
+        NCBI.update_taxonomy_database(
+            path.abspath(ARGS.taxdump))
     
     outfile = path.join(
-        ARGS.out_path, "{0}_summary.xlsx".format(ARGS.project_name))
+        ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
+
+    get_summary(outpath)
+
+    def get_summary(outpath):
 
     data_dict = {}
     
@@ -87,7 +107,7 @@ if __name__ == "__main__":
                     if signature:
                         data_dict[taxon][sample][2] += count
 
-    taxid2name = ncbi.get_taxid_translator(data_dict.keys())      
+    taxid2name = NCBI.get_taxid_translator(data_dict.keys())      
     data_list = []
     for taxa, samples in data_dict.items():
         for sample, value in samples.items():
@@ -100,4 +120,4 @@ if __name__ == "__main__":
         "Total Hits", "Unique Hits", "Signature Hits"])
       
 
-    data_frame.to_excel(outfile, index=False) 
+    data_frame.to_csv(outfile, index=False) 
