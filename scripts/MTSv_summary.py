@@ -96,11 +96,11 @@ def get_summary(all_file, sig_file, outpath):
     for taxa, samples in data_dict.items():
         row_list = [taxa, tax2div(taxa), taxid2name[taxa]]
         for sample, value in samples.items():
-            row_list += [value[0], value[1], value[2]]
+            row_list += [value[0], value[1], value[2], value[3]]
         data_list.append(row_list)
     
     column_names = ["TaxID","Division", "Sci. Name"]
-    for c in range(len(data_list[0]) - 3):
+    for c in range(int((len(data_list[0]) - 3)/4)):
         column_names += ["Total Hits (S{})".format(c+1),
                             "Unique Hits (S{})".format(c+1),
                             "Signature Hits (S{})".format(c+1),
@@ -154,7 +154,6 @@ if __name__ == "__main__":
     )
 
     ARGS = PARSER.parse_args()
-    NCBI = NCBITaxa()
     if ARGS.update:
         NCBI.update_taxonomy_database()
 
