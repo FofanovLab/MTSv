@@ -106,6 +106,17 @@ if __name__ == "__main__":
         help="Output directory"
     )
 
+    PARSER.add_argument(
+        "--update", action="store_true",
+        help="Update taxdump"
+    )
+
+    PARSER.add_argument(
+        "--taxdump", type=file_type, default=None,
+        help="Alternative path to taxdump.
+             "Default is home directory where ete3 "
+             "automatically downloads the file."
+    )
 
     LOOK_UP_GROUP = PARSER.add_mutually_exclusive_group(required=True)
     LOOK_UP_GROUP.add_argument(
@@ -121,10 +132,17 @@ if __name__ == "__main__":
 
     ARGS = PARSER.parse_args()
 
+    if ARGS.update:
+        ncbi.update_taxonomy_database()
+
+    if ARGS.taxdump:
+        ncbi.update_taxonomy_database(
+            taxdump_file=path.abspath(ARGS.taxdump))
     if ARGS.taxid is None:
         ARGS.taxid = taxid_lookup(ARGS.species)
     else:
         ARGS.species = species_lookup(ARGS.taxid)
+
 
     mtsv_extract(
         ARGS.project_name,
