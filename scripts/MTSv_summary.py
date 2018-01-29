@@ -35,6 +35,78 @@ def tax2div(taxid):
         if level in div_map:
             return div_map[level]
     return "Unknown"
+
+def parse_line(line):
+    line = line.strip(line).rsplit(":", 1)
+    taxa = [int(tax.strip()) for tax in line[1].split(",")]
+    counts = [int(c) for c in line[0].split("_")[1:]]
+    return taxa, counts
+
+def parse_signature_hits(sig_file):
+    data_dict = {}
+    with open(sig_file, 'r') as infile:
+        for line in infile:
+            taxa, counts = parse_line(line)
+            for taxon in taxa:
+                if taxon not in data_dict:
+                    data_dict[taxon] = {i: [0,0,0,0] for i in range(len(counts))}
+                for sample, count in enumerate(counts):
+                    data_dict[taxon][sample][2] += count
+                    data_dict[taxon][sample][3] += bool(count)
+    return data_dict
+
+
+def get_lineage_in_signature(taxon, signature_taxa):
+    lineage = NCBI.get_lineage(taxon)
+    for line in lineage[::-1][1:]:
+        if line in signature_taxa:
+            return line
+    return False
+        
+
+def parse_all_hits(all_file, data_dict):
+    signature_taxa = data_dict.keys()
+    with open(all_file, 'r') as infile:
+        for line in infile:
+            taxa, counts = parse_line(line)
+            for taxon in taxa:
+                if taxon not in data_dict:
+                    # check if rolled up to parent level
+                    lineage_in_signature = get_lineage_in_signature(
+                        taxon, signature_taxa)
+                    if lineage_in_signature:
+                        taxon = lineage_in_signature
+                    else:
+                        data_dict[taxon] = {i: [0,0,0,0] for i in range(len(counts))}
+                for sample, count in enumerate(counts):
+                    data_dict[taxon][sample][0] += count
+                    data_dict[taxon][sample][1] += bool(count)
+    return data_dict 
+
+
+def get_summary(all_file, sig_file, outpath):
+    data_dict = parse_signature_hits(sig_file)
+    data_dict = parse_all_hits(all_file, data_dict)
+    taxid2name = NCBI.get_taxid_translator(data_dict.keys())
+    data_list = []
+    for taxa, samples in data_dict.items():
+        row_list = [taxa, tax2div(taxa), taxid2name[taxa]]
+        for sample, value in samples.items():
+            row_list += [value[0], value[1], value[2]]
+        data_list.append(row_list)
+    
+    column_names = ["TaxID","Division", "Sci. Name"]
+    for c in range(len(data_list[0]) - 3):
+        column_names += ["Total Hits (S{})".format(c+1),
+                            "Unique Hits (S{})".format(c+1),
+                            "Signature Hits (S{})".format(c+1),
+                            "Unique Signature Hits (S{})".format(c+1)]
+
+    data_frame = pd.DataFrame(
+        data_list,
+        columns=column_names)
+    
+    data_frame.to_csv(outfile, index=False) 
         
 
 if __name__ == "__main__":
@@ -54,8 +126,12 @@ if __name__ == "__main__":
         "all", metavar="COLLAPSE_FILE", type=file_type,
         help="Path to MTSv-collapse output file"
     )
-    
 
+    PARSER.add_argument(
+        "sig", metavar="SIGNATURE_FILE", type=file_type,
+        help="Path to MTSv-inform output file"
+    )
+    
     PARSER.add_argument(
         "-o", "--out_path", type=path_type, default="./",
         help="Output directory"
@@ -68,7 +144,7 @@ if __name__ == "__main__":
 
     PARSER.add_argument(
         "--taxdump", type=file_type, default=None,
-        help="Alternative path to taxdump.
+        help="Alternative path to taxdump. "
              "Default is home directory where ete3 "
              "automatically downloads the file."
     )
@@ -85,39 +161,6 @@ if __name__ == "__main__":
     outfile = path.join(
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
-    get_summary(outpath)
+    get_summary(ARGS.all, ARGS.sig, outpath)
 
-    def get_summary(outpath):
 
-    data_dict = {}
-    
-    strip = str.strip
-    with open(ARGS.all, "r") as infile:
-        for line in infile:
-            line = line.strip().rsplit(":", 1)
-            taxa = [int(strip(tax)) for tax in line[1].split(",")]
-            signature = True if len(taxa) == 1 else False
-            counts = [int(c) for c in line[0].split("_")[1:]]
-            for taxon in taxa:
-                if taxon not in data_dict:
-                    data_dict[taxon] = {i:[0,0,0] for i in range(len(counts))}
-                for sample, count in enumerate(counts):
-                    data_dict[taxon][sample][0] += count
-                    data_dict[taxon][sample][1] += bool(count)
-                    if signature:
-                        data_dict[taxon][sample][2] += count
-
-    taxid2name = NCBI.get_taxid_translator(data_dict.keys())      
-    data_list = []
-    for taxa, samples in data_dict.items():
-        for sample, value in samples.items():
-            row_list = [taxa, tax2div(taxa), taxid2name[taxa], sample, value[0], value[1], value[2]]
-            data_list.append(row_list)
-
-    data_frame = pd.DataFrame(
-        data_list,
-        columns=["TaxID","Division", "Sci. Name", "Sample",
-        "Total Hits", "Unique Hits", "Signature Hits"])
-      
-
-    data_frame.to_csv(outfile, index=False) 
