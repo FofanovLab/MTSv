@@ -16,6 +16,10 @@ div_map = {2:'Bacteria', 10239: 'Viruses (excluding environmental sample',
            9606: "Homo sapiens"}
 
 
+split = str.split
+strip = str.strip
+rsplit = str.rsplit
+
 
 def path_type(input_path):
     if not path.isdir(input_path):
@@ -37,9 +41,9 @@ def tax2div(taxid):
     return "Unknown"
 
 def parse_line(line):
-    line = line.strip(line).rsplit(":", 1)
-    taxa = [int(tax.strip()) for tax in line[1].split(",")]
-    counts = [int(c) for c in line[0].split("_")[1:]]
+    line = rsplit(strip(line), ":", 1)
+    taxa = [int(strip(tax)) for tax in split(line[1], ",")]
+    counts = [int(c) for c in split(line[0], "_")[1:]]
     return taxa, counts
 
 def parse_signature_hits(sig_file):
@@ -161,6 +165,6 @@ if __name__ == "__main__":
     outfile = path.join(
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
-    get_summary(ARGS.all, ARGS.sig, outpath)
+    get_summary(ARGS.all, ARGS.sig, outfile)
 
 
