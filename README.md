@@ -180,7 +180,7 @@ The sensitivity of the analysis can be adjusted either by changing the `--lca` f
 # Analyzing output
 
 ## MTSv Summary
-The `MTSv_summary.py` script summarizes the number of hits per taxon. The total number of reads mapped, the number of unique mapped reads, and the number of signature hits per taxon per sample (samples are in the same order as the FASTQ files that were passed to `MTSv-readprep`).
+The `MTSv_summary.py` script summarizes the number of hits per taxon per sample (sample colunns are in the same order as the FASTQ files that were passed to `MTSv-readprep`). The total number of reads mapped, the number of unique mapped reads, the number of signature hits, and the number of unique signature hits per taxon. Note: if the `--lca` option is modified to combine species up to the genus or family level in the `MTSv-inform` module, taxid for uncombined species in the `MTSv-collapse` output will be double counted in total hits and unique hits. 
 
 ### Requirements
 biopython=1.68
@@ -194,44 +194,56 @@ ete_toolchain=3.0.0
 **Required Positional Arguments**  
 `project_name`: Provide a prefix that will be used to name all output files.  
 `collapse_file`: Path to MTSv-collapse output file  
+`signature_file`: Path to MTSv-inform output file  
 **Optional Arguments**  
 `--out_path`: Directory to write output (Default: ./)  
+`--update`: Updates the ncbi taxonomy database by downloading and parsing the latest taxdump.tar.gz file from the NCBI FTP site (via HTTP).  
+`--taxdump`: Path to alternative taxdump.tar.gz file.
 
 ### Output
 
-An Excel file <`out_path`/`program_name`_summary.xlsx> in the following format:  
+A csv file <`out_path`/`program_name`_summary.csv> in the following format:  
 
 
-| TaxID | Division | Sci. Name          | Sample | Total Hits | Unique Hits | Signature Hits |
-|-------|----------|--------------------|--------|------------|-------------|----------------|
-| 1392  | Bacteria | Bacillus anthracis | 0      | 12         | 2           | 2              |
-| 1392  | Bacteria | Bacillus anthracis | 1      | 13         | 1           | 0              |
-| 1392  | Bacteria | Bacillus anthracis | 2      | 15         | 2           | 10             |
-| 1396  | Bacteria | Bacillus cereus    | 0      | 10         | 1           | 0              |
-| 1396  | Bacteria | Bacillus cereus    | 1      | 13         | 1           | 0              |
-| 1396  | Bacteria | Bacillus cereus    | 2      | 15         | 1           | 0              |
+| TaxID | Division | Sci. Name          | Total Hits (S1) | Unique Hits (S1) | Signature Hits (S1) | Unique Signature Hits (S1) | Total Hits (S2) | Unique Hits (S2) | Signature Hits (S2) | Unique Signature Hits (S2) |
+|-------|----------|--------------------|-----------------|------------------|---------------------|----------------------------|-----------------|------------------|---------------------|----------------------------|
+| 1392  | Bacteria | Bacillus anthracis | 12              | 2                | 2                   | 1                          | 13              | 1                | 0                   | 0                          |
+| 1396  | Bacteria | Bacillus cereus    | 10              | 1                | 0                   | 0                          | 13              | 1                | 0                   | 0                          |
 
-These results correspond to the following input file:
+These results correspond to the following input files:
+
+`sample_collapse.txt`
 ```
-R1_10_13_15:1392,1396
-R2_2_0_10:1392
+R1_10_13:1392,1396
+R2_2_0:1392
 ```
+`sample_signature.txt`
+```
+R2_2_0:1392
+```
+
 
 ### Usage
 ```
-python MTSv_summary.py --help
-usage: MTSv Summary [-h] [-o OUT_PATH] PROJECT_NAME COLLAPSE_FILE
+$ python MTSv_summary.py --help
+usage: MTSv Summary [-h] [-o OUT_PATH] [--update] [--taxdump TAXDUMP]
+                    PROJECT_NAME COLLAPSE_FILE SIGNATURE_FILE
 
 Summarize number of hits for each taxa, including signature hits.
 
 positional arguments:
   PROJECT_NAME          Project name and output file prefix
   COLLAPSE_FILE         Path to MTSv-collapse output file
+  SIGNATURE_FILE        Path to MTSv-inform output file
 
 optional arguments:
   -h, --help            show this help message and exit
   -o OUT_PATH, --out_path OUT_PATH
                         Output directory (default: ./)
+  --update              Update taxdump (default: False)
+  --taxdump TAXDUMP     Alternative path to taxdump. Default is home directory
+                        where ete3 automatically downloads the file. (default:
+                        None)
 ```
 ### Example Slurm Script
 Change nauid to your nauid and modify `out_path` to test and run script  
@@ -246,6 +258,7 @@ source activate biopy3
 
 python -u MTSv_summary.py test \
 /scratch/tf362/vedro/merge/merged_results.txt \
+/scratch/tf362/vedro/inform/informative.txt \
 --out_path /scratch/nauid/path/to/output/ \
 ```
 
@@ -264,7 +277,9 @@ The `MTSv_extract.py` script extracts all unique read sequences that aligned to 
 `species`: the species name to extract
 
 **Optional Arguments**  
-`--out_path`: Directory to write output (Default: ./)
+`--out_path`: Directory to write output (Default: ./)  
+`--update`: Updates the ncbi taxonomy database by downloading and parsing the latest taxdump.tar.gz file from the NCBI FTP site (via HTTP).  
+`--taxdump`: Path to alternative taxdump.tar.gz file.
 
 ### Output
 `PROJECT_NAME_TAXID_all.fasta`: Contains all sequence reads that aligned to taxid.  
@@ -272,8 +287,9 @@ The `MTSv_extract.py` script extracts all unique read sequences that aligned to 
 
 ### Usage
 ```
-python MTSv_extract.py --help
-usage: MTSv Extract [-h] [-o OUT_PATH] (-t TAXID | -s SPECIES)
+$ python MTSv_extract.py --help
+usage: MTSv Extract [-h] [-o OUT_PATH] [--update] [--taxdump TAXDUMP]
+                    (-t TAXID | -s SPECIES)
                     PROJECT_NAME COLLAPSE_FILE SIGNATURE_FILE READS_FASTA
 
 Extracts all sequences, including signature hits, that aligned to a given
@@ -289,11 +305,14 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUT_PATH, --out_path OUT_PATH
                         Output directory (default: ./)
+  --update              Update taxdump (default: False)
+  --taxdump TAXDUMP     Alternative path to taxdump. Default is home directory
+                        where ete3 automatically downloads the file. (default:
+                        None)
   -t TAXID, --taxid TAXID
                         Extract sequences by taxid (default: None)
   -s SPECIES, --species SPECIES
                         Extract sequences by species name (default: None)
-
 ```
 ### Example Slurm Script
 Change nauid to your nauid and modify `out_path` to test and run script
