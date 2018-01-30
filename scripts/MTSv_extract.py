@@ -2,7 +2,8 @@ import argparse
 import os.path as path
 from Bio import SeqIO
 from ete3 import NCBITaxa
-ncbi = NCBITaxa()
+
+NCBI = NCBITaxa()
 
 def path_type(input_path):
     if not path.isdir(input_path):
@@ -22,12 +23,12 @@ def get_outfile(_path, file_name_list, ext):
             "_".join(file_name_list), ext))
 
 def taxid_lookup(species_name):
-    return ncbi.get_name_translator(
+    return NCBI.get_name_translator(
         [species_name])[species_name][0]
 
 def species_lookup(taxid):
     taxid = int(taxid)
-    return ncbi.get_taxid_translator(
+    return NCBI.get_taxid_translator(
         [taxid])[taxid]
 
 def mtsv_extract(
@@ -113,7 +114,7 @@ if __name__ == "__main__":
 
     PARSER.add_argument(
         "--taxdump", type=file_type, default=None,
-        help="Alternative path to taxdump.
+        help="Alternative path to taxdump. "
              "Default is home directory where ete3 "
              "automatically downloads the file."
     )
@@ -131,13 +132,15 @@ if __name__ == "__main__":
  
 
     ARGS = PARSER.parse_args()
+    NCBI = NCBITaxa()
 
     if ARGS.update:
-        ncbi.update_taxonomy_database()
+        NCBI.update_taxonomy_database()
 
     if ARGS.taxdump:
-        ncbi.update_taxonomy_database(
+        NCBI.update_taxonomy_database(
             taxdump_file=path.abspath(ARGS.taxdump))
+
     if ARGS.taxid is None:
         ARGS.taxid = taxid_lookup(ARGS.species)
     else:
