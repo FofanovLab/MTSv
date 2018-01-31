@@ -89,9 +89,12 @@ def parse_all_hits(all_file, data_dict):
 
 
 def get_summary(all_file, sig_file, outpath):
+    print("Parsing Signature Hits")
     data_dict = parse_signature_hits(sig_file)
+    print("Parsing All Hits")
     data_dict = parse_all_hits(all_file, data_dict)
     taxid2name = NCBI.get_taxid_translator(data_dict.keys())
+    print("Writing to File")
     data_list = []
     for taxa, samples in data_dict.items():
         row_list = [taxa, tax2div(taxa), taxid2name[taxa]]
