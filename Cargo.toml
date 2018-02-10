@@ -13,7 +13,7 @@ env_logger = "0.3"
 flate2 = "0.2"
 itertools = "0.4"
 log = "0.3"
-rustc-serialize = "0.3"
+rustc-serialize = "0.3.24"
 serde = "1.0"
 ssw = { path = "ssw" }
 stopwatch = "0.0.6"
