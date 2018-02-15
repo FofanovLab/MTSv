@@ -100,7 +100,7 @@ def parse_all_hits(all_file, data_dict, sig_reads):
     return data_dict 
 
 
-def get_summary(all_file, sig_file, outpath, cutoff=None):
+def get_summary(all_file, sig_file, outpath, verbose=False):
     print("Parsing Signature Hits")
     data_dict, sig_reads = parse_signature_hits(sig_file)
     print("Parsing All Hits")
@@ -115,7 +115,9 @@ def get_summary(all_file, sig_file, outpath, cutoff=None):
         data_list.append(row_list)
     
     column_names = ["TaxID","Division", "Sci. Name"]
-    for c in range(int((len(data_list[0]) - 3)/4)):
+    n_cols = len(data_list[0])
+    n_samples = int((n_cols - 3)/4)
+    for c in range(n_samples):
         column_names += ["Total Hits (S{})".format(c+1),
                             "Unique Hits (S{})".format(c+1),
                             "Signature Hits (S{})".format(c+1),
@@ -125,11 +127,10 @@ def get_summary(all_file, sig_file, outpath, cutoff=None):
         data_list,
         columns=column_names)
 
-    data_frame.sort_values(
-        by='Unique Signature Hits', ascending=False)
-    if cutoff is not None:
-        data_frame = data_frame[
-            data_frame['Unique Hits'] > cutoff]
+
+    if not verbose:
+        sig_cols = data_frame.columns[list(range(5, n_cols, 4))]
+        data_frame = data_frame[(data_frame[sig_cols] != 0).any(axis=1)]
 
     data_frame.to_csv(outfile, index=False) 
         
@@ -137,8 +138,8 @@ def get_summary(all_file, sig_file, outpath, cutoff=None):
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser(
         prog="MTSv Summary",
-        description="Summarize number of hits for each taxa, "
-                    "including signature hits.",
+        description="Summarize number of total and signature "
+                    "hits for each taxa.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -175,9 +176,8 @@ if __name__ == "__main__":
     )
 
     PARSER.add_argument(
-        "--count_cutoff", type=int, default=None,
-        help="Only report taxa with more than "
-             "COUNT_CUTOFF unique read hits."
+        "--verbose", action="store_true",
+        help="Report all taxa, not just signature hits"
     )
 
     ARGS = PARSER.parse_args()
@@ -191,6 +191,6 @@ if __name__ == "__main__":
     outfile = path.join(
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
-    get_summary(ARGS.all, ARGS.sig, outfile, ARGS.count_cutoff)
+    get_summary(ARGS.all, ARGS.sig, outfile, ARGS.verbose)
 
 
