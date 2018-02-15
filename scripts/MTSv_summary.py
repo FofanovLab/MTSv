@@ -172,7 +172,7 @@ if __name__ == "__main__":
     )
 
     PARSER.add_argument(
-        "--count_cutoff", dtype=int, default=None,
+        "--count_cutoff", type=int, default=None,
         help="Only report taxa with more than "
              "COUNT_CUTOFF unique read hits."
     )
