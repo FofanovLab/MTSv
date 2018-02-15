@@ -5,6 +5,9 @@ from  os import getcwd
 from os.path import expanduser
 from collections import defaultdict
 import pandas as pd
+import numpy as np
+
+
 NCBI = NCBITaxa()
 
 div_map = {2:'Bacteria', 10239: 'Viruses (excluding environmental sample',
