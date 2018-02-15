@@ -44,20 +44,25 @@ def parse_line(line):
     line = rsplit(strip(line), ":", 1)
     taxa = [int(strip(tax)) for tax in split(line[1], ",")]
     counts = [int(c) for c in split(line[0], "_")[1:]]
-    return taxa, counts
+    read = split(line[0], "_")[0]
+    return taxa, counts, read
 
 def parse_signature_hits(sig_file):
     data_dict = {}
+    read_list = []
     with open(sig_file, 'r') as infile:
         for line in infile:
-            taxa, counts = parse_line(line)
+            taxa, counts, read = parse_line(line)
+            read_list.append(read)
             for taxon in taxa:
                 if taxon not in data_dict:
-                    data_dict[taxon] = {i: [0,0,0,0] for i in range(len(counts))}
+                    data_dict[taxon] = {
+                        i: np.zeros(4, dtype=int)
+                        for i in range(len(counts))}
                 for sample, count in enumerate(counts):
-                    data_dict[taxon][sample][2] += count
-                    data_dict[taxon][sample][3] += bool(count)
-    return data_dict
+                    data_dict[taxon][sample] += [count,
+                        bool(count), count, bool(count)]
+    return data_dict, read_list
 
 
 def get_lineage_in_signature(taxon, signature_taxa):
@@ -68,31 +73,35 @@ def get_lineage_in_signature(taxon, signature_taxa):
     return False
         
 
-def parse_all_hits(all_file, data_dict):
+def parse_all_hits(all_file, data_dict, sig_reads):
     signature_taxa = data_dict.keys()
     with open(all_file, 'r') as infile:
         for line in infile:
-            taxa, counts = parse_line(line)
+            taxa, counts, read = parse_line(line)
+            if read in sig_reads:
+                continue
             for taxon in taxa:
                 if taxon not in data_dict:
                     # check if rolled up to parent level
-                    lineage_in_signature = get_lineage_in_signature(
-                        taxon, signature_taxa)
-                    if lineage_in_signature:
-                        taxon = lineage_in_signature
-                    else:
-                        data_dict[taxon] = {i: [0,0,0,0] for i in range(len(counts))}
+                    # lineage_in_signature = get_lineage_in_signature(
+                    #     taxon, signature_taxa)
+                    # if lineage_in_signature:
+                    #     taxon = lineage_in_signature
+                    # else:
+                    data_dict[taxon] = {
+                        i: np.zeros(4, dtype=int)
+                        for i in range(len(counts))}
                 for sample, count in enumerate(counts):
-                    data_dict[taxon][sample][0] += count
-                    data_dict[taxon][sample][1] += bool(count)
+                    data_dict[taxon][sample] += [count, bool(count), 0, 0]
+
     return data_dict 
 
 
-def get_summary(all_file, sig_file, outpath):
+def get_summary(all_file, sig_file, outpath, cutoff=None):
     print("Parsing Signature Hits")
-    data_dict = parse_signature_hits(sig_file)
+    data_dict, sig_reads = parse_signature_hits(sig_file)
     print("Parsing All Hits")
-    data_dict = parse_all_hits(all_file, data_dict)
+    data_dict = parse_all_hits(all_file, data_dict, sig_reads)
     taxid2name = NCBI.get_taxid_translator(data_dict.keys())
     print("Writing to File")
     data_list = []
@@ -112,7 +121,13 @@ def get_summary(all_file, sig_file, outpath):
     data_frame = pd.DataFrame(
         data_list,
         columns=column_names)
-    
+
+    data_frame.sort_values(
+        by='Unique Signature Hits', ascending=False)
+    if cutoff is not None:
+        data_frame = data_frame[
+            data_frame['Unique Hits'] > cutoff]
+
     data_frame.to_csv(outfile, index=False) 
         
 
@@ -156,6 +171,12 @@ if __name__ == "__main__":
              "automatically downloads the file."
     )
 
+    PARSER.add_argument(
+        "--count_cutoff", dtype=int, default=None,
+        help="Only report taxa with more than "
+             "COUNT_CUTOFF unique read hits."
+    )
+
     ARGS = PARSER.parse_args()
     if ARGS.update:
         NCBI.update_taxonomy_database()
@@ -167,6 +188,6 @@ if __name__ == "__main__":
     outfile = path.join(
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
-    get_summary(ARGS.all, ARGS.sig, outfile)
+    get_summary(ARGS.all, ARGS.sig, outfile, ARGS.count_cutoff)
 
 
