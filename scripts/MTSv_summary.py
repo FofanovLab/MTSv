@@ -77,6 +77,18 @@ def get_lineage_in_signature(taxon, signature_taxa):
         
 
 def parse_all_hits(all_file, data_dict, sig_reads):
+    signature_taxa = list(data_dict.keys())
+    with open(all_file, 'r') as infile:
+        for line in infile:
+            taxa, counts, read = parse_line(line)
+            if read in sig_reads:
+                continue
+            for taxon in np.intersect1d(taxa, signature_taxa, assume_unique=True):
+                for sample, count in enumerate(counts):
+                    data_dict[taxon][sample] += [count, bool(count), 0, 0]
+    return data_dict 
+
+def parse_all_hits_verbose(all_file, data_dict, sig_reads):
     signature_taxa = data_dict.keys()
     with open(all_file, 'r') as infile:
         for line in infile:
@@ -97,14 +109,17 @@ def parse_all_hits(all_file, data_dict, sig_reads):
                 for sample, count in enumerate(counts):
                     data_dict[taxon][sample] += [count, bool(count), 0, 0]
 
-    return data_dict 
+    return data_dict
 
 
 def get_summary(all_file, sig_file, outpath, verbose=False):
     print("Parsing Signature Hits")
     data_dict, sig_reads = parse_signature_hits(sig_file)
     print("Parsing All Hits")
-    data_dict = parse_all_hits(all_file, data_dict, sig_reads)
+    if verbose:
+        data_dict = parse_all_hits_verbose(all_file, data_dict, sig_reads)
+    else:
+        data_dict = parse_all_hits(all_file, data_dict, sig_reads)
     taxid2name = NCBI.get_taxid_translator(data_dict.keys())
     print("Writing to File")
     data_list = []
@@ -192,5 +207,4 @@ if __name__ == "__main__":
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
     get_summary(ARGS.all, ARGS.sig, outfile, ARGS.verbose)
-
 
