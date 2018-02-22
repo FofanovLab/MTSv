@@ -33,6 +33,55 @@ $ conda install -c etetoolkit ete3 ete_toolchain
 $ conda install pandas
 $ conda install biopython
 ```
+# Pre-Processing
+## MTSv Prune
+The 'MTSv_prune.py' is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
+
+ftp://ftp.ncbi.nlm.nih.gov/genbank/  
+ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
+ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
+
+From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
+
+### Fasta Database
+```
+python MTSv_prune.py -bdb -fl <file-list> \ 
+-o <output name without extension> -t <threads:default 1>  
+```
+### Index Building
+```
+python MTSv_prune.py -biacc -a2t <list of *accession2taxi.seq.gz> \
+-tp <path to taxdump.tar.gz> -fp <fasta database path> \ 
+-o <name of serialization without extension>```
+```
+### Clipping
+To obtain sequences associated with an NCBI taxonomic subtree use command
+```
+python MTSv_prune.py -c -txi <list of taxids to include> \
+-txe <list of taxids to exclude> -fp <fasta database path> \
+-sp <path to index> -rur <taxonomic rank to assign sequence in output> \
+-o <output name with extension>
+```
+### Configuration JSON
+Many of the parameters in pruning will not change often so  to save time a configuration file can be created
+```
+python MTSv_prune.py -gc -fp <fasta database path> -sp <path to index> \
+-rur <taxonomic rank to assign sequence in output> -o <configuration path w/out ext>
+```
+This saved configuration file can then be accessed during clipping with the command
+```
+python MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to include> \
+-txe <list of taxids to exclude> -o <output name with extension>
+```
+
+### Monsoon PreBuilt Fasta Database and Configurations
+```
+/scratch/tes87/database/assembly_levels/nt_2016_seqs.json
+/scratch/tes87/database/assembly_levels/Complete_Genome_assembly.json
+/scratch/tes87/database/assembly_levels/Chromosome_assembly.json
+/scratch/tes87/database/assembly_levels/Scaffolds_assembly.json
+```
+
 
 # MTSv Summary
 The `MTSv_summary.py` script summarizes the number of hits per taxon per sample (sample colunns are in the same order as the FASTQ files that were passed to `MTSv-readprep`). The total number of reads mapped, the number of unique mapped reads, the number of signature hits, and the number of unique signature hits per taxon. Note: if the `--lca` option is modified to combine species up to the genus or family level in the `MTSv-inform` module, taxid for uncombined species in the `MTSv-collapse` output will be double counted in total hits and unique hits. 
