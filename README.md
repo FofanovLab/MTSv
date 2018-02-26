@@ -6,7 +6,7 @@ MTSv is a suite of metagenomic binning and analysis tools. It attempts to accura
 
 All commands listed in this document assume they're being executed from the repository's root directory. Adjust accordingly if you've installed the tools elsewhere.
 
-## Building
+## Setup
 
 ### Clone Repository
 Clone MTSv into desired location and move to `MTSv` directory
@@ -70,6 +70,38 @@ $ cargo doc [--open]
 
 (pass the `--open` flag if you want to immediately open the docs in your browser)
 
+
+## Create Conda environment with Python3 and required packages.
+The environment only needs to be created once.
+```
+$ conda create --name biopy3 python=3.5.2 biopython pandas
+```
+The name `biopy3` can be changed to whatever name you want.  
+Note: If using Monsoon, run `module load anaconda/3.latest` first
+
+### Activate Conda Environment
+```
+$ source activate biopy3
+```
+
+### Install etetoolkit
+```
+$ conda install -c etetoolkit ete3 ete_toolchain
+```
+
+### Deactivate Conda Environment
+```
+$ source deactivate
+```
+
+If you already have a Python3.5.2 environment you can just use conda to install the required packages.
+```
+$ source activate ENV_NAME
+$ conda install -c etetoolkit ete3 ete_toolchain
+$ conda install pandas
+$ conda install biopython
+```
+
 ## Pipeline Overview
 0. [MTSv Pre-Processing](#mtsv-pre-processing)
     - [Build FASTA sequence database](#fasta-database)
@@ -106,6 +138,7 @@ From these precursors two data stores are needed to partition sequence data by N
 
 ### Fasta Database
 ```
+$ source activate biopy3
 $ python scripts/MTSv_prune.py -bdb -fl <file-list> \ 
 -o <output name without extension> -t <threads:default 1>  
 ```
@@ -314,6 +347,7 @@ R2_2_0:1392
 
 ### Usage
 ```
+$ source activate biopy3
 $ python scripts/MTSv_summary.py --help
 usage: MTSv Summary [-h] [-o OUT_PATH] [--update] [--taxdump TAXDUMP]
                     PROJECT_NAME COLLAPSE_FILE SIGNATURE_FILE
@@ -376,6 +410,7 @@ The `MTSv_extract.py` script extracts all unique read sequences that aligned to 
 
 ### Usage
 ```
+$ source activate biopy3
 $ python scripts/MTSv_extract.py --help
 usage: MTSv Extract [-h] [-o OUT_PATH] [--update] [--taxdump TAXDUMP]
                     (-t TAXID | -s SPECIES)
