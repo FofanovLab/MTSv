@@ -13,6 +13,13 @@ MTSv is built in Rust, with a little bit of Python. You'll need:
 * `rustc` and `cargo` >= 1.8.0 ([rustup.rs](https://rustup.rs) is the easiest installation method)
 * a C compiler (tested with GCC and clang)
 
+### Update
+Update dependencies in Cargo.lock
+
+```
+cargo update
+```
+
 ### Tests
 
 To run tests:
