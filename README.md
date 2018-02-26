@@ -17,7 +17,7 @@ MTSv is built in Rust, with a little bit of Python. You'll need:
 Update dependencies in Cargo.lock
 
 ```
-cargo update
+$ cargo update
 ```
 
 ### Tests
@@ -87,23 +87,30 @@ ftp://ftp.ncbi.nlm.nih.gov/genbank/
 ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
 ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
 
+### Example using wget
+```bash
+$ wget ftp://ftp.ncbi.nlm.nih.gov/genbank/
+$ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
+$ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
+```
+
 From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
 
 ### Fasta Database
 ```
-python MTSv_prune.py -bdb -fl <file-list> \ 
+$ python MTSv_prune.py -bdb -fl <file-list> \ 
 -o <output name without extension> -t <threads:default 1>  
 ```
 ### Index Building
 ```
-python MTSv_prune.py -biacc -a2t <list of *accession2taxi.seq.gz> \
+$ python MTSv_prune.py -biacc -a2t <list of *accession2taxi.seq.gz> \
 -tp <path to taxdump.tar.gz> -fp <fasta database path> \ 
 -o <name of serialization without extension>```
 ```
 ### Clipping
 To obtain sequences associated with an NCBI taxonomic subtree use command
 ```
-python MTSv_prune.py -c -txi <list of taxids to include> \
+$ python MTSv_prune.py -c -txi <list of taxids to include> \
 -txe <list of taxids to exclude> -fp <fasta database path> \
 -sp <path to index> -rur <taxonomic rank to assign sequence in output> \
 -o <output name with extension>
@@ -111,12 +118,12 @@ python MTSv_prune.py -c -txi <list of taxids to include> \
 ### Configuration JSON
 Many of the parameters in pruning will not change often so to save time a configuration file can be created
 ```
-python MTSv_prune.py -gc -fp <fasta database path> -sp <path to index> \
+$ python MTSv_prune.py -gc -fp <fasta database path> -sp <path to index> \
 -rur <taxonomic rank to assign sequence in output> -o <configuration path w/out ext>
 ```
 This saved configuration file can then be accessed during clipping with the command
 ```
-python MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to include> \
+$ python MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to include> \
 -txe <list of taxids to exclude> -o <output name with extension>
 ```
 
