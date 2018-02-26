@@ -89,18 +89,18 @@ $ cargo doc [--open]
  
 # MTSv Pre-Processing
 ## MTSv Prune
-The 'scripts/MTSv_prune.py' is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
+`scripts/MTSv_prune.py` is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid.gz to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
 
-ftp://ftp.ncbi.nlm.nih.gov/genbank/  
+ftp://ftp.ncbi.nlm.nih.gov/genbank/ 
 ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
 ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
 
 ### Example using wget
 In desired directory run: 
 ```bash
-$ wget ftp://ftp.ncbi.nlm.nih.gov/genbank/
+$ wget ftp://ftp.ncbi.nlm.nih.gov/genbank/*.seq.gz
 $ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
-$ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
+$ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/*.accession2taxid.gz
 ```
 From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
 
