@@ -8,13 +8,21 @@ All commands listed in this document assume they're being executed from the repo
 
 ## Building
 
+### Clone Repository
+Clone MTSv into desired location and move to `MTSv` directory
+```
+$ git clone https://github.com/FofanovLab/MTSv.git
+$ cd MTSv
+```
+
+### Install Rustc and Cargo
 MTSv is built in Rust, with a little bit of Python. You'll need:
 
 * `rustc` and `cargo` >= 1.8.0 ([rustup.rs](https://rustup.rs) is the easiest installation method)
 * a C compiler (tested with GCC and clang)
 
 ### Update
-Update dependencies in Cargo.lock
+Update dependencies in `Cargo.lock`
 
 ```
 $ cargo update
@@ -81,36 +89,36 @@ $ cargo doc [--open]
  
 # MTSv Pre-Processing
 ## MTSv Prune
-The 'MTSv_prune.py' is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
+The 'scripts/MTSv_prune.py' is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
 
 ftp://ftp.ncbi.nlm.nih.gov/genbank/  
 ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
 ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
 
 ### Example using wget
+In desired directory run: 
 ```bash
 $ wget ftp://ftp.ncbi.nlm.nih.gov/genbank/
 $ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
 $ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
 ```
-
 From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
 
 ### Fasta Database
 ```
-$ python MTSv_prune.py -bdb -fl <file-list> \ 
+$ python scripts/MTSv_prune.py -bdb -fl <file-list> \ 
 -o <output name without extension> -t <threads:default 1>  
 ```
 ### Index Building
 ```
-$ python MTSv_prune.py -biacc -a2t <list of *accession2taxi.seq.gz> \
+$ python scripts/MTSv_prune.py -biacc -a2t <list of *accession2taxi.seq.gz> \
 -tp <path to taxdump.tar.gz> -fp <fasta database path> \ 
 -o <name of serialization without extension>```
 ```
 ### Clipping
 To obtain sequences associated with an NCBI taxonomic subtree use command
 ```
-$ python MTSv_prune.py -c -txi <list of taxids to include> \
+$ python scripts/MTSv_prune.py -c -txi <list of taxids to include> \
 -txe <list of taxids to exclude> -fp <fasta database path> \
 -sp <path to index> -rur <taxonomic rank to assign sequence in output> \
 -o <output name with extension>
@@ -118,12 +126,12 @@ $ python MTSv_prune.py -c -txi <list of taxids to include> \
 ### Configuration JSON
 Many of the parameters in pruning will not change often so to save time a configuration file can be created
 ```
-$ python MTSv_prune.py -gc -fp <fasta database path> -sp <path to index> \
+$ python scripts/MTSv_prune.py -gc -fp <fasta database path> -sp <path to index> \
 -rur <taxonomic rank to assign sequence in output> -o <configuration path w/out ext>
 ```
 This saved configuration file can then be accessed during clipping with the command
 ```
-$ python MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to include> \
+$ python scripts/MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to include> \
 -txe <list of taxids to exclude> -o <output name with extension>
 ```
 
@@ -167,7 +175,6 @@ To construct the indices, you'll need two files:
 2. The `taxdump.tar.gz` file from NCBI which corresponds to the sequences in your FASTA file.
 
 ## Chunking reference database
-
 MTSv uses A LOT of memory for its indices. About 20x the space compared to the FASTA file its given. As a result, it's generally preferable to split the database into small chunks that can be processed iteratively. These chunks should, as much as possible, have all or most of a taxonomic ID in each of them, as MTSv achieves speedups by skipping queries once it's found a successful match in a taxonomic node. MTSv includes a utility for doing so. To split your reference database into 1GB chunks (resulting in 15-20GB needed for running queries):
 
 ~~~
@@ -307,7 +314,7 @@ R2_2_0:1392
 
 ### Usage
 ```
-$ python MTSv_summary.py --help
+$ python scripts/MTSv_summary.py --help
 usage: MTSv Summary [-h] [-o OUT_PATH] [--update] [--taxdump TAXDUMP]
                     PROJECT_NAME COLLAPSE_FILE SIGNATURE_FILE
 
@@ -338,7 +345,7 @@ Change nauid to your nauid and modify `out_path` to test and run script
 module load anaconda/3.latest
 source activate biopy3
 
-python -u MTSv_summary.py test \
+python -u scripts/MTSv_summary.py test \
 /scratch/tf362/vedro/merge/merged_results.txt \
 /scratch/tf362/vedro/inform/informative.txt \
 --out_path /scratch/nauid/path/to/output/ \
@@ -369,7 +376,7 @@ The `MTSv_extract.py` script extracts all unique read sequences that aligned to 
 
 ### Usage
 ```
-$ python MTSv_extract.py --help
+$ python scripts/MTSv_extract.py --help
 usage: MTSv Extract [-h] [-o OUT_PATH] [--update] [--taxdump TAXDUMP]
                     (-t TAXID | -s SPECIES)
                     PROJECT_NAME COLLAPSE_FILE SIGNATURE_FILE READS_FASTA
@@ -405,7 +412,7 @@ Change nauid to your nauid and modify `out_path` to test and run script
 module load anaconda/3.latest
 source activate biopy3
 
-python -u MTSv_extract.py test \
+python -u scripts/MTSv_extract.py test \
 /scratch/tf362/vedro/merge/merged_results.txt \
 /scratch/tf362/vedro/inform/informative.txt \
 /scratch/tf362/vedro/readprep/seg50_minqual15-qualthresh-3.fasta \
