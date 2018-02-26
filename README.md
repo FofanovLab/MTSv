@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/FofanovLab/MTSv.svg?branch=master)](https://travis-ci.org/FofanovLab/MTSv)
 
-# MTSv
+# MTSv Pipeline
 
 MTSv is a suite of metagenomic binning and analysis tools. It attempts to accurately identify which species are present in a given DNA sample. It assumes that read fragments in samples will be in a "shotgun" or short read format, typically ~50-200 bases in length.
 
@@ -62,7 +62,73 @@ $ cargo doc [--open]
 
 (pass the `--open` flag if you want to immediately open the docs in your browser)
 
-## Usage
+## Pipeline Overview
+0. [MTSv Pre-Processing](#mtsv-pre-processing)
+    - [Build FASTA sequence database](#fasta-database)
+    - [Build Taxonomic Index of FASTA database](#index-building)
+    - [Prune sequences from FASTA database](#clipping)
+1. [MTSv Binning](#mtsv)
+    - [MTSv-chunk](#chunking-reference-database)
+    - [MTSv-build](#metagenomic-index)
+    - [MTSv-tree-build](#taxonomic-tree-index)
+    - [MTSv-readprep](#readprep)
+    - [MTSv-binner](#binning-queries)
+    - [MTSv-collapse](#collapsing-chunks)
+    - [MTSv-inform](#finding-informative-reads)
+2. [MTSv Analysis](#mtsv-analysis)
+   - [MTSv-summary](#mtsv-summary)
+   - [MTSv-extract](#mtsv-extract)
+ 
+# MTSv Pre-Processing
+## MTSv Prune
+The 'MTSv_prune.py' is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
+
+ftp://ftp.ncbi.nlm.nih.gov/genbank/  
+ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
+ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
+
+From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
+
+### Fasta Database
+```
+python MTSv_prune.py -bdb -fl <file-list> \ 
+-o <output name without extension> -t <threads:default 1>  
+```
+### Index Building
+```
+python MTSv_prune.py -biacc -a2t <list of *accession2taxi.seq.gz> \
+-tp <path to taxdump.tar.gz> -fp <fasta database path> \ 
+-o <name of serialization without extension>```
+```
+### Clipping
+To obtain sequences associated with an NCBI taxonomic subtree use command
+```
+python MTSv_prune.py -c -txi <list of taxids to include> \
+-txe <list of taxids to exclude> -fp <fasta database path> \
+-sp <path to index> -rur <taxonomic rank to assign sequence in output> \
+-o <output name with extension>
+```
+### Configuration JSON
+Many of the parameters in pruning will not change often so to save time a configuration file can be created
+```
+python MTSv_prune.py -gc -fp <fasta database path> -sp <path to index> \
+-rur <taxonomic rank to assign sequence in output> -o <configuration path w/out ext>
+```
+This saved configuration file can then be accessed during clipping with the command
+```
+python MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to include> \
+-txe <list of taxids to exclude> -o <output name with extension>
+```
+
+### Monsoon PreBuilt Fasta Database and Configurations
+```
+/scratch/tes87/database/assembly_levels/nt_2016_seqs.json
+/scratch/tes87/database/assembly_levels/Complete_Genome_assembly.json
+/scratch/tes87/database/assembly_levels/Chromosome_assembly.json
+/scratch/tes87/database/assembly_levels/Scaffolds_assembly.json
+```
+
+# MTSv
 
 MTSv builds several binaries:
 
@@ -76,24 +142,24 @@ MTSv builds several binaries:
 
 All of these accept the `--help` flag to print a help message on their usage. See below for specific use instructions.
 
-### Snakemake
+## Snakemake
 
 There's an (in-progress) Snakefile in the repository root. This manages a MTSv-based metagenomic workflow. See the [Snakemake website](https://bitbucket.org/snakemake/snakemake/wiki/Home) for installation and usage instructions.
 
 (TODO: include instructions on configuring snakefile for particular file sets)
 
-### Index construction
+## Index construction
 
 MTSv uses several pre-constructed indices for running its queries.
 
-#### Reference file format & taxdump.tar.gz
+### Reference file format & taxdump.tar.gz
 
 To construct the indices, you'll need two files:
 
-1. A FASTA file of all reference sequences, with headers in the format `ACCESSION-TAXONOMICID`. So if a sequence has accession # 12345, and belongs to the NCBI taxonomic ID 987, the header for that sequence should read `12345-987`.
+1. A FASTA file of all reference sequences, with headers in the format `ACCESSION-TAXONOMICID` produced by running [MTSv_prune](#mtsv-prune). So if a sequence has accession # 12345, and belongs to the NCBI taxonomic ID 987, the header for that sequence should read `12345-987`.
 2. The `taxdump.tar.gz` file from NCBI which corresponds to the sequences in your FASTA file.
 
-#### Chunking reference database
+## Chunking reference database
 
 MTSv uses A LOT of memory for its indices. About 20x the space compared to the FASTA file its given. As a result, it's generally preferable to split the database into small chunks that can be processed iteratively. These chunks should, as much as possible, have all or most of a taxonomic ID in each of them, as MTSv achieves speedups by skipping queries once it's found a successful match in a taxonomic node. MTSv includes a utility for doing so. To split your reference database into 1GB chunks (resulting in 15-20GB needed for running queries):
 
@@ -103,7 +169,7 @@ $ target/release/MTSv-chunk -i PATH_TO_FASTA -o PATH_TO_CHUNK_FOLDER -g NUM_GBS_
 
 This will write a series of chunk files into the directory specified. See the help message for further information.
 
-#### Metagenomic index
+## Metagenomic index
 
 Now that you have N chunks of your FASTA database, they need to be processed into indices which MTSv can use for querying.
 
@@ -115,7 +181,7 @@ Using default settings, indices will use ~15-20x as much RAM as the reference fi
 
 See the help message for other options.
 
-#### Taxonomic tree index
+## Taxonomic tree index
 
 To determine which reads are informative for particular taxonomic IDs, you'll need to construct an index from the NCBI `taxdump.tar.gz` which corresponds to your FASTA database.
 
@@ -125,7 +191,7 @@ $ target/release/MTSv-tree-build --dump /path/to/taxdump.tar.gz --index /path/to
 
 See the help message for other options.
 
-### readprep
+## Readprep
 
 MTSv assumes that unidentified read fragments/sequences (referred to as "query reads") come in FASTA format and are of uniform length within a given query file. Often one needs to run some quality-control processes and combine several files. If you have a variety of FASTQ files to combine and QC, run `MTSv-readprep`. For the full list of configurations, see the help message:
 
@@ -135,7 +201,7 @@ $ target/release/MTSv-readprep --help
 
 This will write reads with headers in the format `R_COUNT1_COUNT2_COUNT3` and so on, where each count corresponds to the number of times that read was found in each FASTQ file, in the order they were passed as arguments.
 
-### Binning queries
+## Binning queries
 
 Now that you have the indices MTSv needs, and have prepared the query reads, run `MTSv-binner` on each index chunk. In this example, 3 SNPs are tolerated in matches, and 8 threads are used for processing:
 
@@ -148,7 +214,7 @@ $ target/release/MTSv-binner --edits 3 --threads 8 \
 
 See the help message for other options.
 
-#### Output
+### Output
 
 `MTSv-binner` writes results for a single read per line. For example, if a read with the header `R1_0_1` maps to taxon IDs `562`, `9062`, and `100`:
 
@@ -156,7 +222,7 @@ See the help message for other options.
 R1_0_1:562,9062,100
 ~~~
 
-### Collapsing chunks
+## Collapsing chunks
 
 Since each results file from the binner will only represent some of the species matches for a given query read, combine all of the chunked results into a single results file for further analysis:
 
@@ -169,7 +235,7 @@ Make sure to include all of the chunk files. While the collapser could be run in
 
 See the help message for other options.
 
-### Finding informative reads
+## Finding informative reads
 
 At this point, you should have a single file which records all of the taxonomic IDs (species, usually) which your query reads have mapped to (within the specified number of edits, that is).
 
@@ -186,7 +252,7 @@ $ target/release/MTSv-inform \
 
 The sensitivity of the analysis can be adjusted either by changing the `--lca` flag, by by specifying one of the `[--genus|--family]` flags. Changing the LCA (least common ancestor) value will affect how many jumps "up" the taxonomic tree to consider. Specifying a "logical" LCA flag will search for a common genus or family (depending on the flag) which covers all of the results found earlier.
 
-# Analyzing output
+# MTSv Analysis
 
 ## MTSv Summary
 The `MTSv_summary.py` script summarizes the number of hits per taxon per sample (sample colunns are in the same order as the FASTQ files that were passed to `MTSv-readprep`). The total number of reads mapped, the number of unique mapped reads, the number of signature hits, and the number of unique signature hits per taxon. Note: if the `--lca` option is modified to combine species up to the genus or family level in the `MTSv-inform` module, taxid for uncombined species in the `MTSv-collapse` output will be double counted in total hits and unique hits. 
@@ -271,7 +337,7 @@ python -u MTSv_summary.py test \
 --out_path /scratch/nauid/path/to/output/ \
 ```
 
-# MTSv Extract
+## MTSv Extract
 The `MTSv_extract.py` script extracts all unique read sequences that aligned to a provided taxid or species name.
 
 ### Input
