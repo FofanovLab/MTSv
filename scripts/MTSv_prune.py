@@ -460,7 +460,6 @@ def pull(thread_count=1):
                 # print(ind)
                 int(char)
                 if base_fp[:ind] in exclude:
-                    # print(fp[:ind])
                     break
                 else:
                     gb_download.append(fp)
@@ -516,10 +515,18 @@ def pull(thread_count=1):
                 level2path[line[11].strip()] = [temp_path]
 
             to_download.append(temp_path)
+    artifacts = ["/pub/taxonomy/taxdump.tar.gz"]
+    tax_path = "/pub/taxonomy/accession2taxid/"
+    for file in connection.nlst(tax_path):
+        if not fnmatch.fnmatch(os.path.basename(file), 'dead*') and not fnmatch.fnmatch(file, '*md5'):
+            artifacts.append(file)
+
 
     connection.quit()
 
-    from random import sample
+    pool = Pool(thread_count)
+    pool.map(ftp_dl, artifacts)
+
     pool = Pool(thread_count)
     pool.map(ftp_dl, to_download)
 
