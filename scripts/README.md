@@ -35,13 +35,14 @@ $ conda install biopython
 ```
 # Pre-Processing
 ## MTSv Prune
-The 'MTSv_prune.py' is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
+The 'MTSv_prune.py' is a ***work in progress*** module. The first step is to acquire the necessary GenBank flat files from NCBI
+along with two data stores are needed to partition sequence data by NCBI taxonomy
 
-ftp://ftp.ncbi.nlm.nih.gov/genbank/  
-ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
-ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
-
-From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
+### GenBank Flat file Download
+This command will download and store needed files in a "./raw/" subfolder
+```
+python MTSv_prune.py -p -t <optional:threads>
+```
 
 ### Fasta Database
 ```
