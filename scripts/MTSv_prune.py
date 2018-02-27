@@ -1,18 +1,18 @@
 import subprocess
-from operator import itemgetter
-from bisect import bisect_left
-from sys import argv
-import zipfile
+from io import BytesIO
+
 import argparse
 import fnmatch
-import os, xlsxwriter
-import urllib.request
+import os
+from ftplib import FTP
+
+# import urllib.request
 import re
 import tarfile, gzip
-import multiprocessing
+from multiprocessing import Pool
 import pickle, json
 from xml.dom import minidom
-lock = multiprocessing.RLock()
+# lock = multiprocessing.RLock()
 
 import gzip
 import pickle
@@ -309,8 +309,12 @@ def gen_json(configuration, args):
 
 # Returns a dictionary of the config file
 def parse_json(args):
-    with open(args.configuration_path, "r") as file:
-        return json.load(file)
+    try:
+        with open(args.configuration_path, "r") as file:
+            return json.load(file)
+    except:
+        with open(args, "r") as file:
+            return json.load(file)
 
 # Parses command line arguments into dictionary of arguments or adds to one.  Can be serialized
 def arg_unwrappers(args, arguments=None):
@@ -401,23 +405,149 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     subprocess.run(command_two.split())
     subprocess.run(command_three.split())
 
+
+def ftp_dl(x):
+    raw_path = "./raw/"
+    ftp_path = "ftp.ncbi.nlm.nih.gov"
+    connection = FTP(ftp_path)
+    connection.login()
+    outpath = os.path.join(raw_path, os.path.basename(x))
+    with open(outpath, "wb") as out_file:
+        connection.retrbinary("RETR {0}".format(x), out_file.write)
+    connection.quit()
+
+def pull(thread_count=1):
+    raw_path = "./raw/"
+    config_path = "exclude.json"
+    ftp_path = "ftp.ncbi.nlm.nih.gov"
+    genbank_dir ="/genbank/"
+    assembly_gb = "/genomes/genbank/"
+    assembly_rs = "/genomes/refseq/"
+    assembly_gb_summary = "assembly_summary_genbank.txt"
+    assembly_rs_summary = "assembly_summary_refseq.txt"
+    exclude = "suffix_exclude"
+
+    assembly_classifications = {"Chromosome", "Scaffold"}
+
+    try:
+        os.mkdir(raw_path)
+    except:
+        pass
+    try:
+        configurations = parse_json(os.path.join(raw_path, config_path))
+    except:
+        configurations = {}
+        configurations[exclude] = ["gbenv", "gbsyn",
+                                   "gbchg" , "gbcon" , "gbnew",
+                                   "gbrel", "gbtsa"]
+        with open(os.path.join(raw_path,config_path), "w") as file:
+            json.dump(configurations, file, sort_keys=True)
+        configurations = parse_json(os.path.join(raw_path, config_path))
+
+    exclude = set(configurations[exclude])
+    end = 0
+
+    connection = FTP(ftp_path)
+    connection.login()
+    gb_download = []
+    to_download = []
+    level2path = {}
+
+    for fp in connection.nlst(genbank_dir):
+        base_fp = os.path.basename(fp)
+        for ind,char in enumerate(base_fp):
+            try:
+                # print(ind)
+                int(char)
+                if base_fp[:ind] in exclude:
+                    # print(fp[:ind])
+                    break
+                else:
+                    gb_download.append(fp)
+                    to_download.append(fp)
+                    break
+            except:
+                continue
+    level2path[b'genbank'] = gb_download
+
+    reader = BytesIO()
+    connection.retrbinary("RETR {0}{1}".format(assembly_rs,assembly_rs_summary) ,reader.write)
+    # for i in reader.getvalue():
+    reader.seek(0)
+
+    for line in reader:
+        if chr(line[0]) == "#":
+            continue
+        line = line.strip().split(b'\t')
+
+        if line[13] == b"Partial" or line[20].strip():
+            continue
+        if line[11].strip().decode() in assembly_classifications:
+            try:
+                temp = line[19].split(ftp_path.encode(),1)[1].decode()
+                temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
+            except:
+                continue
+            try:
+                level2path[line[11].strip()].append(temp_path)
+            except:
+                level2path[line[11].strip()] = [temp_path]
+            to_download.append(temp_path)
+
+    reader = BytesIO()
+    connection.retrbinary("RETR {0}{1}".format(assembly_gb,assembly_gb_summary) ,reader.write)
+    reader.seek(0)
+
+    for line in reader:
+        if chr(line[0]) == "#":
+            continue
+        line = line.strip().split(b'\t')
+        if line[13] == b"Partial" or line[20].strip():
+            continue
+        if line[11].strip().decode() in assembly_classifications:
+            try:
+                temp = line[19].split(ftp_path.encode(),1)[1].decode()
+                temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
+            except:
+                continue
+            try:
+                level2path[line[11].strip()].append(temp_path)
+            except:
+                level2path[line[11].strip()] = [temp_path]
+
+            to_download.append(temp_path)
+
+    connection.quit()
+
+    from random import sample
+    pool = Pool(thread_count)
+    pool.map(ftp_dl, to_download)
+
+    for i in level2path.keys():
+        fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
+        with open(fp, "w") as out_file:
+            for line in level2path[i]:
+                out_file.write("{0}\n".format(line))
+
 if __name__ =="__main__":
     # Sets up command line parser
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
+
     group = parser.add_mutually_exclusive_group(required=True)
 
+    group.add_argument("-p", "--pull", "-pull",action='store_true')
     group.add_argument("-gc", "--generate-config","-generate-config", action='store_true',
                        help="generates a configuration file in current directory or as specified by output")
     group.add_argument("-bdb", "--build-database", "-build-database", action='store_true',
                        help="Builds a sequence database from a file list of NCBI flatfiles")
-    group.add_argument("-bigi", "--build-index-gi","-build-index-gi",action='store_true',
-                       help="Builds a serialization of the fasta file using gi2taxid information")
+    # group.add_argument("-bigi", "--build-index-gi","-build-index-gi",action='store_true',
+    #                    help="Builds a serialization of the fasta file using gi2taxid information")
     group.add_argument("-biacc", "--build-index-acc","-build-index-acc",action='store_true',
                        help="Builds a serialization of the fasta file using acc2taxid information")
 
     group.add_argument("-c", "--clip", "-clip",action='store_true')
-    group.add_argument("-ce", "--clip-exclusive","-clip-exclusive",action='store_true')
-    group.add_argument("-ci", "--clip-inclusive","-clip-inclusive",action='store_true')
+    # group.add_argument("-ce", "--clip-exclusive","-clip-exclusive",action='store_true')
+    # group.add_argument("-ci", "--clip-inclusive","-clip-inclusive",action='store_true')
 
 
     group = parser.add_argument_group()
@@ -429,12 +559,12 @@ if __name__ =="__main__":
                        )
     group.add_argument("-sp","--serialization-path", "-serialization-path",
                        help="Path to *.p file built using build-index_* flag")
-    group.add_argument("-kp", "--keyword-path","-keyword-path",
-                       help="Path to keyword serialization")
+    # group.add_argument("-kp", "--keyword-path","-keyword-path",
+    #                    help="Path to keyword serialization")
     group.add_argument("-fp","--fasta-path", "-fasta-path" ,
                        help="Path to fasta DB built using build-database flag")
-    group.add_argument("-g2t", "--gi-to-taxid-paths", "-gi-to-taxid-paths", nargs='*',
-                       help="Path to gi to nucl files")
+    # group.add_argument("-g2t", "--gi-to-taxid-paths", "-gi-to-taxid-paths", nargs='*',
+    #                    help="Path to gi to nucl files")
     group.add_argument("-fl","--file-list", "-file-list" ,
                        help="Path to file list of paths to GenBank Flat Files")
 
@@ -456,51 +586,63 @@ if __name__ =="__main__":
     group.add_argument("-t", "--threads", "-threads", type=int,
                        help="Specify total threads to spawn in DB creation")
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    # group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-o", "--output","-output",
                        help="path for output file without extension relevant extension will be appended")
 
     args = parser.parse_args()
-
-    if args.update and args.configuration_path:
-        gen_json(arg_unwrappers(args,parse_json(args)),args)
-
-    elif args.generate_config:
-        gen_json(arg_unwrappers(args),args)
-
-    if args.configuration_path:
-        arguments = arg_unwrappers(args,parse_json(args))
-    else:
-        arguments = arg_unwrappers(args)
-
-    if args.build_database:
+    if args.pull:
         if args.threads:
-            threads = args.threads
+            pull(args.threads)
         else:
-            threads = 1
-        if args.file_list:
-        # build_db("chromosomes.list","chromosome.fasta", "test.kw", "test.src", 16, "test.g2w")
-        # build_db("complete_genome.list","complete.fasta", "test.kw", "test.src", 16, "test.g2w")
-            build_db(*"{2} {0}.fasta {0}.kw {0}.src {1} {0}.g2w".format(args.output, threads, args.file_list).split())
-        else:
-            print("FASTA Database creation requires a path to a file list of GenBank Flat Files")
-    elif args.build_index_gi:
-        if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['gi-to-taxid-path']:
-            serialization(arguments['gi-to-taxid-path'],arguments['fasta-path'],arguments['taxdump-path'])
-        else:
-            parser.error("Serialization requires paths to taxdump, fasta database and gi2taxid files")
-        if args.update:
-            arguments['serialization-path'] = os.path.abspath(args.output+".p")
-            gen_json(arguments, args)
-    elif args.build_index_acc:
-        if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['acc-to-taxid-paths']:
-            acc_serialization(arguments['acc-to-taxid-paths'],arguments['fasta-path'],arguments['taxdump-path'])
-        else:
-            parser.error("Serialization requires paths to taxdump, fasta database and accession2taxid files")
-        if args.update:
-            arguments['serialization-path'] = os.path.abspath(args.output+".p")
-            gen_json(arguments, args)
+            pull()
+    else:
+        if args.update and args.configuration_path:
+            gen_json(arg_unwrappers(args,parse_json(args)),args)
 
-    elif args.clip:
-        clip(args.tax_id_include,arguments['rollup-rank'], args.tax_id_exclude,
-             args.output,arguments['minimum-length'], arguments['maximum-length'], arguments['fasta-path'], arguments['serialization-path'])
+        elif args.generate_config:
+            gen_json(arg_unwrappers(args),args)
+
+        if args.configuration_path:
+            arguments = arg_unwrappers(args,parse_json(args))
+        else:
+            arguments = arg_unwrappers(args)
+
+        if args.build_database:
+            if args.threads:
+                threads = args.threads
+            else:
+                threads = 1
+            if args.file_list:
+            # build_db("chromosomes.list","chromosome.fasta", "test.kw", "test.src", 16, "test.g2w")
+            # build_db("complete_genome.list","complete.fasta", "test.kw", "test.src", 16, "test.g2w")
+                build_db(*"{2} {0}.fasta {0}.kw {0}.src {1} {0}.g2w".format(args.output, threads, args.file_list).split())
+            else:
+                print("FASTA Database creation requires a path to a file list of GenBank Flat Files")
+        elif args.build_index_gi:
+            if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['gi-to-taxid-path']:
+                serialization(arguments['gi-to-taxid-path'],arguments['fasta-path'],arguments['taxdump-path'])
+            else:
+                parser.error("Serialization requires paths to taxdump, fasta database and gi2taxid files")
+            if args.update:
+                arguments['serialization-path'] = os.path.abspath(args.output+".p")
+                gen_json(arguments, args)
+        elif args.build_index_acc:
+            if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['acc-to-taxid-paths']:
+                acc_serialization(arguments['acc-to-taxid-paths'],arguments['fasta-path'],arguments['taxdump-path'])
+            else:
+                parser.error("Serialization requires paths to taxdump, fasta database and accession2taxid files")
+            if args.update:
+                arguments['serialization-path'] = os.path.abspath(args.output+".p")
+                gen_json(arguments, args)
+
+        elif args.clip:
+            clip(args.tax_id_include,arguments['rollup-rank'], args.tax_id_exclude,
+                 args.output,arguments['minimum-length'], arguments['maximum-length'], arguments['fasta-path'], arguments['serialization-path'])
+            # if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['acc-to-taxid-paths']:
+        #     acc_serialization(arguments['acc-to-taxid-paths'],arguments['fasta-path'],arguments['taxdump-path'])
+        # else:
+        #     parser.error("Serialization requires paths to taxdump, fasta database and accession2taxid files")
+        # if args.update:
+        #     arguments['serialization-path'] = os.path.abspath(args.output+".p")
+        #     gen_json(arguments, args)
