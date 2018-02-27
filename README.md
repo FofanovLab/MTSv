@@ -77,6 +77,7 @@ The environment only needs to be created once.
 $ conda create --name biopy3 python=3.5.2 biopython pandas
 ```
 The name `biopy3` can be changed to whatever name you want.  
+**[NAU MONSOON USERS ONLY]**  
 Note: If running on NAU's Monsoon cluster, run `module load anaconda/3.latest` first
 
 ### Activate Conda Environment
@@ -168,7 +169,8 @@ $ python scripts/MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to
 -txe <list of taxids to exclude> -o <output name with extension>
 ```
 
-### [FOR NAU MONSOON USERS ONLY] Monsoon PreBuilt Fasta Database and Configurations
+### Monsoon PreBuilt Fasta Database and Configurations
+**[NAU MONSOON USERS ONLY]**  
 For NAU Monsoon users, the following config files can be used that include paths to prebuilt database files
 ```
 /scratch/tes87/database/assembly_levels/nt_2016_seqs.json
@@ -370,7 +372,8 @@ optional arguments:
                         None)
 ```
 ### Example Slurm Script
-Change nauid to your nauid and modify `out_path` to test and run script  
+**[NAU MONSOON USERS ONLY]**   
+Change nauid to your nauid and modify `out_path` to test and run script  
 
 ```
 #!/bin/bash
@@ -440,6 +443,7 @@ optional arguments:
                         Extract sequences by species name (default: None)
 ```
 ### Example Slurm Script
+**[NAU MONSOON USERS ONLY]**  
 Change nauid to your nauid and modify `out_path` to test and run script
 ```
 #!/bin/bash
