@@ -77,7 +77,8 @@ The environment only needs to be created once.
 $ conda create --name biopy3 python=3.5.2 biopython pandas
 ```
 The name `biopy3` can be changed to whatever name you want.  
-Note: If using Monsoon, run `module load anaconda/3.latest` first
+**[NAU MONSOON USERS ONLY]**  
+Note: If running on NAU's Monsoon cluster, run `module load anaconda/3.latest` first
 
 ### Activate Conda Environment
 ```
@@ -121,24 +122,18 @@ $ conda install biopython
  
 # MTSv Pre-Processing
 ## MTSv Prune
-`scripts/MTSv_prune.py` is a ***work in progress*** module. Currently the module requires the precursor GenBank Flat Files *.seq.gz, taxdump.tar.gz, *.accession2taxid.gz to be downloaded from NCBI GenBank/RefSeq ftp seperately. 
+'scripts/MTSv_prune.py' is a ***work in progress*** module. The first step is to acquire the necessary GenBank flat files from NCBI along with NCBI taxonomy information ( taxdump.tar.gz, *.accession2taxid.gz)
 
-ftp://ftp.ncbi.nlm.nih.gov/genbank/ 
-ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
-ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/
-
-### Example using wget
-In desired directory run: 
-```bash
-$ wget ftp://ftp.ncbi.nlm.nih.gov/genbank/*.seq.gz
-$ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz  
-$ wget ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/*.accession2taxid.gz
+### GenBank Flat file Download
+This command will download and store needed files in a "scripts/raw/" folder
 ```
-From these precursors two data stores are needed to partition sequence data by NCBI taxonomy  
+$ source activate biopy3
+$ python MTSv_prune.py -p -t <threads:default 1>
+```
+From these precursors two files are needed to partition sequence data by NCBI taxonomy  
 
 ### Fasta Database
 ```
-$ source activate biopy3
 $ python scripts/MTSv_prune.py -bdb -fl <file-list> \ 
 -o <output name without extension> -t <threads:default 1>  
 ```
@@ -169,6 +164,8 @@ $ python scripts/MTSv_prune.py -c -cp <Config JSON path> -txi <list of taxids to
 ```
 
 ### Monsoon PreBuilt Fasta Database and Configurations
+**[NAU MONSOON USERS ONLY]**  
+For NAU Monsoon users, the following config files can be used that include paths to prebuilt database files
 ```
 /scratch/tes87/database/assembly_levels/nt_2016_seqs.json
 /scratch/tes87/database/assembly_levels/Complete_Genome_assembly.json
@@ -302,7 +299,7 @@ The sensitivity of the analysis can be adjusted either by changing the `--lca` f
 # MTSv Analysis
 
 ## MTSv Summary
-The `MTSv_summary.py` script summarizes the number of hits per taxon per sample (sample colunns are in the same order as the FASTQ files that were passed to `MTSv-readprep`). The total number of reads mapped, the number of unique mapped reads, the number of signature hits, and the number of unique signature hits per taxon. Note: if the `--lca` option is modified to combine species up to the genus or family level in the `MTSv-inform` module, taxid for uncombined species in the `MTSv-collapse` output will be double counted in total hits and unique hits. 
+The `MTSv_summary.py` script summarizes the number of hits per taxon per sample (sample columns are in the same order as the FASTQ files that were passed to `MTSv-readprep`). The total number of reads mapped, the number of unique mapped reads, the number of signature hits, and the number of unique signature hits per taxon. Note: if the `--lca` option is modified to combine species up to the genus or family level in the `MTSv-inform` module, taxid for uncombined species in the `MTSv-collapse` output will be double counted in total hits and unique hits. 
 
 ### Requirements
 biopython=1.68
@@ -369,7 +366,8 @@ optional arguments:
                         None)
 ```
 ### Example Slurm Script
-Change nauid to your nauid and modify `out_path` to test and run script  
+**[NAU MONSOON USERS ONLY]**   
+Change nauid to your nauid and modify `out_path` to test and run script  
 
 ```
 #!/bin/bash
@@ -439,6 +437,7 @@ optional arguments:
                         Extract sequences by species name (default: None)
 ```
 ### Example Slurm Script
+**[NAU MONSOON USERS ONLY]**  
 Change nauid to your nauid and modify `out_path` to test and run script
 ```
 #!/bin/bash
