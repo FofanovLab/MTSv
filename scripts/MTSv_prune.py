@@ -1,21 +1,14 @@
 import subprocess
 from io import BytesIO
-
 import argparse
 import fnmatch
 import os
 from ftplib import FTP
-
-# import urllib.request
-import re
-import tarfile, gzip
+from time import sleep
+import gzip
+import tarfile
 from multiprocessing import Pool
 import pickle, json
-from xml.dom import minidom
-# lock = multiprocessing.RLock()
-
-import gzip
-import pickle
 
 def serialization(gi2tx,fasta_path, txdump_path):
 
@@ -407,15 +400,20 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
 
 
 def ftp_dl(x):
-    raw_path = "./raw/"
-    ftp_path = "ftp.ncbi.nlm.nih.gov"
-    connection = FTP(ftp_path)
-    connection.login()
-    outpath = os.path.join(raw_path, os.path.basename(x))
-    with open(outpath, "wb") as out_file:
-        connection.retrbinary("RETR {0}".format(x), out_file.write)
-    connection.quit()
-
+    try:
+        raw_path = "./raw/"
+        ftp_path = "ftp.ncbi.nlm.nih.gov"
+        connection = FTP(ftp_path)
+        connection.login()
+        outpath = os.path.join(raw_path, os.path.basename(x))
+        with open(outpath, "wb") as out_file:
+            connection.retrbinary("RETR {0}".format(x), out_file.write)
+        connection.quit()
+        return ''
+    except:
+        print(x)
+        sleep(30)
+        return x
 def pull(thread_count=1):
     raw_path = "./raw/"
     config_path = "exclude.json"
@@ -526,9 +524,10 @@ def pull(thread_count=1):
 
     pool = Pool(thread_count)
     pool.map(ftp_dl, artifacts)
-
-    pool = Pool(thread_count)
-    pool.map(ftp_dl, to_download)
+    # temp =
+    while to_download:
+        pool = Pool(thread_count)
+        to_download = [x for x in pool.map(ftp_dl, to_download) if x]
 
     for i in level2path.keys():
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
