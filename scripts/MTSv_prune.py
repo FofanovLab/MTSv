@@ -7,7 +7,7 @@ from ftplib import FTP
 from time import sleep
 import gzip
 import tarfile
-from multiprocessing import Pool
+from multiprocessing import Pool, Queue, Process, Manager
 import pickle, json
 
 def serialization(gi2tx,fasta_path, txdump_path):
@@ -399,13 +399,13 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     subprocess.run(command_three.split())
     map2fauxgi = {}
     count = 0
-    with open("temp_{0}".format(fasta_out_fp), "rb") as start_file:
+    with open("{0}.tmp".format(fasta_out_fp), "rb") as start_file:
         for line in start_file:
             if chr(line[0]) == ">":
                 map2fauxgi[line] = count
                 count += 1
 
-    with open("temp_{0}".format(fasta_out_fp), "rb") as start_file:
+    with open("{0}.tmp".format(fasta_out_fp), "rb") as start_file:
         with open(fasta_out_fp, "wb") as end_file:
             for line in start_file:
                 if chr(line[0]) == ">":
@@ -413,23 +413,22 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
                     end_file.write(" GI:{0} ".format(map2fauxgi[line]).encode().join(header))
                 else:
                     end_file.write(line)
-
+    os.remove("{0}.tmp".format(fasta_out_fp))
 
 def ftp_dl(x):
-    try:
-        raw_path = "./raw/"
-        ftp_path = "ftp.ncbi.nlm.nih.gov"
-        connection = FTP(ftp_path)
-        connection.login()
-        outpath = os.path.join(raw_path, os.path.basename(x))
+
+    raw_path = "./raw/"
+    ftp_path = "ftp.ncbi.nlm.nih.gov"
+    connection = FTP(ftp_path)
+    connection.login()
+
+    while len(x):
+        fp_path = x.pop()
+        outpath = os.path.join(raw_path, os.path.basename(fp_path))
         with open(outpath, "wb") as out_file:
-            connection.retrbinary("RETR {0}".format(x), out_file.write)
-        connection.quit()
-        return ''
-    except:
-        print(x)
-        sleep(30)
-        return x
+            connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
+    connection.quit()
+
 def pull(thread_count=1):
     raw_path = "./raw/"
     config_path = "exclude.json"
@@ -466,7 +465,6 @@ def pull(thread_count=1):
     gb_download = []
     to_download = []
     level2path = {}
-
     for fp in connection.nlst(genbank_dir):
         base_fp = os.path.basename(fp)
         for ind,char in enumerate(base_fp):
@@ -492,8 +490,10 @@ def pull(thread_count=1):
         if chr(line[0]) == "#":
             continue
         line = line.strip().split(b'\t')
-
-        if line[13] == b"Partial" or line[20].strip():
+        try:
+            if line[13] == b"Partial" or line[20].strip():
+                continue
+        except:
             continue
         if line[11].strip().decode() in assembly_classifications:
             try:
@@ -505,7 +505,7 @@ def pull(thread_count=1):
                 level2path[line[11].strip()].append(temp_path)
             except:
                 level2path[line[11].strip()] = [temp_path]
-            to_download.append(temp_path)
+            # to_download.append(temp_path)
 
     reader = BytesIO()
     connection.retrbinary("RETR {0}{1}".format(assembly_gb,assembly_gb_summary) ,reader.write)
@@ -515,7 +515,10 @@ def pull(thread_count=1):
         if chr(line[0]) == "#":
             continue
         line = line.strip().split(b'\t')
-        if line[13] == b"Partial" or line[20].strip():
+        try:
+            if line[13] == b"Partial" or line[20].strip():
+                continue
+        except:
             continue
         if line[11].strip().decode() in assembly_classifications:
             try:
@@ -528,7 +531,7 @@ def pull(thread_count=1):
             except:
                 level2path[line[11].strip()] = [temp_path]
 
-            to_download.append(temp_path)
+            # to_download.append(temp_path)
     artifacts = ["/pub/taxonomy/taxdump.tar.gz"]
     tax_path = "/pub/taxonomy/accession2taxid/"
     for file in connection.nlst(tax_path):
@@ -537,13 +540,27 @@ def pull(thread_count=1):
 
 
     connection.quit()
-
-    pool = Pool(thread_count)
-    pool.map(ftp_dl, artifacts)
+    to_download += artifacts
+    # pool = Pool(thread_count)
+    # pool.map(ftp_dl, artifacts)
     # temp =
-    while to_download:
-        pool = Pool(thread_count)
-        to_download = [x for x in pool.map(ftp_dl, to_download) if x]
+
+    # download_queue = Queue()
+    print(len(to_download))
+    man = Manager()
+    to_download = man.list(to_download)
+    # for i in to_download:
+    #     download_queue.put(i)
+
+    proc = [Process(target = ftp_dl, args=(to_download,)) for i in range(thread_count)]
+    for p in proc:
+        p.start()
+    for p in proc:
+        p.join()
+
+    # while to_download:
+    #     pool = Pool(thread_count)
+    #     to_download = [x for x in pool.map(ftp_dl, to_download) if x]
 
     for i in level2path.keys():
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
