@@ -391,12 +391,28 @@ def arg_unwrappers(args, arguments=None):
 
 def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word):
     command_one = "g++ -std=c++11 -pthread taxidtool.cpp -o db_builder"
-    command_two = "./db_builder {0} {1} {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word)
+    command_two = "./db_builder {0} temp_{1} {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word)
     command_three = "rm ./db_builder"
 
     subprocess.run(command_one.split())
     subprocess.run(command_two.split())
     subprocess.run(command_three.split())
+    map2fauxgi = {}
+    count = 0
+    with open("temp_{0}".format(fasta_out_fp), "rb") as start_file:
+        for line in start_file:
+            if chr(line[0]) == ">":
+                map2fauxgi[line] = count
+                count += 1
+
+    with open("temp_{0}".format(fasta_out_fp), "rb") as start_file:
+        with open(fasta_out_fp, "wb") as end_file:
+            for line in start_file:
+                if chr(line[0]) == ">":
+                    header = line.split(b' ', 1)
+                    end_file.write(" GI:{0} ".format(map2fauxgi[line]).encode().join(header))
+                else:
+                    end_file.write(line)
 
 
 def ftp_dl(x):
