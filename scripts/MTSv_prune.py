@@ -390,6 +390,11 @@ def arg_unwrappers(args, arguments=None):
 
 
 def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word):
+    start_dir = os.getcwd()
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    flat_list_in_fp = os.path.abspath(flat_list_in_fp)
+
+    os.chdir(script_dir)
     command_one = "g++ -std=c++11 -pthread taxidtool.cpp -o db_builder"
     command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word)
     command_three = "rm ./db_builder"
@@ -399,6 +404,7 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     subprocess.run(command_three.split())
     map2fauxgi = {}
     count = 0
+
     with open("{0}.tmp".format(fasta_out_fp), "rb") as start_file:
         for line in start_file:
             if chr(line[0]) == ">":
@@ -414,7 +420,7 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
                 else:
                     end_file.write(line)
     os.remove("{0}.tmp".format(fasta_out_fp))
-
+    os.chdir(start_dir)
 def ftp_dl(x):
 
     raw_path = "./raw/"
