@@ -329,11 +329,11 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
                         temp = regex_replace( temp , allowed, " " );
                         definitions = split(temp);
                     }
-//                    else if(temp == "VERSION"){
-//                        line = line.substr(line.find_first_of(" "), line.length() );
-//                        line = line.substr(line.find_first_not_of(" "), line.length() );
-//                        version =  regex_replace( line, regex("  +"), " " );
-//                    }
+                    else if(temp == "VERSION"){
+                        line = line.substr(line.find_first_of(" "), line.length() );
+                        line = line.substr(line.find_first_not_of(" "), line.length() );
+                        version =  regex_replace( line, regex("  +"), " " );
+                    }
                     else if(temp == "SOURCE"){
                         line = line.substr(line.find_first_of(" "), line.length() );
                         source = line.substr(line.find_first_not_of(" "), line.length() );
