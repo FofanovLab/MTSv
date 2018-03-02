@@ -391,7 +391,7 @@ def arg_unwrappers(args, arguments=None):
 
 def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word):
     command_one = "g++ -std=c++11 -pthread taxidtool.cpp -o db_builder"
-    command_two = "./db_builder {0} temp_{1} {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word)
+    command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word)
     command_three = "rm ./db_builder"
 
     subprocess.run(command_one.split())
@@ -541,16 +541,8 @@ def pull(thread_count=1):
 
     connection.quit()
     to_download += artifacts
-    # pool = Pool(thread_count)
-    # pool.map(ftp_dl, artifacts)
-    # temp =
-
-    # download_queue = Queue()
-    print(len(to_download))
     man = Manager()
     to_download = man.list(to_download)
-    # for i in to_download:
-    #     download_queue.put(i)
 
     proc = [Process(target = ftp_dl, args=(to_download,)) for i in range(thread_count)]
     for p in proc:
@@ -558,9 +550,6 @@ def pull(thread_count=1):
     for p in proc:
         p.join()
 
-    # while to_download:
-    #     pool = Pool(thread_count)
-    #     to_download = [x for x in pool.map(ftp_dl, to_download) if x]
 
     for i in level2path.keys():
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
@@ -655,7 +644,7 @@ if __name__ =="__main__":
             if args.file_list:
             # build_db("chromosomes.list","chromosome.fasta", "test.kw", "test.src", 16, "test.g2w")
             # build_db("complete_genome.list","complete.fasta", "test.kw", "test.src", 16, "test.g2w")
-                build_db(*"{2} {0}.fasta {0}.kw {0}.src {1} {0}.g2w".format(args.output, threads, args.file_list).split())
+                build_db(*"{2} {0} {0}.kw {0}.src {1} {0}.g2w".format(args.output, threads, args.file_list).split())
             else:
                 print("FASTA Database creation requires a path to a file list of GenBank Flat Files")
         elif args.build_index_gi:
