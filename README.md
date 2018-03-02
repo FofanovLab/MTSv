@@ -121,6 +121,12 @@ $ conda install biopython
    - [MTSv-extract](#mtsv-extract)
  
 # MTSv Pre-Processing
+## Dependency
+* Greater than GCC/5.2.0 on the PATH for runtime compilation of the C++11.  
+  
+**[NAU MONSOON USERS ONLY]**  
+module load gcc/5.2.0
+
 ## MTSv Prune
 'scripts/MTSv_prune.py' is a ***work in progress*** module. The first step is to acquire the necessary GenBank flat files from NCBI along with NCBI taxonomy information ( taxdump.tar.gz, *.accession2taxid.gz)
 
