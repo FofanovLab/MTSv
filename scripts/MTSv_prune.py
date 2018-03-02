@@ -321,12 +321,12 @@ def arg_unwrappers(args, arguments=None):
     except KeyError:
         arguments['serialization-path'] = ""
 
-    if args.keyword_path:
-        arguments['keyword-path'] = os.path.abspath(args.keyword_path)
-    try:
-        arguments['keyword-path']
-    except KeyError:
-        arguments['keyword-path'] = ""
+    # if args.keyword_path:
+    #     arguments['keyword-path'] = os.path.abspath(args.keyword_path)
+    # try:
+    #     arguments['keyword-path']
+    # except KeyError:
+    #     arguments['keyword-path'] = ""
 
     if args.fasta_path:
         arguments['fasta-path'] = os.path.abspath(args.fasta_path)
@@ -355,16 +355,16 @@ def arg_unwrappers(args, arguments=None):
     except:
         arguments['taxdump-path'] = ""
 
-    if args.gi_to_taxid_paths:
-        temp = []
-        for i in args.gi_to_taxid_path:
-            temp.append(os.path.abspath(i))
-
-        arguments['gi-to-taxid-paths'] = temp
-    try:
-        arguments['gi-to-taxid-paths']
-    except:
-        arguments['gi-to-taxid-paths'] = []
+    # if args.gi_to_taxid_paths:
+    #     temp = []
+    #     for i in args.gi_to_taxid_path:
+    #         temp.append(os.path.abspath(i))
+    #
+    #     arguments['gi-to-taxid-paths'] = temp
+    # try:
+    #     arguments['gi-to-taxid-paths']
+    # except:
+    #     arguments['gi-to-taxid-paths'] = []
 
     if args.acc_to_taxid_paths:
         temp = []
@@ -505,7 +505,7 @@ def pull(thread_count=1):
                 level2path[line[11].strip()].append(temp_path)
             except:
                 level2path[line[11].strip()] = [temp_path]
-            # to_download.append(temp_path)
+            to_download.append(temp_path)
 
     reader = BytesIO()
     connection.retrbinary("RETR {0}{1}".format(assembly_gb,assembly_gb_summary) ,reader.write)
@@ -531,7 +531,7 @@ def pull(thread_count=1):
             except:
                 level2path[line[11].strip()] = [temp_path]
 
-            # to_download.append(temp_path)
+            to_download.append(temp_path)
     artifacts = ["/pub/taxonomy/taxdump.tar.gz"]
     tax_path = "/pub/taxonomy/accession2taxid/"
     for file in connection.nlst(tax_path):
@@ -566,7 +566,7 @@ def pull(thread_count=1):
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
         with open(fp, "w") as out_file:
             for line in level2path[i]:
-                out_file.write("{0}\n".format(line))
+                out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),os.path.basename(line))))
 
 if __name__ =="__main__":
     # Sets up command line parser
