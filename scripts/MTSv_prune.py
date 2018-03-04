@@ -188,27 +188,33 @@ def get_tree(tx_ids, tx, terminals):
 
 # This is used to roll a NCBI taxonomic ID to a desired rank
 def roll_up(tx_id, rank, c2p, prev_roll=None):
-    try:
-        if prev_roll:
-            return prev_roll[tx_id]
-        else:
-            raise KeyError
-    except KeyError:
-        cur = tx_id
-        # nxt = c2p[cur][0]
-        while cur != b'1':
-            # print(cur)
-            if c2p[cur][1] == rank:
-                if prev_roll:
-                    prev_roll[tx_id] = cur
-                # print(tx_id)
-                return cur
+    if tx_id:
+        try:
+            if prev_roll:
+                return prev_roll[tx_id]
             else:
-                cur = c2p[cur][0]
-        # if cur == b'1':
-        prev_roll[tx_id] = tx_id
+                raise KeyError
+        except KeyError:
+            try:
+                cur = tx_id
+                # nxt = c2p[cur][0]
+                while cur != b'1':
+                    # print(cur)
+                    if c2p[cur][1] == rank:
+                        if prev_roll:
+                            prev_roll[tx_id] = cur
+                        # print(tx_id)
+                        return cur
+                    else:
+                        cur = c2p[cur][0]
+                if tx_id and cur == b'1':
+                    prev_roll[tx_id] = tx_id
+            except TypeError:
+                pass
         return tx_id
 
+        # else:
+        #     return
 # This is the function that will extract the taxonomic sequences of interest from the parsed flat file fasta
 # process is:
 # Parse inclusive and exclusive taxids
@@ -263,32 +269,35 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path):
     with open(fasta_path, "rb") as fasta:
         with open(name, "wb") as out:
             for tx in sorted(taxons):
-                tx = tx.encode().strip()
-                try:
+                if tx:
+                    tx = tx.encode().strip()
+                    try:
+                        positions[tx].sort()
+                    except KeyError:
+                        continue
+                    if ru_rank:
+                        rr_tx = roll_up(tx, ru_rank, child2parent)
+                    else:
+                        rr_tx = tx
+                    if not rr_tx:
+                        continue
+                    # print()
                     positions[tx].sort()
-                except KeyError:
-                    continue
-                if ru_rank:
-                    rr_tx = roll_up(tx, ru_rank, child2parent)
-                else:
-                    rr_tx = tx
-                # print()
-                positions[tx].sort()
-                for off in positions[tx]:
-                    fasta.seek(off)
-                    header = fasta.readline()
-                    line = fasta.readline()
-                    while line and chr(line[0]) != ">":
-                        seq += line
-                        line_count += 1
+                    for off in positions[tx]:
+                        fasta.seek(off)
+                        header = fasta.readline()
                         line = fasta.readline()
-                    if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
-                        gi = header.split(b' ',2)[1].split(b':')[1]
-                        # gi = header.split(b' ',1)[0].strip(b'>')
-                        out.write(b'>'+gi+b'-'+rr_tx+b'\n')
-                        out.write(seq)
-                    line_count = 0
-                    seq = bytearray()
+                        while line and chr(line[0]) != ">":
+                            seq += line
+                            line_count += 1
+                            line = fasta.readline()
+                        if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
+                            gi = header.split(b' ',2)[1].split(b':')[1]
+                            # gi = header.split(b' ',1)[0].strip(b'>')
+                            out.write(b'>'+gi+b'-'+rr_tx+b'\n')
+                            out.write(seq)
+                        line_count = 0
+                        seq = bytearray()
 
 # writes a new or updates json config file
 def gen_json(configuration, args):
@@ -633,11 +642,6 @@ if __name__ =="__main__":
         else:
             pull()
     else:
-        if args.update and args.configuration_path:
-            gen_json(arg_unwrappers(args,parse_json(args)),args)
-
-        elif args.generate_config:
-            gen_json(arg_unwrappers(args),args)
 
         if args.configuration_path:
             arguments = arg_unwrappers(args,parse_json(args))
@@ -655,14 +659,14 @@ if __name__ =="__main__":
                 build_db(*"{2} {0} {0}.kw {0}.src {1} {0}.g2w".format(args.output, threads, args.file_list).split())
             else:
                 print("FASTA Database creation requires a path to a file list of GenBank Flat Files")
-        elif args.build_index_gi:
-            if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['gi-to-taxid-path']:
-                serialization(arguments['gi-to-taxid-path'],arguments['fasta-path'],arguments['taxdump-path'])
-            else:
-                parser.error("Serialization requires paths to taxdump, fasta database and gi2taxid files")
-            if args.update:
-                arguments['serialization-path'] = os.path.abspath(args.output+".p")
-                gen_json(arguments, args)
+        # elif args.build_index_gi:
+        #     if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['gi-to-taxid-path']:
+        #         serialization(arguments['gi-to-taxid-path'],arguments['fasta-path'],arguments['taxdump-path'])
+        #     else:
+        #         parser.error("Serialization requires paths to taxdump, fasta database and gi2taxid files")
+        #     if args.update:
+        #         arguments['serialization-path'] = os.path.abspath(args.output+".p")
+        #         gen_json(arguments, args)
         elif args.build_index_acc:
             if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['acc-to-taxid-paths']:
                 acc_serialization(arguments['acc-to-taxid-paths'],arguments['fasta-path'],arguments['taxdump-path'])
@@ -682,3 +686,8 @@ if __name__ =="__main__":
         # if args.update:
         #     arguments['serialization-path'] = os.path.abspath(args.output+".p")
         #     gen_json(arguments, args)
+        elif args.update and args.configuration_path:
+            gen_json(arg_unwrappers(args,parse_json(args)),args)
+
+        elif args.generate_config:
+            gen_json(arg_unwrappers(args),args)
