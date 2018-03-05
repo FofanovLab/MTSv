@@ -446,7 +446,7 @@ def ftp_dl(x):
             connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
     connection.quit()
 
-def pull(thread_count=1):
+def pull(thread_count=1, excluded=set()):
     raw_path = "./raw/"
     config_path = "exclude.json"
     ftp_path = "ftp.ncbi.nlm.nih.gov"
@@ -482,21 +482,24 @@ def pull(thread_count=1):
     gb_download = []
     to_download = []
     level2path = {}
-    for fp in connection.nlst(genbank_dir):
-        base_fp = os.path.basename(fp)
-        for ind,char in enumerate(base_fp):
-            try:
-                # print(ind)
-                int(char)
-                if base_fp[:ind] in exclude:
-                    break
-                else:
-                    gb_download.append(fp)
-                    to_download.append(fp)
-                    break
-            except:
-                continue
+
+    if "genbank" not in exclude:
+        for fp in connection.nlst(genbank_dir):
+            base_fp = os.path.basename(fp)
+            for ind,char in enumerate(base_fp):
+                try:
+                    # print(ind)
+                    int(char)
+                    if base_fp[:ind] in exclude:
+                        break
+                    else:
+                        gb_download.append(fp)
+                        to_download.append(fp)
+                        break
+                except:
+                    continue
     level2path[b'genbank'] = gb_download
+
 
     reader = BytesIO()
     connection.retrbinary("RETR {0}{1}".format(assembly_rs,assembly_rs_summary) ,reader.write)
@@ -512,7 +515,7 @@ def pull(thread_count=1):
                 continue
         except:
             continue
-        if line[11].strip().decode() in assembly_classifications:
+        if line[11].strip().decode() in assembly_classifications and line[11].strip().decode() not in exclude:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -532,12 +535,15 @@ def pull(thread_count=1):
         if chr(line[0]) == "#":
             continue
         line = line.strip().split(b'\t')
+        if line[13] == b"Partial":
+            continue
         try:
-            if line[13] == b"Partial" or line[20].strip():
+            if line[20].strip():
                 continue
         except:
-            continue
-        if line[11].strip().decode() in assembly_classifications:
+            pass
+
+        if line[11].strip().decode() in assembly_classifications and line[11].strip().decode() not in exclude:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -569,6 +575,8 @@ def pull(thread_count=1):
 
 
     for i in level2path.keys():
+        if i.decode() in exclude:
+            continue
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
         with open(fp, "w") as out_file:
             for line in level2path[i]:
@@ -637,8 +645,12 @@ if __name__ =="__main__":
 
     args = parser.parse_args()
     if args.pull:
-        if args.threads:
-            pull(args.threads)
+        if args.threads and args.tax_id_exclude:
+            pull(thread_count=args.threads, excluded=set(args.tax_id_exclude))
+        elif args.threads:
+            pull(thread_count=args.threads)
+        elif args.tax_id_exclude:
+            pull(excluded=set(args.tax_id_exclude))
         else:
             pull()
     else:
