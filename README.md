@@ -6,7 +6,25 @@ MTSv is a suite of metagenomic binning and analysis tools. It attempts to accura
 
 All commands listed in this document assume they're being executed from the repository's root directory. Adjust accordingly if you've installed the tools elsewhere.
 
-## Setup
+## Pipeline Overview
+0. [Installation](#installation)
+1. [MTSv Pre-Processing](#mtsv-pre-processing)
+    - [Build FASTA sequence database](#fasta-database)
+    - [Build Taxonomic Index of FASTA database](#index-building)
+    - [Prune sequences from FASTA database](#clipping)
+2. [MTSv Binning](#mtsv)
+    - [MTSv-chunk](#chunking-reference-database)
+    - [MTSv-build](#metagenomic-index)
+    - [MTSv-tree-build](#taxonomic-tree-index)
+    - [MTSv-readprep](#readprep)
+    - [MTSv-binner](#binning-queries)
+    - [MTSv-collapse](#collapsing-chunks)
+    - [MTSv-inform](#finding-informative-reads)
+3. [MTSv Analysis](#mtsv-analysis)
+   - [MTSv-summary](#mtsv-summary)
+   - [MTSv-extract](#mtsv-extract)
+
+## Installation
 
 ### Clone Repository
 Clone MTSv into desired location and move to `MTSv` directory
@@ -103,22 +121,6 @@ $ conda install pandas
 $ conda install biopython
 ```
 
-## Pipeline Overview
-0. [MTSv Pre-Processing](#mtsv-pre-processing)
-    - [Build FASTA sequence database](#fasta-database)
-    - [Build Taxonomic Index of FASTA database](#index-building)
-    - [Prune sequences from FASTA database](#clipping)
-1. [MTSv Binning](#mtsv)
-    - [MTSv-chunk](#chunking-reference-database)
-    - [MTSv-build](#metagenomic-index)
-    - [MTSv-tree-build](#taxonomic-tree-index)
-    - [MTSv-readprep](#readprep)
-    - [MTSv-binner](#binning-queries)
-    - [MTSv-collapse](#collapsing-chunks)
-    - [MTSv-inform](#finding-informative-reads)
-2. [MTSv Analysis](#mtsv-analysis)
-   - [MTSv-summary](#mtsv-summary)
-   - [MTSv-extract](#mtsv-extract)
  
 # MTSv Pre-Processing
 ## Dependency
