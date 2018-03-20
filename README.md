@@ -52,7 +52,19 @@ To build the MTSv binaries:
 $ cargo build --release
 ~~~
 
-They'll be available under `target/release/MTSv-*`.
+They'll be available under `target/release/MTSv-*`.  
+
+MTSv builds several binaries:
+
+* `MTSv-chunk`
+* `MTSv-binner`
+* `MTSv-build`
+* `MTSv-collapse`
+* `MTSv-inform`
+* `MTSv-readprep`
+* `MTSv-tree-build`
+
+All of these accept the `--help` flag to print a help message on their usage.
 
 
 ### Create Conda environment with Python3 and required packages.
