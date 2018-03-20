@@ -13,7 +13,7 @@ The pipeline is broken into two major sections: (1) the download and setup of se
 1. [Sequence Download and Setup Quick Start Guide](https://github.com/FofanovLab/MTSv/wiki/Sequence-Download-and-Setup-Quick-Start-Guide)
 2. [Binning and Analysis Quick Start Guide](https://github.com/FofanovLab/MTSv/wiki/Binning-and-Analysis-Quick-Start-Guide)
 
-If running the MTSv pipeline on Northern Arizona University's Monsoon HPC Cluster check out the [MTSv on Monsoon ](https://github.com/FofanovLab/MTSv/wiki/Quickstart-for-NAU-Monsoon-Users) Quick Start Guide.
+The MTSv pipeline is installed as a module on Northern Arizona University's Monsoon HPC Cluster. If running MTSv on Monsoon, check out the [MTSv on Monsoon ](https://github.com/FofanovLab/MTSv/wiki/Quickstart-for-NAU-Monsoon-Users) Quick Start Guide.
 
 
 ## Installation
@@ -62,22 +62,22 @@ $ conda create --name biopy3 python=3.5.2 biopython pandas
 ```
 The name `biopy3` can be changed to whatever name you want.  
 
-### Activate Conda Environment
+#### Activate Conda Environment
 ```
 $ source activate biopy3
 ```
 
-### Install etetoolkit
+#### Install etetoolkit
 ```
 $ conda install -c etetoolkit ete3 ete_toolchain
 ```
 
-### Deactivate Conda Environment
+#### Deactivate Conda Environment
 ```
 $ source deactivate
 ```
 
-If you already have a Python3.5.2 environment you can just use Conda to install the required packages.
+#### If you already have a Python3.5.2 environment you can just use Conda to install the required packages.
 ```
 $ source activate ENV_NAME
 $ conda install -c etetoolkit ete3 ete_toolchain
