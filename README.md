@@ -20,6 +20,11 @@ The MTSv pipeline is installed as a module on Northern Arizona University's Mons
 MTSv is built in Rust, with a little bit of Python. You will need:
 ### Dependencies
 1. [Anaconda or Miniconda to use Conda Environment](https://conda.io/docs/user-guide/install/index.html)
+  - biopython=1.68
+  - python=3.5.2  
+  - pandas=0.22.0
+  - ete3=3.1.1
+  - ete_toolchain=3.0.0
 2. [rustc](#install-rustc-and-cargo)
 3. [cargo >= 1.8.0](#install-rustc-and-cargo)
 4. A C compiler (tested with GCC and clang)
