@@ -20,11 +20,6 @@ The MTSv pipeline is installed as a module on Northern Arizona University's Mons
 MTSv is built in Rust, with a little bit of Python. You will need:
 ### Dependencies
 1. [Anaconda or Miniconda to use Conda Environment](https://conda.io/docs/user-guide/install/index.html)
-  - biopython=1.68
-  - python=3.5.2  
-  - pandas=0.22.0
-  - ete3=3.1.1
-  - ete_toolchain=3.0.0
 2. [rustc](#install-rustc-and-cargo)
 3. [cargo >= 1.8.0](#install-rustc-and-cargo)
 4. A C compiler (tested with GCC and clang)
@@ -73,31 +68,19 @@ All of these accept the `--help` flag to print a help message on their usage.
 
 
 ### Create Conda environment with Python3 and required packages.
-The environment only needs to be created once.
+The environment is called `mtsv_env` and only needs to be created once.
 ```
-$ conda create --name biopy3 python=3.5.2 biopython pandas
+$ conda env create -f environment.yml
 ```
-The name `biopy3` can be changed to whatever name you want.  
+
 
 #### Activate Conda Environment
 ```
-$ source activate biopy3
-```
-
-#### Install etetoolkit
-```
-$ conda install -c etetoolkit ete3 ete_toolchain
+$ conda activate mtsv_env
 ```
 
 #### Deactivate Conda Environment
 ```
-$ source deactivate
+$ conda deactivate
 ```
 
-#### If you already have a Python3.5.2 environment you can just use Conda to install the required packages.
-```
-$ source activate ENV_NAME
-$ conda install -c etetoolkit ete3 ete_toolchain
-$ conda install pandas
-$ conda install biopython
-```
