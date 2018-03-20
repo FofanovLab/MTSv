@@ -1,49 +1,45 @@
-name: biopy3
+name: mtsv_env
 channels:
   - etetoolkit
   - defaults
 dependencies:
-  - biopython=1.69=np113py36_0
+  - biopython=1.70=py35h1702cab_0
   - ca-certificates=2017.08.26=ha1e5d58_0
-  - certifi=2018.1.18=py36_0
+  - certifi=2018.1.18=py35_0
   - dbus=1.12.2=h5243cc1_1
   - expat=2.2.5=hb8e80ba_0
   - gettext=0.19.8.1=h15daf44_3
   - glib=2.53.6=h33f6a65_2
-  - icu=58.2=h4b95b61_1
+  - icu=54.1=0
   - intel-openmp=2018.0.0=h8158457_8
-  - jpeg=9b=he5867d9_2
   - libcxx=4.0.1=h579ed51_0
   - libcxxabi=4.0.1=hebd6815_0
-  - libedit=3.1=hb4e282d_0
   - libffi=3.2.1=h475c297_4
   - libgcc=4.8.5=hdbeacc1_10
   - libgfortran=3.0.1=h93005f0_2
   - libiconv=1.15=hdd342a3_7
-  - libpng=1.6.34=he12f830_0
-  - libxml2=2.9.7=hab757c2_0
-  - libxslt=1.1.32=hb819dd2_0
-  - lxml=4.2.0=py36h7166777_0
+  - libxml2=2.9.4=0
+  - libxslt=1.1.29=0
+  - lxml=4.1.1=py35ha60bdb6_0
   - mkl=2018.0.1=hfbd8650_4
-  - ncurses=6.0=hd04f020_2
-  - numpy=1.13.3=py36h8a80b8c_2
+  - numpy=1.14.2=py35ha9ae307_0
   - openssl=1.0.2n=hdbc3d79_0
-  - pandas=0.22.0=py36h0a44026_0
+  - pandas=0.22.0=py35h0a44026_0
   - pcre=8.41=hfb6ab37_1
-  - pip=9.0.1=py36h1555ced_4
-  - pyqt=5.6.0=py36he5c6137_6
-  - python=3.6.4=hc167b69_1
-  - python-dateutil=2.6.1=py36h86d2abb_1
-  - pytz=2018.3=py36_0
-  - qt=5.6.2=h9975529_14
-  - readline=7.0=hc1231fa_4
-  - scipy=1.0.0=py36h1de22e9_0
-  - setuptools=38.5.1=py36_0
-  - sip=4.18.1=py36h2824476_2
-  - six=1.11.0=py36h0e22d5e_1
-  - sqlite=3.22.0=h3efe00b_0
-  - tk=8.6.7=h35a86e2_3
-  - wheel=0.30.0=py36h5eb2c71_1
+  - pip=9.0.1=py35_5
+  - pyqt=5.6.0=py35hbd126f6_6
+  - python=3.5.2=0
+  - python-dateutil=2.7.0=py35_0
+  - pytz=2018.3=py35_0
+  - qt=5.6.2=2
+  - readline=6.2=2
+  - scipy=1.0.0=py35h8b35106_0
+  - setuptools=38.5.1=py35_0
+  - sip=4.18.1=py35h79e1f92_2
+  - six=1.11.0=py35h39a4c60_1
+  - sqlite=3.13.0=0
+  - tk=8.5.18=0
+  - wheel=0.30.0=py35h5c0b906_1
   - xz=5.2.3=h0278029_2
   - zlib=1.2.11=hf3cbc9b_2
   - argtable2=2.13=0
@@ -59,10 +55,9 @@ dependencies:
   - paml=4.8=hace986f_0
   - phylobayes=4.1c=hf7d3357_0
   - phyml=20160115.patched=h98c79a7_0
-  - pmodeltest=1.4=py36h1cf33f0_0
+  - pmodeltest=1.4=py35hf840a94_0
   - raxml=8.2.11=hab3343f_0
   - slr=1.4.3=h3de9e2b_0
   - t_coffee=11.00=h5f19bac_0
   - trimal=1.4=h2778685_0
-
 
