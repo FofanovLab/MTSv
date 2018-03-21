@@ -1,0 +1,10 @@
+name: mtsv_env
+channels:
+  - etetoolkit
+  - defaults
+dependencies:
+  - biopython
+  - pandas
+  - python=3.5.2
+  - ete3
+  - ete_toolchain
