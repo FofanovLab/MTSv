@@ -32,6 +32,7 @@ MTSv is built in Rust, with a little bit of Python. You will need:
    curl https://sh.rustup.rs -sSf | sh
    ```
    or see [Github](https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods) page for more installation options.
+   * Make sure to re-source `.profile` or reboot the terminal to update the `PATH` variable before continuing on to the next steps.
    * run `rustup update` to update existing installations.  
 
 
