@@ -167,7 +167,10 @@ def get_tree(tx_ids, tx, terminals):
     nodes = {tx}
     # except KeyError:
     # nodes = set()
-    cur_level = tx_ids[tx]
+    try:
+        cur_level = tx_ids[tx]
+    except KeyError:
+        return nodes
     temp = []
 
     while True:
@@ -432,7 +435,7 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
                     end_file.write(line)
     os.remove("{0}.tmp".format(fasta_out_fp))
     os.chdir(start_dir)
-def ftp_dl(x):
+def ftp_dl(x,y):
 
     raw_path = "./raw/"
     ftp_path = "ftp.ncbi.nlm.nih.gov"
@@ -441,11 +444,22 @@ def ftp_dl(x):
 
     while len(x):
         fp_path = x.pop()
-        outpath = os.path.join(raw_path, os.path.basename(fp_path))
-        with open(outpath, "wb") as out_file:
-            connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
-    connection.quit()
-
+        try:
+            outpath = os.path.join(raw_path, os.path.basename(fp_path))
+            with open(outpath, "wb") as out_file:
+                connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
+        except:
+            y[fp_path] = 1
+            sleep(60)
+            try:
+                connection = FTP(ftp_path)
+                connection.login()
+            except:
+                break
+    try:
+        connection.quit()
+    except:
+        pass
 def pull(thread_count=1, excluded=set()):
     raw_path = "./raw/"
     config_path = "exclude.json"
@@ -510,11 +524,14 @@ def pull(thread_count=1, excluded=set()):
         if chr(line[0]) == "#":
             continue
         line = line.strip().split(b'\t')
+        # try:
+        if line[13] == b"Partial":
+            continue
         try:
-            if line[13] == b"Partial" or line[20].strip():
+            if line[20].strip():
                 continue
         except:
-            continue
+            pass
         if line[11].strip().decode() in assembly_classifications and line[11].strip().decode() not in exclude:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
@@ -566,12 +583,16 @@ def pull(thread_count=1, excluded=set()):
     to_download += artifacts
     man = Manager()
     to_download = man.list(to_download)
-
-    proc = [Process(target = ftp_dl, args=(to_download,)) for i in range(thread_count)]
-    for p in proc:
-        p.start()
-    for p in proc:
-        p.join()
+    re_download = man.dict({})
+    # while len(to_download) or len(re_download.keys()):
+    #     print(len(to_download), len(re_download.keys()  ))
+    #     proc = [Process(target = ftp_dl, args=(to_download,re_download,)) for i in range(thread_count)]
+    #     for p in proc:
+    #         p.start()
+    #     for p in proc:
+    #         p.join()
+    #     to_download = man.list(list(re_download.keys()))
+    #     re_download = man.dict({})
 
 
     for i in level2path.keys():
