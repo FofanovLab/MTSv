@@ -34,8 +34,15 @@ $ cd MTSv
 ```
 
 ### Install Rustc and Cargo
-* `rustc` and `cargo` >= 1.8.0 ([rustup.rs](https://rustup.rs) is the easiest installation method)
-* a C compiler (tested with GCC and clang)
+`rustc` and `cargo` >= 1.8.0 ([rustup.rs](https://rustup.rs) is the easiest installation method)
+   * To install on Unix-based systems run:
+   ```
+   curl https://sh.rustup.rs -sSf | sh
+   ```
+   or see [Github](https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods) page for more installation options.
+   * run `rustup update` to update existing installations.  
+
+   
 
 ### Update
 Update dependencies in `Cargo.lock`
@@ -76,11 +83,11 @@ $ conda env create -f environment.yml
 
 #### Activate Conda Environment
 ```
-$ conda activate mtsv_env
+$ source activate mtsv_env
 ```
 
 #### Deactivate Conda Environment
 ```
-$ conda deactivate
+$ source deactivate
 ```
 
