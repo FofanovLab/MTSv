@@ -1,64 +1,10 @@
-name: mtsv
+name: mtsv_env
 channels:
   - etetoolkit
   - defaults
 dependencies:
-  - biopython=1.70
-  - ca-certificates=2017.08.26
-  - certifi=2018.1.18
-  - dbus=1.12.2
-  - expat=2.2.5
-  - gettext=0.19.8.1
-  - glib=2.53.6
-  - icu=54.1
-  - intel-openmp=2018.0.0
-  - libcxx=4.0.1
-  - libcxxabi=4.0.1
-  - libffi=3.2.1
-  - libgcc=4.8.5
-  - libgfortran=3.0.1
-  - libiconv=1.15
-  - libxml2=2.9.4
-  - libxslt=1.1.29
-  - lxml=4.1.1
-  - mkl=2018.0.1
-  - numpy=1.14.2
-  - openssl=1.0.2n
-  - pandas=0.22.0
-  - pcre=8.41
-  - pip=9.0.1
-  - pyqt=5.6.0
+  - biopython
+  - pandas
   - python=3.5.2
-  - python-dateutil=2.7.0
-  - pytz=2018.3
-  - qt=5.6.2
-  - readline=6.2
-  - scipy=1.0.0
-  - setuptools=38.5.1
-  - sip=4.18.1
-  - six=1.11.0
-  - sqlite=3.13.0
-  - tk=8.5.18
-  - wheel=0.30.0
-  - xz=5.2.3
-  - zlib=1.2.11
-  - argtable2=2.13
-  - clustalo=1.2.4
-  - dialigntx=1.0.2
-  - ete3=3.1.1
-  - ete_toolchain=3.0.0
-  - fasttree=2.1
-  - iqtree=1.5.5
-  - kalign=2.03
-  - mafft=6.861
-  - muscle=3.8.31
-  - paml=4.8
-  - phylobayes=4.1c
-  - phyml=20160115.patched
-  - pmodeltest=1.4
-  - raxml=8.2.11
-  - slr=1.4.3
-  - t_coffee=11.00
-  - trimal=1.4
-prefix: /Users/tarafurstenau/anaconda3/envs/mtsv
-
+  - ete3
+  - ete_toolchain
