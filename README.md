@@ -25,14 +25,6 @@ MTSv is built in Rust, with a little bit of Python. You will need:
 4. A C compiler (tested with GCC and clang)
 5. Greater than GCC/5.2.0 on the PATH for runtime compilation of the C++11 code required for initial setup of the sequence databases.
 
-
-### Clone Repository
-Clone MTSv into desired location and move to `MTSv` directory
-```
-$ git clone https://github.com/FofanovLab/MTSv.git
-$ cd MTSv
-```
-
 ### Install Rustc and Cargo
 `rustc` and `cargo` >= 1.8.0 ([rustup.rs](https://rustup.rs) is the easiest installation method)
    * To install on Unix-based systems run:
@@ -42,7 +34,14 @@ $ cd MTSv
    or see [Github](https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods) page for more installation options.
    * run `rustup update` to update existing installations.  
 
-   
+
+### Clone Repository
+Clone MTSv into desired location and move to `MTSv` directory
+```
+$ git clone https://github.com/FofanovLab/MTSv.git
+$ cd MTSv
+```
+
 
 ### Update
 Update dependencies in `Cargo.lock`
