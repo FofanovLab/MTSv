@@ -323,24 +323,21 @@ def get_summary(all_file, sig_file, outpath, config, threads=1, verbose=False, s
                     row_list += [0, 0]
             data_list.append(row_list)
         
-        column_names = ["TaxID","Division", "Sci. Name"]
+        column_names = ["TaxID","Division", "Sci. Name", "Prop_frac", "Exp_Prop"]
         n_cols = len(data_list[0])
-        n_samples = int((n_cols - 3)/4)
+        n_samples = int((n_cols - 5)/5)
         for c in range(n_samples):
             column_names += ["Total Hits (S{})".format(c+1),
                                 "Unique Hits (S{})".format(c+1),
                                 "Signature Hits (S{})".format(c+1),
-                                "Unique Signature Hits (S{})".format(c+1)]
+                                "Unique Signature Hits (S{})".format(c+1),
+                                "P-value (S{})".format(c+1),
+                                "Cohens_H (S{})".format(c+1)]
 
         data_frame = pd.DataFrame(
             data_list,
             columns=column_names)
-    
-
-
-        
-    return data_dict
-
+        data_frame.to_csv(outpath+"_summary.csv")
 
 
 if __name__ == "__main__":
