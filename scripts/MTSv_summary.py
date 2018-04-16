@@ -10,7 +10,6 @@ from multiprocessing import Pool
 from functools import partial
 
 
-NCBI = NCBITaxa()
 
 div_map = {2:'Bacteria', 10239: 'Viruses (excluding environmental sample',
            2157: 'Archaea', 12884: 'Viroids', 28384: "Other and synthetic sequences",
@@ -222,12 +221,16 @@ if __name__ == "__main__":
 
     ARGS = PARSER.parse_args()
     if ARGS.update:
+        NCBI = NCBITaxa()
         NCBI.update_taxonomy_database()
 
-    if ARGS.taxdump is not None:
-        NCBI.update_taxonomy_database(
-            path.abspath(ARGS.taxdump))
+    elif ARGS.taxdump is not None:
+        NCBI = NCBITaxa(
+            taxdump_file= path.abspath(ARGS.taxdump))
     
+    else:
+        NCBI = NCBITaxa()
+
     outfile = path.join(
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
