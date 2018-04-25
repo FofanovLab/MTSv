@@ -38,11 +38,14 @@ def file_type(input_file):
     return path.abspath(input_file)
 
 def tax2div(taxid):
-    lineage = NCBI.get_lineage(taxid)
-    for level in lineage[::-1]:
-        if level in div_map:
-            return div_map[level]
-    return "Unknown"
+    try:
+        lineage = NCBI.get_lineage(taxid)
+        for level in lineage[::-1]:
+            if level in div_map:
+                return div_map[level]
+        return "Unknown"
+    except ValueError:
+        return "Unknown"
 
 def parse_line(line):
     line = rsplit(strip(line), ":", 1)
@@ -148,7 +151,8 @@ def get_summary(all_file, sig_file, outpath, threads=1, verbose=False):
 
     data_list = []
     for taxa, samples in data_dict.items():
-        row_list = [taxa, tax2div(taxa), taxid2name[taxa]]
+        taxa_name = taxid2name[taxa] if taxa in taxid2name else "Undefined"
+        row_list = [taxa, tax2div(taxa), taxa_name]
         for sample, value in samples.items():
             row_list += [value[0], value[1], value[2], value[3]]
         data_list.append(row_list)
@@ -226,7 +230,7 @@ if __name__ == "__main__":
 
     elif ARGS.taxdump is not None:
         NCBI = NCBITaxa(
-            taxdump_file= path.abspath(ARGS.taxdump))
+            taxdump_file=path.abspath(ARGS.taxdump))
     
     else:
         NCBI = NCBITaxa()
