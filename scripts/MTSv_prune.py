@@ -2,13 +2,15 @@ import subprocess
 from io import BytesIO
 import argparse
 import fnmatch
-import os
+import os, datetime
 from ftplib import FTP
 from time import sleep
 import gzip
 import tarfile
-from multiprocessing import Pool, Queue, Process, Manager
+from multiprocessing import Pool, Queue, Process, Manager, RLock
 import pickle, json
+
+lock = RLock()
 
 def serialization(gi2tx,fasta_path, txdump_path):
 
@@ -310,7 +312,7 @@ def gen_json(configuration, args):
 
     else:
         with open(args.output + ".json", "w") as file:
-            json.dump(configuration, file, sort_keys=True)
+            json.dump(configuration, file, sort_keys=True, indent=4)
 
 # Returns a dictionary of the config file
 def parse_json(args):
@@ -399,6 +401,26 @@ def arg_unwrappers(args, arguments=None):
 
     return arguments
 
+def oneclickjson(path, arguments):
+    arguments['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts/genbank.p"))
+
+    arguments['fasta-path'] = os.path.abspath(os.path.join(path, "fasta/genbank/genbank.fas"))
+
+    arguments['minimum-length'] = 0
+
+    arguments['maximum-length'] = float('inf')
+    arguments['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts/taxdump"))
+
+    arguments['acc-to-taxid-paths'] = []
+    for fp in os.listdir(os.path.join(path,"artifacts/")):
+            if fnmatch.fnmatch(fp, "*accession2taxid*"):
+                arguments['acc-to-taxid-paths'].append(os.path.abspath(os.path.join(path,"artifacts/",fp)))
+
+    arguments['rollup-rank'] = "species"
+
+    gen_json()
+    with open(os.path.abspath(os.path.join(path,"artifacts/genbank.json")), "w") as file:
+        json.dump(arguments, file, sort_keys=True, indent=4)
 
 
 def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word):
@@ -408,7 +430,8 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
 
     os.chdir(script_dir)
     command_one = "g++ -std=c++11 -pthread -static-libstdc++ taxidtool.cpp -o db_builder"
-    command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word)
+    command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
+                                                                    source_out_fp, thread_count, gi_to_word)
 
     try:
         subprocess.run(command_two.split())
@@ -435,34 +458,35 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
                     end_file.write(line)
     os.remove("{0}.tmp".format(fasta_out_fp))
     os.chdir(start_dir)
-def ftp_dl(x,y):
+def ftp_dl(x):
 
-    raw_path = "./raw/"
+    # raw_path = path
     ftp_path = "ftp.ncbi.nlm.nih.gov"
     connection = FTP(ftp_path)
     connection.login()
 
     while len(x):
         fp_path = x.pop()
+        raw_path = fp_path[0]
+        fp_path = fp_path[1]
         try:
             outpath = os.path.join(raw_path, os.path.basename(fp_path))
             with open(outpath, "wb") as out_file:
                 connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
         except:
-            y[fp_path] = 1
-            sleep(60)
-            try:
-                connection = FTP(ftp_path)
-                connection.login()
-            except:
-                break
+            with lock:
+                with open(os.path.join(os.path.dirname(os.path.dirname(fp_path)),
+                                       "/artifacts/ftp_dl.log" ),"a" ) as out:
+                    out.write("{0}\n".format(fp_path))
+
     try:
         connection.quit()
     except:
         pass
 def pull(thread_count=1, excluded=set()):
-    raw_path = "./raw/"
-    config_path = "exclude.json"
+    string_date = datetime.datetime.now().strftime("%b-%d-%Y")
+    raw_path = "{}/".format(string_date)
+    config_path = "artifacts/exclude.json"
     ftp_path = "ftp.ncbi.nlm.nih.gov"
     genbank_dir ="/genbank/"
     assembly_gb = "/genomes/genbank/"
@@ -471,12 +495,19 @@ def pull(thread_count=1, excluded=set()):
     assembly_rs_summary = "assembly_summary_refseq.txt"
     exclude = "suffix_exclude"
 
-    assembly_classifications = {"Chromosome", "Scaffold"}
-
     try:
         os.mkdir(raw_path)
     except:
         pass
+    try:
+        os.makedirs(os.path.join(raw_path,"artifacts/"))
+    except:
+        pass
+    try:
+        os.makedirs(os.path.join(raw_path,"flat_files/"))
+    except:
+        pass
+
     try:
         configurations = parse_json(os.path.join(raw_path, config_path))
     except:
@@ -497,7 +528,7 @@ def pull(thread_count=1, excluded=set()):
     to_download = []
     level2path = {}
 
-    if "genbank" not in exclude:
+    if "genbank" not in excluded:
         for fp in connection.nlst(genbank_dir):
             base_fp = os.path.basename(fp)
             for ind,char in enumerate(base_fp):
@@ -508,7 +539,7 @@ def pull(thread_count=1, excluded=set()):
                         break
                     else:
                         gb_download.append(fp)
-                        to_download.append(fp)
+                        to_download.append((os.path.join(raw_path,"flat_files/"),fp))
                         break
                 except:
                     continue
@@ -517,7 +548,6 @@ def pull(thread_count=1, excluded=set()):
 
     reader = BytesIO()
     connection.retrbinary("RETR {0}{1}".format(assembly_rs,assembly_rs_summary) ,reader.write)
-    # for i in reader.getvalue():
     reader.seek(0)
 
     for line in reader:
@@ -532,7 +562,7 @@ def pull(thread_count=1, excluded=set()):
                 continue
         except:
             pass
-        if line[11].strip().decode() in assembly_classifications and line[11].strip().decode() not in exclude:
+        if line[11].strip().decode() not in excluded:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -542,7 +572,7 @@ def pull(thread_count=1, excluded=set()):
                 level2path[line[11].strip()].append(temp_path)
             except:
                 level2path[line[11].strip()] = [temp_path]
-            to_download.append(temp_path)
+            to_download.append((os.path.join(raw_path,"flat_files/"),temp_path))
 
     reader = BytesIO()
     connection.retrbinary("RETR {0}{1}".format(assembly_gb,assembly_gb_summary) ,reader.write)
@@ -560,7 +590,7 @@ def pull(thread_count=1, excluded=set()):
         except:
             pass
 
-        if line[11].strip().decode() in assembly_classifications and line[11].strip().decode() not in exclude:
+        if line[11].strip().decode() not in excluded:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -571,43 +601,40 @@ def pull(thread_count=1, excluded=set()):
             except:
                 level2path[line[11].strip()] = [temp_path]
 
-            to_download.append(temp_path)
-    artifacts = ["/pub/taxonomy/taxdump.tar.gz"]
+            to_download.append((os.path.join(raw_path,"/flat_files/"), temp_path) )
+    artifacts = [(os.path.join(raw_path,"artifacts/"),"/pub/taxonomy/taxdump.tar.gz")]
     tax_path = "/pub/taxonomy/accession2taxid/"
     for file in connection.nlst(tax_path):
         if not fnmatch.fnmatch(os.path.basename(file), 'dead*') and not fnmatch.fnmatch(file, '*md5'):
-            artifacts.append(file)
+            artifacts.append((os.path.join(raw_path,"artifacts/"),file))
 
-
+    man = Manager()
     connection.quit()
     to_download += artifacts
-    man = Manager()
     to_download = man.list(to_download)
-    re_download = man.dict({})
-    # while len(to_download) or len(re_download.keys()):
-    #     print(len(to_download), len(re_download.keys()  ))
-    #     proc = [Process(target = ftp_dl, args=(to_download,re_download,)) for i in range(thread_count)]
-    #     for p in proc:
-    #         p.start()
-    #     for p in proc:
-    #         p.join()
-    #     to_download = man.list(list(re_download.keys()))
-    #     re_download = man.dict({})
 
+    proc = [Process(target = ftp_dl, args=(to_download,)) for i in range(thread_count)]
+    with open(os.path.join(raw_path,"artifacts/ftp_dl.log"), "w"):
+        pass
+    for p in proc:
+        p.start()
+    for p in proc:
+        p.join()
 
     for i in level2path.keys():
         if i.decode() in exclude:
             continue
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
-        with open(fp, "w") as out_file:
+        with open(os.path.join(raw_path,"artifacts/",fp), "w") as out_file:
             for line in level2path[i]:
-                out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),os.path.basename(line))))
-
+                out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/",os.path.basename(line))))
+    return string_date
 if __name__ =="__main__":
     # Sets up command line parser
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
 
     group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("-oc", "--oneclick", "-oneclick",action='store_true')
 
     group.add_argument("-p", "--pull", "-pull",action='store_true')
     group.add_argument("-gc", "--generate-config","-generate-config", action='store_true',
@@ -665,7 +692,32 @@ if __name__ =="__main__":
                        help="path for output file without extension relevant extension will be appended")
 
     args = parser.parse_args()
-    if args.pull:
+    if args.oneclick:
+        dl_folder = "May-11-2018"
+        exclude = {"Complete Genome", "Contig", "Chromosome", "Scaffold"}
+
+        if args.threads:
+            dl_folder = pull(thread_count=args.threads,excluded=exclude)
+        else:
+            dl_folder = pull(excluded=exclude)
+
+        try:
+            os.makedirs(os.path.join(dl_folder,"fasta","genbank"))
+        except:
+            pass
+        for fp in os.listdir(os.path.join(dl_folder,"artifacts/")):
+            # print(fp)
+            if fnmatch.fnmatch(fp, "*_ff.txt"):
+                null = os.devnull
+                if args.threads:
+                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","genbank","genbank.fas"),null, null, args.threads,null)
+                else:
+                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","genbank","genbank.fas"),null, null, 1,null)
+        settings = {}
+        arguments = oneclickjson(dl_folder,settings)
+        acc_serialization(arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
+
+    elif args.pull:
         if args.threads and args.tax_id_exclude:
             pull(thread_count=args.threads, excluded=set(args.tax_id_exclude))
         elif args.threads:
