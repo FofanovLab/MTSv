@@ -401,7 +401,8 @@ def arg_unwrappers(args, arguments=None):
 
     return arguments
 
-def oneclickjson(path, arguments):
+def oneclickjson(path):
+    arguments = {}
     arguments['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts/genbank.p"))
 
     arguments['fasta-path'] = os.path.abspath(os.path.join(path, "fasta/genbank/genbank.fas"))
@@ -409,7 +410,7 @@ def oneclickjson(path, arguments):
     arguments['minimum-length'] = 0
 
     arguments['maximum-length'] = float('inf')
-    arguments['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts/taxdump"))
+    arguments['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts/taxdump.tar.gz"))
 
     arguments['acc-to-taxid-paths'] = []
     for fp in os.listdir(os.path.join(path,"artifacts/")):
@@ -418,10 +419,10 @@ def oneclickjson(path, arguments):
 
     arguments['rollup-rank'] = "species"
 
-    gen_json()
     with open(os.path.abspath(os.path.join(path,"artifacts/genbank.json")), "w") as file:
         json.dump(arguments, file, sort_keys=True, indent=4)
 
+    return arguments
 
 def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thread_count, gi_to_word):
     start_dir = os.getcwd()
@@ -713,8 +714,7 @@ if __name__ =="__main__":
                     build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","genbank","genbank.fas"),null, null, args.threads,null)
                 else:
                     build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","genbank","genbank.fas"),null, null, 1,null)
-        settings = {}
-        arguments = oneclickjson(dl_folder,settings)
+        arguments = oneclickjson(dl_folder)
         acc_serialization(arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
 
     elif args.pull:
