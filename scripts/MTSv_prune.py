@@ -405,7 +405,7 @@ def oneclickjson(path):
     arguments = {}
     arguments['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts/genbank.p"))
 
-    arguments['fasta-path'] = os.path.abspath(os.path.join(path, "fasta/genbank/genbank.fas"))
+    arguments['fasta-path'] = os.path.abspath(os.path.join(path, "artifacts/genbank.fas"))
 
     arguments['minimum-length'] = 0
 
@@ -688,13 +688,11 @@ if __name__ =="__main__":
     group.add_argument("-t", "--threads", "-threads", type=int,
                        help="Specify total threads to spawn in DB creation")
 
-    # group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-o", "--output","-output",
                        help="path for output file without extension relevant extension will be appended")
 
     args = parser.parse_args()
     if args.oneclick:
-        dl_folder = "May-11-2018"
         exclude = {"Complete Genome", "Contig", "Chromosome", "Scaffold"}
 
         if args.threads:
@@ -702,18 +700,12 @@ if __name__ =="__main__":
         else:
             dl_folder = pull(excluded=exclude)
 
-        try:
-            os.makedirs(os.path.join(dl_folder,"fasta","genbank"))
-        except:
-            pass
         for fp in os.listdir(os.path.join(dl_folder,"artifacts/")):
-            # print(fp)
             if fnmatch.fnmatch(fp, "*_ff.txt"):
-                null = os.devnull
                 if args.threads:
-                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","genbank","genbank.fas"),null, null, args.threads,null)
+                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","genbank.fas"),os.devnull, os.devnull, args.threads, os.devnull)
                 else:
-                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","genbank","genbank.fas"),null, null, 1,null)
+                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","artifacts/","genbank.fas"),os.devnull, os.devnull, 1,os.devnull)
         arguments = oneclickjson(dl_folder)
         acc_serialization(arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
 
