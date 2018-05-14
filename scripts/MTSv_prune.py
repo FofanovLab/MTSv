@@ -1,4 +1,4 @@
-import subprocess
+import subprocess, shutil
 from io import BytesIO
 import argparse
 import fnmatch
@@ -602,7 +602,7 @@ def pull(thread_count=1, excluded=set()):
             except:
                 level2path[line[11].strip()] = [temp_path]
 
-            to_download.append((os.path.join(raw_path,"/flat_files/"), temp_path) )
+            to_download.append((os.path.join(raw_path,"flat_files/"), temp_path) )
     artifacts = [(os.path.join(raw_path,"artifacts/"),"/pub/taxonomy/taxdump.tar.gz")]
     tax_path = "/pub/taxonomy/accession2taxid/"
     for file in connection.nlst(tax_path):
@@ -631,7 +631,6 @@ def pull(thread_count=1, excluded=set()):
                 out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/",os.path.basename(line))))
     return string_date
 if __name__ =="__main__":
-    # Sets up command line parser
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
 
     group = parser.add_mutually_exclusive_group(required=True)
@@ -693,7 +692,7 @@ if __name__ =="__main__":
 
     args = parser.parse_args()
     if args.oneclick:
-        exclude = {"Complete Genome", "Contig", "Chromosome", "Scaffold"}
+        exclude = {"Complete Genome", "Contig"}
 
         if args.threads:
             dl_folder = pull(thread_count=args.threads,excluded=exclude)
@@ -703,11 +702,12 @@ if __name__ =="__main__":
         for fp in os.listdir(os.path.join(dl_folder,"artifacts/")):
             if fnmatch.fnmatch(fp, "*_ff.txt"):
                 if args.threads:
-                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","genbank.fas"),os.devnull, os.devnull, args.threads, os.devnull)
+                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, args.threads, os.devnull)
                 else:
-                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"fasta","artifacts/","genbank.fas"),os.devnull, os.devnull, 1,os.devnull)
+                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, 1,os.devnull)
         arguments = oneclickjson(dl_folder)
         acc_serialization(arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
+        shutil.rmtree(os.path.join(dl_folder,"flat_files"))
 
     elif args.pull:
         if args.threads and args.tax_id_exclude:
@@ -736,14 +736,6 @@ if __name__ =="__main__":
                 build_db(*"{2} {0} {0}.kw {0}.src {1} {0}.g2w".format(args.output, threads, args.file_list).split())
             else:
                 print("FASTA Database creation requires a path to a file list of GenBank Flat Files")
-        # elif args.build_index_gi:
-        #     if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['gi-to-taxid-path']:
-        #         serialization(arguments['gi-to-taxid-path'],arguments['fasta-path'],arguments['taxdump-path'])
-        #     else:
-        #         parser.error("Serialization requires paths to taxdump, fasta database and gi2taxid files")
-        #     if args.update:
-        #         arguments['serialization-path'] = os.path.abspath(args.output+".p")
-        #         gen_json(arguments, args)
         elif args.build_index_acc:
             if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['acc-to-taxid-paths']:
                 acc_serialization(arguments['acc-to-taxid-paths'],arguments['fasta-path'],arguments['taxdump-path'])
@@ -756,13 +748,6 @@ if __name__ =="__main__":
         elif args.clip:
             clip(args.tax_id_include,arguments['rollup-rank'], args.tax_id_exclude,
                  args.output,arguments['minimum-length'], arguments['maximum-length'], arguments['fasta-path'], arguments['serialization-path'])
-            # if arguments['taxdump-path'] and arguments['fasta-path'] and arguments['acc-to-taxid-paths']:
-        #     acc_serialization(arguments['acc-to-taxid-paths'],arguments['fasta-path'],arguments['taxdump-path'])
-        # else:
-        #     parser.error("Serialization requires paths to taxdump, fasta database and accession2taxid files")
-        # if args.update:
-        #     arguments['serialization-path'] = os.path.abspath(args.output+".p")
-        #     gen_json(arguments, args)
         elif args.update and args.configuration_path:
             gen_json(arg_unwrappers(args,parse_json(args)),args)
 
