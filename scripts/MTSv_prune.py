@@ -65,7 +65,7 @@ def acc_serialization(acc2tx,fasta_path, txdump_path):
 
     tx2gi = {}
     acc2ind = {}
-    print("Indexing Fasta")
+    # print("Indexing Fasta")
     with open(fasta_path, "rb") as file:
         for line in file:
             if chr(line[0]) == ">":
@@ -73,7 +73,7 @@ def acc_serialization(acc2tx,fasta_path, txdump_path):
                 acc2ind[acc] = file.tell() - len(line)
 
 
-    print("Parsing taxid to Unique ID")
+    # print("Parsing taxid to Unique ID")
 
     for i in acc2tx:
         try:
@@ -100,7 +100,7 @@ def acc_serialization(acc2tx,fasta_path, txdump_path):
                         tx2gi[line[2].strip()].append(line[0].strip())
                     except:
                         tx2gi[line[2].strip()] = [line[0].strip()]
-    print("Mapping taxid to index")
+    # print("Mapping taxid to index")
     for key in tx2gi.keys():
         temp = []
         for gi in tx2gi[key]:
@@ -111,11 +111,11 @@ def acc_serialization(acc2tx,fasta_path, txdump_path):
         tx2gi[key] = temp
     tx_ids, child2parent = taxids2name(txdump_path)
 
-    print("Serializing")
+    # print("Serializing")
     out = os.path.abspath(fasta_path).rsplit(".",1)[0]+".p"
     with open(out, "wb") as file:
         pickle.dump([tx_ids, child2parent,tx2gi], file)
-
+    return out
 def deserialization(pickle_path):
     with open(pickle_path, "rb") as file:
         return pickle.load(file)
@@ -402,25 +402,29 @@ def arg_unwrappers(args, arguments=None):
     return arguments
 
 def oneclickjson(path):
-    arguments = {}
-    arguments['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts/genbank.p"))
+    arguments = []
+    for fh in os.listdir(os.path.join(path, "artifacts/")):
+        if fnmatch.fnmatch(fh, "*.fas"):
+            arguments.append({})
+            fh = fh.split(".")[0]
+            arguments[-1]['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts/{0}.p".format(fh)))
 
-    arguments['fasta-path'] = os.path.abspath(os.path.join(path, "artifacts/genbank.fas"))
+            arguments[-1]['fasta-path'] = os.path.abspath(os.path.join(path, "artifacts/{0}.fas".format(fh)))
 
-    arguments['minimum-length'] = 0
+            arguments[-1]['minimum-length'] = 0
 
-    arguments['maximum-length'] = float('inf')
-    arguments['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts/taxdump.tar.gz"))
+            arguments[-1]['maximum-length'] = float('inf')
+            arguments[-1]['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts/taxdump.tar.gz"))
 
-    arguments['acc-to-taxid-paths'] = []
-    for fp in os.listdir(os.path.join(path,"artifacts/")):
-            if fnmatch.fnmatch(fp, "*accession2taxid*"):
-                arguments['acc-to-taxid-paths'].append(os.path.abspath(os.path.join(path,"artifacts/",fp)))
+            arguments[-1]['acc-to-taxid-paths'] = []
+            for fp in os.listdir(os.path.join(path,"artifacts/")):
+                    if fnmatch.fnmatch(fp, "*accession2taxid*"):
+                        arguments[-1]['acc-to-taxid-paths'].append(os.path.abspath(os.path.join(path,"artifacts/",fp)))
 
-    arguments['rollup-rank'] = "species"
+            arguments[-1]['rollup-rank'] = "species"
 
-    with open(os.path.abspath(os.path.join(path,"artifacts/genbank.json")), "w") as file:
-        json.dump(arguments, file, sort_keys=True, indent=4)
+            with open(os.path.abspath(os.path.join(path,"artifacts/{0}.json".formatfh)), "w") as file:
+                json.dump(arguments[-1], file, sort_keys=True, indent=4)
 
     return arguments
 
@@ -695,18 +699,21 @@ if __name__ =="__main__":
         exclude = {"Complete Genome", "Contig"}
 
         if args.threads:
-            dl_folder = pull(thread_count=args.threads,excluded=exclude)
+            threads = args.threads
         else:
-            dl_folder = pull(excluded=exclude)
+            threads = 1
+        dl_folder = pull(thread_count=threads,excluded=exclude)
+        # else:
+        #     dl_folder = pull(excluded=exclude)
 
         for fp in os.listdir(os.path.join(dl_folder,"artifacts/")):
             if fnmatch.fnmatch(fp, "*_ff.txt"):
-                if args.threads:
-                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, args.threads, os.devnull)
-                else:
-                    build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, 1,os.devnull)
+                build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, threads, os.devnull)
+
         arguments = oneclickjson(dl_folder)
-        acc_serialization(arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
+        with Pool(threads) as p:
+            p.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'], argument['taxdump-path']) for argument in arguments ] )
+                      # (arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
         shutil.rmtree(os.path.join(dl_folder,"flat_files"))
 
     elif args.pull:
