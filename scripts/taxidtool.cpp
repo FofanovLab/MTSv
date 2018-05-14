@@ -269,7 +269,7 @@ the words are inserted into the global keyword set a space delimited string is b
 void producer_seqs(set<std::string> file_list, char* seqs_out){
 
     string command, buffer, line, temp, temp_key ="", temp_src = "", sequences ="";
-    const int BUFFER_SIZE = 5000000;
+    const int BUFFER_SIZE = 2500000;
     char in_buffer[BUFFER_SIZE];
     sequences.reserve(BUFFER_SIZE);
     FILE* in;
@@ -384,7 +384,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
                     output <<sequences;
                     output.close();
                     file_lock.unlock();
-                    sequences.clear();
+                    string().swap(sequences);
                 }
                 else if( file_lock.try_lock()){
                     output.open(seqs_out, ofstream::app);
