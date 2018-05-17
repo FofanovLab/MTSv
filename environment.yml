@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - biopython
-  - pandas=0.20.3
+  - pandas=0.23.0
   - python=3.5.2
   - ete3
   - ete_toolchain
