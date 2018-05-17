@@ -61,7 +61,7 @@ def serialization(gi2tx,fasta_path, txdump_path):
     with open(out, "wb") as file:
         pickle.dump([tx_ids, child2parent,tx2gi], file)
 
-def acc_serialization(acc2tx,fasta_path, txdump_path):
+def acc_serialization(acc2tx,fasta_path, txdump_path, overwrite=True):
 
     tx2gi = {}
     acc2ind = {}
@@ -116,6 +116,7 @@ def acc_serialization(acc2tx,fasta_path, txdump_path):
     with open(out, "wb") as file:
         pickle.dump([tx_ids, child2parent,tx2gi], file)
     return out
+
 def deserialization(pickle_path):
     with open(pickle_path, "rb") as file:
         return pickle.load(file)
@@ -335,13 +336,6 @@ def arg_unwrappers(args, arguments=None):
     except KeyError:
         arguments['serialization-path'] = ""
 
-    # if args.keyword_path:
-    #     arguments['keyword-path'] = os.path.abspath(args.keyword_path)
-    # try:
-    #     arguments['keyword-path']
-    # except KeyError:
-    #     arguments['keyword-path'] = ""
-
     if args.fasta_path:
         arguments['fasta-path'] = os.path.abspath(args.fasta_path)
     try:
@@ -437,32 +431,34 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     command_one = "g++ -std=c++11 -pthread -static-libstdc++ taxidtool.cpp -o db_builder"
     command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
                                                                     source_out_fp, thread_count, gi_to_word)
+    if not os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
+        try:
+            subprocess.run(command_two.split())
+        except:
+            subprocess.run(command_one.split())
+            subprocess.run(command_two.split())
 
-    try:
-        subprocess.run(command_two.split())
-    except:
-        subprocess.run(command_one.split())
-        subprocess.run(command_two.split())
-
-    map2fauxgi = {}
     count = 0
-
-    with open("{0}.tmp".format(fasta_out_fp), "rb") as start_file:
-        for line in start_file:
-            if chr(line[0]) == ">":
-                map2fauxgi[line] = count
-                count += 1
-
-    with open("{0}.tmp".format(fasta_out_fp), "rb") as start_file:
-        with open(fasta_out_fp, "wb") as end_file:
-            for line in start_file:
-                if chr(line[0]) == ">":
-                    header = line.split(b' ', 1)
-                    end_file.write(" GI:{0} ".format(map2fauxgi[line]).encode().join(header))
-                else:
-                    end_file.write(line)
-    os.remove("{0}.tmp".format(fasta_out_fp))
+    if os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
+        with open("{0}.tmp".format(fasta_out_fp), "rb") as start_file:
+            with open(fasta_out_fp+".temp", "wb") as end_file:
+                for line in start_file:
+                    if chr(line[0]) == ">":
+                        line = line.split(b'GI:')
+                        if len(line) == 2:
+                            line[1] = line[1].split(b' ',1)[1].strip()+b'\n'
+                            line[0] = line[0].strip()
+                            header = line
+                        else:
+                            header = line[0].split(b' ', 1)
+                        end_file.write(" GI:{0} ".format(count).encode().join(header))
+                        count += 1
+                    else:
+                        end_file.write(line)
+        os.rename(fasta_out_fp+".temp", fasta_out_fp)
+        os.remove("{0}.tmp".format(fasta_out_fp))
     os.chdir(start_dir)
+
 def ftp_dl(x):
 
     # raw_path = path
@@ -470,14 +466,18 @@ def ftp_dl(x):
     connection = FTP(ftp_path)
     connection.login()
 
-    while len(x):
+    while x:
         fp_path = x.pop()
         raw_path = fp_path[0]
         fp_path = fp_path[1]
         try:
             outpath = os.path.join(raw_path, os.path.basename(fp_path))
-            with open(outpath, "wb") as out_file:
-                connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
+            # try:
+            file_size = connection.size(fp_path)
+            if not os.path.isfile(outpath) or file_size != os.path.getsize(outpath):
+                with open(outpath, "wb") as out_file:
+                    connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
+
         except:
             with lock:
                 with open(os.path.join(os.path.dirname(os.path.dirname(fp_path)),
@@ -488,8 +488,12 @@ def ftp_dl(x):
         connection.quit()
     except:
         pass
-def pull(thread_count=1, excluded=set()):
-    string_date = datetime.datetime.now().strftime("%b-%d-%Y")
+
+def pull(thread_count=1, excluded=set(), path=""):
+    if not path:
+        string_date = datetime.datetime.now().strftime("%b-%d-%Y")
+    else:
+        string_date = path
     raw_path = "{}/".format(string_date)
     config_path = "artifacts/exclude.json"
     ftp_path = "ftp.ncbi.nlm.nih.gov"
@@ -500,10 +504,6 @@ def pull(thread_count=1, excluded=set()):
     assembly_rs_summary = "assembly_summary_refseq.txt"
     exclude = "suffix_exclude"
 
-    try:
-        os.mkdir(raw_path)
-    except:
-        pass
     try:
         os.makedirs(os.path.join(raw_path,"artifacts/"))
     except:
@@ -525,7 +525,6 @@ def pull(thread_count=1, excluded=set()):
         configurations = parse_json(os.path.join(raw_path, config_path))
 
     exclude = set(configurations[exclude])
-    end = 0
 
     connection = FTP(ftp_path)
     connection.login()
@@ -691,24 +690,32 @@ if __name__ =="__main__":
     group.add_argument("-t", "--threads", "-threads", type=int,
                        help="Specify total threads to spawn in DB creation")
 
+    # group.add_argument("-ow", "--overwrite", "-overwrite", help="Specify total threads to spawn in FM-index creation",
+    #                    action='store_true')
+
     group.add_argument("-o", "--output","-output",
                        help="path for output file without extension relevant extension will be appended")
 
+    group.add_argument("-p","--path","-path", nargs=1,
+                       help="Path to dated folder containing artifacts")
+
     args = parser.parse_args()
     if args.oneclick:
+        databases = {"genbank", "Complete Genome", "Scaffold", "Contig", "Chromosome"}
         exclude = {"Complete Genome", "Contig"}
-
         if args.threads:
             threads = args.threads
         else:
             threads = 1
-        dl_folder = pull(thread_count=threads,excluded=exclude)
-        # else:
-        #     dl_folder = pull(excluded=exclude)
+        if args.path:
+            dl_folder = args.path
+        else:
+            dl_folder = ""
+        dl_folder = pull(thread_count=threads,excluded=exclude, path=dl_folder)
 
         for fp in os.listdir(os.path.join(dl_folder,"artifacts/")):
             if fnmatch.fnmatch(fp, "*_ff.txt"):
-                build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, threads, os.devnull)
+                build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, threads, os.devnull, args.overwrite)
 
         arguments = oneclickjson(dl_folder)
         with Pool(threads) as p:
