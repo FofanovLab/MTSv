@@ -3,7 +3,7 @@ from io import BytesIO
 import argparse
 import fnmatch
 import os, datetime
-from ftplib import FTP, error_temp
+from ftplib import FTP, all_errors
 from time import sleep
 import gzip
 import tarfile
@@ -479,8 +479,9 @@ def ftp_dl(x):
                     connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
             else:
                 connection.sendcmd('NOOP')
-        except error_temp:
+        except all_errors as e:
             connection.close()
+            print(e)
             connection = FTP(ftp_path, timeout=10000)
             connection.login()
 
@@ -726,7 +727,7 @@ if __name__ =="__main__":
         with Pool(threads) as p:
             p.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'], argument['taxdump-path']) for argument in arguments ] )
                       # (arguments['acc-to-taxid-paths'], arguments['fasta-path'], arguments['taxdump-path'])
-        shutil.rmtree(os.path.join(dl_folder,"flat_files"))
+#        shutil.rmtree(os.path.join(dl_folder,"flat_files"))
 
     elif args.pull:
         if args.threads and args.tax_id_exclude:
