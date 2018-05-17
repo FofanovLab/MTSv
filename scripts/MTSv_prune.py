@@ -3,7 +3,7 @@ from io import BytesIO
 import argparse
 import fnmatch
 import os, datetime
-from ftplib import FTP
+from ftplib import FTP, error_temp
 from time import sleep
 import gzip
 import tarfile
@@ -463,7 +463,7 @@ def ftp_dl(x):
 
     # raw_path = path
     ftp_path = "ftp.ncbi.nlm.nih.gov"
-    connection = FTP(ftp_path)
+    connection = FTP(ftp_path, timeout=10000)
     connection.login()
 
     while x:
@@ -477,6 +477,12 @@ def ftp_dl(x):
             if not os.path.isfile(outpath) or file_size != os.path.getsize(outpath):
                 with open(outpath, "wb") as out_file:
                     connection.retrbinary("RETR {0}".format(fp_path), out_file.write)
+            else:
+                connection.sendcmd('NOOP')
+        except error_temp:
+            connection.close()
+            connection = FTP(ftp_path, timeout=10000)
+            connection.login()
 
         except:
             with lock:
@@ -639,7 +645,7 @@ if __name__ =="__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-oc", "--oneclick", "-oneclick",action='store_true')
 
-    group.add_argument("-p", "--pull", "-pull",action='store_true')
+    group.add_argument("-pl", "--pull", "-pull",action='store_true')
     group.add_argument("-gc", "--generate-config","-generate-config", action='store_true',
                        help="generates a configuration file in current directory or as specified by output")
     group.add_argument("-bdb", "--build-database", "-build-database", action='store_true',
@@ -696,8 +702,7 @@ if __name__ =="__main__":
     group.add_argument("-o", "--output","-output",
                        help="path for output file without extension relevant extension will be appended")
 
-    group.add_argument("-p","--path","-path", nargs=1,
-                       help="Path to dated folder containing artifacts")
+    group.add_argument("-p","--path","-path", help="Path to dated folder containing artifacts")
 
     args = parser.parse_args()
     if args.oneclick:
