@@ -481,7 +481,7 @@ def ftp_dl(x):
                 connection.sendcmd('NOOP')
         except all_errors as e:
             connection.close()
-            print(e)
+            # print(e)
             connection = FTP(ftp_path, timeout=10000)
             connection.login()
 
@@ -721,7 +721,7 @@ if __name__ =="__main__":
 
         for fp in os.listdir(os.path.join(dl_folder,"artifacts/")):
             if fnmatch.fnmatch(fp, "*_ff.txt"):
-                build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, threads, os.devnull, args.overwrite)
+                build_db(os.path.join(dl_folder,"artifacts/",fp), os.path.join(dl_folder,"artifacts/","{0}.fas".format(fp.split("_ff")[0])),os.devnull, os.devnull, threads, os.devnull)
 
         arguments = oneclickjson(dl_folder)
         with Pool(threads) as p:
