@@ -128,8 +128,7 @@ def merge_dicts(sig_dict, dicts):
     return sig_dict
 
 def parse_all_hits(all_file, data_dict, sig_reads, threads=1, verbose=False):
-    sig_taxa = list(data_dict.keys())
-    n_rows = sum(1 for line in open(all_file))
+    sig_taxa = set(data_dict.keys())
     if verbose:
         func = partial(parse_chunks_verbose, sig_reads=sig_reads)
     else:
@@ -137,7 +136,7 @@ def parse_all_hits(all_file, data_dict, sig_reads, threads=1, verbose=False):
     p = Pool(threads)
     results = p.map(
         func, pd.read_csv(
-            all_file, sep=":", header=None, chunksize=n_rows//threads))
+            all_file, sep=":", header=None, chunksize=1000, dtype=str))
     return merge_dicts(data_dict, results)
 
 
