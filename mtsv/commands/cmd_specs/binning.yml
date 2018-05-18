@@ -1,0 +1,40 @@
+_meta_binning:
+  help: Metagenomics binning
+binning_mode:
+  default: efficient
+  choices: [fast, efficient, sensitive]
+  help: >
+    Set recommended parameters for SEED_SIZE, MIN_SEEDS, SEED_GAP for 
+    fast (more misses, fast runtime), efficient (med misses, med runtime)
+    or sensitive (few misses, slow) runs. 
+    fast=17,5,2, efficient=14,4,2, sensitive=11,3,1. Passing any of these
+    parameters (SEED_SIZE, MIN_SEEDS, SEED_GAP) will override these settings.
+  type: str
+fasta_query_path:
+  default: ./QueryFastas/queries.fasta
+  help: Path to FASTA query file.
+  type: file_type
+fm_index_paths:
+  default: []
+  help: List of paths to index files. Wildcards are allowed.
+  nargs: +
+binning_outpath:
+  default: ./Binning/
+  help: Path to write binning files to.
+  type: outpath_type
+edits:
+  default: 3
+  help: Edit distance to tolerate in matched reference sites
+  type: nonneg_int
+seed_size:
+  default: 14
+  help:  Exact match query size.
+  type: positive_int
+min_seeds:
+  default: 4
+  help: Minimum number of seeds to perform alignment of a candidate site.
+  type: positive_int
+seed_gap:
+  default: 2
+  help: Gap between seeds used for initial exact match.
+  type: nonneg_int

@@ -1,0 +1,18 @@
+_meta_extract:
+  help: Get read sequences associated with a given taxid or species name
+extract_path:
+  default: ./Extracted_Reads/
+  help: Directory to place extracted read sets.
+  type: outpath_type
+taxdump_path:
+  default: None
+  help: Path to taxdump file.
+  type: file_type
+taxids:
+  help: List of taxids to extract.
+  nargs: +
+  default: []
+name:
+  help: List of species/genus/family names to extract.
+  nargs: +
+  default: []

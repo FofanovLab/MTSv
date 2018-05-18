@@ -1,0 +1,12 @@
+_meta_analyze:
+  help: Run statisical analysis
+analysis_file:
+  default: ./Analysis/analysis.csv
+  type: outfile_type
+  help: File to write output.
+signature_cutoff:
+  help: >
+    Run analysis only for taxa with unique signature 
+    hits that are greater than SIGNATURE CUTOFF.
+  default: 20
+  type: nonneg_int

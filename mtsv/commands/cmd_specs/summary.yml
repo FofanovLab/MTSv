@@ -1,0 +1,39 @@
+_meta_summary:
+  help: Combine binning files, and find signature hits
+binning_paths:
+  default: [./binning/*]
+  help: >
+    List of paths to binning output.
+    Binning results from multiple sequence 
+    databases can be combined.
+    Wildcards are allowed.
+  nargs: +
+merge_file:
+  default: ./summary/merged.txt
+  help: File to place the merged binning results
+  type: outfile_type
+signature_file:
+  default: ./summary/signature.txt
+  help: File to place signature hits
+  type: outfile_type
+summary_file:
+  default: ./summary/summary.csv
+  help: File to place summary table
+  type: outfile_type
+taxdump_path:
+  default: None
+  help: Path to taxdump file
+  type: file_type
+tax_level:
+  default: species
+  help: >
+    Roll up read hits to a common genus or family level when searching for 
+    signature hits. 
+    (Takes priority over LCA search when family or genus exist for a taxonomic ID.)
+  type: str
+  choices: [family, genus, species]
+lca:
+  default: 0
+  help: Height at which the search will attempt to find a common ancestor among the hits for a read.
+  type: int
+  choices: [0, 1, 2, 3]

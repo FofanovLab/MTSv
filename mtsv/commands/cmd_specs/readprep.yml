@@ -1,0 +1,34 @@
+_meta_readprep:
+  help: Read fragment quality control and deduplication (FASTQ -> FASTA)
+fastq:
+  positional: True
+  nargs: +
+  help: Path(s) to FASTQ files to QC and collapse.
+query_fasta_path:
+  default: ./QueryFastas/queries.fasta
+  help: Path to desired output FASTA file.
+  type: outfile_type
+adapters:
+  help: Path to file containing adapters, one per line.
+  type: file_type
+adapter-tolerance:
+  help:  Number of adapter characters to tolerate at start of reads.
+  type: positive_int
+quality_min:
+  help: Minimum FASTQ quality to tolerate per base.
+  type: positive_int
+quality_threshold:
+  help: Maximum number of bases below minimum quality to tolerate per read.
+  type: nonneg_int
+trim_mode:
+  default: segment
+  help: >
+    --lcd takes first N bases of each read, where N = shortest read length in FASTQ
+    --lcdqual takes highest quality N bases of each read, where N = shortest read length
+    --segment takes subsequent N length sequences of each read (set N with --kmer)
+  type: str
+  choices: [lcd, lcdqual, segment]
+kmer:
+  default: 50
+  help: Set size of each read segment for segment trim mode.
+  type: positive_int
