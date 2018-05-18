@@ -1,0 +1,36 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: 'mtsv'
+  version: {{ data.get('version') }}
+
+source:
+  path: ./  #update with git repo
+
+build:
+  number: 0
+  entry_points:
+    - mtsv = mtsv.main:main
+
+requirements:
+  build:
+  #  - rust>=1.8.0
+    - python
+    - setuptools
+  run:
+    - python
+    - snakemake
+    - pandas>=0.20.3
+    - ete3
+    - ete_toolchain
+    - biopython
+    - argutils
+
+test:
+  files: 
+    - ext_test.sh
+  commands:
+    - time bash ./ext_test.sh  # [not win]
+    - bash ext_test.sh  # [win]
+
+
