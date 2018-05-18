@@ -5,7 +5,7 @@ use bio::io::fastq;
 use bio::io::fastq::Reader;
 use clap::{App, Arg, ArgGroup, ArgMatches};
 
-use error::mtsvResult;
+use error::MtsvResult;
 use std::cmp::min;
 use std::collections::HashSet;
 use std::fs::File;
@@ -83,7 +83,7 @@ pub struct FastqMetadata {
 
 /// Run an initial parse of a file, determining it's read length, the number of reads contained,
 /// and a best guess at what quality score encoding is used.
-pub fn read_fastq_metadata(p: &Path) -> mtsvResult<FastqMetadata> {
+pub fn read_fastq_metadata(p: &Path) -> MtsvResult<FastqMetadata> {
     let rdr = try!(Reader::from_file(p));
 
     let mut count = 0;
@@ -115,7 +115,7 @@ pub fn read_fastq_metadata(p: &Path) -> mtsvResult<FastqMetadata> {
 }
 
 /// Generate a list of adapters to check against from a given path.
-pub fn read_adapters(f: &Path, tolerance: usize) -> mtsvResult<HashSet<Vec<u8>>> {
+pub fn read_adapters(f: &Path, tolerance: usize) -> MtsvResult<HashSet<Vec<u8>>> {
     let f = try!(File::open(f));
     let mut rdr = BufReader::new(f);
     let mut buf = String::new();
@@ -164,7 +164,7 @@ pub fn subadapters(full_adapters: &[&[u8]], tolerance: usize) -> HashSet<Vec<u8>
 }
 
 /// Parse the command line configuration from clap.
-pub fn parse_config(args: &ArgMatches) -> mtsvResult<PrepConfig> {
+pub fn parse_config(args: &ArgMatches) -> MtsvResult<PrepConfig> {
 
     let num_threads = match args.value_of("NUM_THREADS") {
         Some(s) => s.parse::<usize>().expect("Invalid number entered for number of threads!"),

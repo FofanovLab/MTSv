@@ -4,7 +4,7 @@
 use bio::io::fastq::Reader;
 use cue::pipeline;
 
-use error::mtsvResult;
+use error::MtsvResult;
 use itertools::Itertools;
 use prep_config::{PrepConfig, TrimType};
 use std::collections::{HashMap, HashSet};
@@ -13,7 +13,7 @@ use std::io::{BufWriter, Write};
 use std::process::exit;
 
 /// Execute QC processes on a given configuration, in parallel as much as possible.
-pub fn run_prep(config: &PrepConfig) -> mtsvResult<()> {
+pub fn run_prep(config: &PrepConfig) -> MtsvResult<()> {
     let mut processed: HashMap<Vec<u8>, Vec<usize>> = HashMap::new();
     let mut writer = BufWriter::new(try!(File::create(&config.outfile)));
 
@@ -236,7 +236,7 @@ pub fn is_high_enough_quality(quality: &[u8], min_quality: u8, tolerance: usize)
 
 #[cfg(test)]
 mod tests {
-    use error::mtsvResult;
+    use error::MtsvResult;
     use itertools::Itertools;
     use mktemp::Temp;
     use prep_config::*;
@@ -320,7 +320,7 @@ mod tests {
         }
     }
 
-    fn file_to_bytes(p: &Path) -> mtsvResult<Vec<u8>> {
+    fn file_to_bytes(p: &Path) -> MtsvResult<Vec<u8>> {
         use std::fs::File;
         use std::io::Read;
 

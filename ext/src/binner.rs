@@ -40,7 +40,7 @@ pub fn get_and_write_matching_bin_ids(fasta_path: &str,
                                       seed_size: usize,
                                       seed_gap: usize,
                                       min_seeds: usize)
-                                      -> mtsvResult<()> {
+                                      -> MtsvResult<()> {
 
     info!("Opening FASTA query file...");
 
@@ -135,7 +135,7 @@ pub fn get_and_write_matching_bin_ids(fasta_path: &str,
 pub fn write_single_line<W: Write>(header: &str,
                                    matches: &BTreeSet<TaxId>,
                                    writer: &mut W)
-                                   -> mtsvResult<()> {
+                                   -> MtsvResult<()> {
     if matches.len() == 0 {
         return Ok(());
     }

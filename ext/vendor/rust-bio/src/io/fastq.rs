@@ -15,7 +15,7 @@
 
 use std::io;
 use std::io::prelude::*;
-use std::ascii::AsciiExt;
+// use std::ascii::AsciiExt;
 use std::fs;
 use std::fmt;
 use std::path::Path;

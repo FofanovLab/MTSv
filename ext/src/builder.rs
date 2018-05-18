@@ -14,7 +14,7 @@ use std::io;
 pub fn build_and_write_index<R>(records: R,
                                 index_path: &str,
                                 sample_interval: u32)
-                                -> mtsvResult<()>
+                                -> MtsvResult<()>
     where R: Iterator<Item = io::Result<fasta::Record>>
 {
     let taxon_map = try!(parse_fasta_db(records));

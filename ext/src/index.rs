@@ -12,7 +12,8 @@ use std::cmp;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 use std::num::ParseIntError;
 use std::str;
 use std::u32;
@@ -48,7 +49,7 @@ pub struct MGIndex {
 
 impl Debug for MGIndex {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        let mut hasher = SipHasher::new();
+        let mut hasher = DefaultHasher::new();
 
         self.hash(&mut hasher);
 

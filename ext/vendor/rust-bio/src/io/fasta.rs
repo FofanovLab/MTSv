@@ -17,7 +17,7 @@
 
 use std::io;
 use std::io::prelude::*;
-use std::ascii::AsciiExt;
+// use std::ascii::AsciiExt;
 use std::collections;
 use std::fs;
 use std::path::Path;

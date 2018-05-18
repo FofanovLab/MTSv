@@ -1,0 +1,38 @@
+[package]
+name = "mtsv"
+version = "0.4.0"
+authors = ["Adam Perry <adam.n.perry@gmail.com>", "Tsosie Schneider <tes87@nau.edu>"]
+description = "Metagenomic binning and analysis"
+
+[package.metadata.bundle]
+name = "MTSv"
+identifier = "mac.os.mstv"
+icon = ["icons/favicon-32x32.png", "icons/favicon-96x96.png"]
+version = "0.4.0"
+description = "Metagenomic binning and analysis" 
+
+[dependencies]
+bincode = { version = "0.5", features = ["serde"] }
+bio = { version = "0.5", path = "vendor/rust-bio" }
+chrono = "0.2"
+cue = "0.1"
+daggy = { version = "0.4", path = "vendor/daggy" }
+env_logger = "0.3"
+flate2 = "0.2"
+itertools = "0.4"
+log = "0.3"
+rustc-serialize = "0.3.24"
+serde = "1.0"
+ssw = { path = "ssw" }
+stopwatch = "0.0.6"
+tar = "0.4"
+
+[dependencies.clap]
+version = "2.9"
+default_features = false
+features = ["suggestions"]
+
+[dev-dependencies]
+mktemp = "0.2"
+quickcheck = "0.3"
+rand = "0.3"

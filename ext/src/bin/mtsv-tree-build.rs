@@ -76,7 +76,7 @@ fn main() {
     }
 }
 
-fn get_node_dump_from_tar(p: &str) -> mtsvResult<String> {
+fn get_node_dump_from_tar(p: &str) -> MtsvResult<String> {
     let mut archive = Archive::new(try!(GzDecoder::new(io::BufReader::new(try!(File::open(p))))));
 
     for entry in try!(archive.entries()) {
@@ -97,5 +97,5 @@ fn get_node_dump_from_tar(p: &str) -> mtsvResult<String> {
         }
     }
 
-    Err(mtsvError::MissingFile("nodes.dmp".to_string()))
+    Err(MtsvError::MissingFile("nodes.dmp".to_string()))
 }
