@@ -24,6 +24,7 @@ def warn(msg):
     '''Prints a warning message to stderr.'''
     text = quote(msg, quote="!> ", nl=False)
     click.secho(text, err=True, fg='red')
+    logger.warning(msg)
 
 
 def quote(text, width=72, quote="", nl=True):
@@ -56,5 +57,4 @@ def set_log_file(log_file, command_name, timestamp):
     log_file = log_file.format(
         COMMAND=str(command_name).lower(),
         TIMESTAMP=timestamp)
-    print(log_file)
     return open(log_file, 'w')

@@ -15,7 +15,7 @@ fasta_query_path:
   help: Path to FASTA query file.
   type: file_type
 fm_index_paths:
-  default: [/Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/MTSv/test/QueryFastas/*.fastas, /Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/MTSv/test/QueryFastas/*.fastas]
+  default: []
   help: List of paths to index files. Wildcards are allowed.
   nargs: +
   type: list

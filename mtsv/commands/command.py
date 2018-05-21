@@ -4,7 +4,7 @@ class Command:
     config_section = []
     def __init__(self, params):
         self._logger = logging.getLogger(__name__)
-        self._params = params.parameters
+        self._params = params.params
     
     def __repr__(self):
         return str(self.__class__.__name__)

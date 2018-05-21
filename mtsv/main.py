@@ -4,9 +4,9 @@ import logging
 import sys
 import datetime
 import os
+from argutils import (read, export)
+import configparser
 from provenance import Parameters
-import configargparse
-
 
 from mtsv import (
     DEFAULT_CFG_FNAME,
@@ -26,8 +26,9 @@ from parsing import (
     TYPES,
     specfile_path,
     specfile_read,
+    parse_config_sections,
     get_global_config,
-    get_global_defaults
+    get_missing_sections
     )
 
 from utils import(
@@ -46,10 +47,11 @@ COMMANDS = {"analyze": Analyze,
             "pipeline": Pipeline,
             }
 
-def make_sub_parser(subparser, cmd, args_dict, cmd_class):
-    help_str = args_dict["_meta_{}".format(cmd)]["help"]
+def make_sub_parser(subparser, config, cmd, cmd_class):
+    global_defaults = get_global_config(cmd_class.config_section)
+    help_str = global_defaults["_meta_{}".format(cmd)]["help"]
     p = subparser.add_parser(cmd, help=help_str)
-    for arg, desc in args_dict.items():
+    for arg, desc in global_defaults.items():
         if "_meta" in arg:
             continue
         if 'type' in desc:
@@ -64,27 +66,46 @@ def make_sub_parser(subparser, cmd, args_dict, cmd_class):
         p.add_argument(
             arg, **desc
         )
-    p.set_defaults(cmd_class=cmd_class)
+    config_args = parse_config_sections(config, cmd_class.config_section)
+    p.set_defaults(cmd_class=cmd_class, **config_args)
 
 
-
-def setup_and_run(parser):
-    """Setup and run a command."""
+def add_cfg_to_args(argv, parser):
+    '''treat config arguments as command line
+    arguments to catch argparse errors'''
     args = parser.parse_args()
+    d = vars(args)
+    # change workingdir to abspath
+    d['working_dir'] = os.getcwd()
+    if "init" in argv:
+        return args, []
+    config_args = parse_config_sections(
+        args.config, args.cmd_class.config_section)
+    for k, v in config_args.items():
+        fmt_k = "--{}".format(k)
+        if fmt_k not in argv:
+            argv += [fmt_k, v]
+    missing = get_missing_sections(args.config)
+    return parser.parse_args(argv[1:]), missing
+
+    
+
+def setup_and_run(argv, parser):
+    """Setup and run a command."""
+    args, missing = add_cfg_to_args(argv, parser)
     logger = logging.getLogger(__name__)
     args.log_file = set_log_file(
         args.log_file,
         args.cmd_class.__name__,
         args.timestamp)
-    params = Parameters(
-        get_global_defaults(args.cmd_class),
-        args)
-    cmd = args.cmd_class(params)
-
-    print("ARGSLOG", args.log_file)
     config_logging(args.log_file, args.log)
+    if missing:
+        warn(
+            "Section(s) missing in config file, "
+            "using defaults: {}".format(", ".join(missing)))
+    params = Parameters(args)
+    cmd = args.cmd_class(params)
     logger.info("Starting {}".format(cmd))
-    #cmd.set_parameters(**vars(args))
     cmd.run()
 
 
@@ -92,22 +113,40 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
+    dirparser = argparse.ArgumentParser(add_help=False)
+
+    dirparser.add_argument(
+        '-wd', "--working_dir", type=str,
+        default=os.getcwd(),
+        help="Specify working directory to place output"
+    )
+
+    dir_args, _ = dirparser.parse_known_args()
+    working_dir = TYPES['project_dir_type'](dir_args.working_dir)
+    os.chdir(working_dir)
+
+    cfgparser = argparse.ArgumentParser(
+        add_help=False
+    )
+
+    
+    cfgparser.add_argument(
+        '-c', "--config", type=TYPES['read_handle_type'],
+        default=DEFAULT_CFG_FNAME,
+        help="Specify path to config file, "
+             "not required if using default config"
+    )
+
+    pre_args, _ = cfgparser.parse_known_args()
+
+ 
     parser = argparse.ArgumentParser(
         prog="MTSV",
         description="Metagenomic analysis pipeline",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[dirparser, cfgparser]
     )
 
-    parser.add_argument(
-        "-c", "--config", type=TYPES['read_handle_type'],
-        default=DEFAULT_CFG_FNAME,
-        help="Specify path to config file, "
-        "not required if using default config"
-    )
-    parser.add_argument(
-        '-wd', "--working_dir", type=TYPES['project_dir_type'], default=os.getcwd(),
-        help="Specify working directory to place output"
-    )
     parser.add_argument(
         '-f', "--force", action="store_true",
         help="Force rerun of steps"
@@ -145,17 +184,18 @@ def main(argv=None):
     )
     parser_init.set_defaults(cmd_class=Init)
 
-            
+
     for command, cmd_class in COMMANDS.items():
-        args_dict = get_global_config(cmd_class.config_section)
-        make_sub_parser(subparsers, command, args_dict, cmd_class)
+        make_sub_parser(
+            subparsers, pre_args.config,
+            command, cmd_class)
     
     # Return help if no command is passed
-    if len(sys.argv)==1:
+    if len(argv)==1:
         parser.print_help(sys.stdout)
         sys.exit(1)
     try:
-        setup_and_run(parser)
+        setup_and_run(argv, parser)
     except KeyboardInterrupt:
         error("\n-- Stopped by user --", exception=False)
 

@@ -1,8 +1,9 @@
 import argparse
 import configparser
 import os
-import logging
 import ast
+import logging
+from contextlib import suppress
 from pkg_resources import resource_stream, resource_filename
 from argutils import read, export
 from utils import(
@@ -11,6 +12,7 @@ from utils import(
 )
 
 logger = logging.getLogger(__name__)
+SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
 
 
 def create_config_file(commands, config_file):
@@ -33,38 +35,20 @@ def get_global_config(include_cmds):
         args_dict.update(read.from_yaml(spec))
     return args_dict
 
-def get_global_defaults(cmd_class):
-    return {k: {'default': v['default'],
-        'type': v['type']} for 
-        k, v in get_global_config(
-            cmd_class.config_section).items()
-        if 'default' in v and 'type' in v}
-
-
-def set_types(params, types):
-    for key, value in params.items():
-        if key in types:
-            params[key] = TYPES[types[key]](value)
-    return params
+def get_missing_sections(config_file):
+    config = configparser.ConfigParser()
+    config.read(config_file.name)
+    return [s for s in SECTIONS if s not in config.sections()]
 
 def parse_config_sections(config_file, sections):
-    # pass for init incase a config file already
-    # exists
-    if config_file.mode == 'w':
-        return {}
     config = configparser.ConfigParser()
     config.read(config_file.name)
     config_for_sections = {}
     try:
         for section in sections:
-            try:
+            with suppress(configparser.NoSectionError):
                 for cmd, val in config.items(section):
-                    print(cmd, val)
-                    config_for_sections[cmd] = val
-            except configparser.NoSectionError:
-                warn(
-                    "{} section missing in config file, "
-                    "using defaults".format(section))
+                    config_for_sections[cmd] = val                    
     except configparser.ParsingError:
         error(
             "Cannot parse config file: {}".format(
@@ -82,11 +66,9 @@ def path_type(input_path):
 
 def project_dir_type(input_path):
     '''Creates a project directory if one does not exist and
-    changes the current working directory to this directory.
     Throws PermissionError if there are no permissions to create
-    directory. If path already exists and it is not empty, a warning
-    is issued. Returns absolute path to directory.'''
-    print(input_path)
+    directory. Returns absolute path to directory.'''
+    input_path = os.path.abspath(input_path)
     try:
         os.mkdir(input_path)
         logger.info("Creating Working Directory: {}".format(input_path))
@@ -96,11 +78,9 @@ def project_dir_type(input_path):
     except OSError:
         logger.info(
             "Directory already exists: {}. ".format(input_path))
-        if os.listdir(input_path):
-            warn("Files in {} may be overwritten!".format(input_path))
-    path = os.path.abspath(input_path)
-    os.chdir(path)
-    return path
+        # if os.listdir(input_path):
+        #     warn("Files in {} may be overwritten!".format(input_path))
+    return input_path
 
 
 def outpath_type(input_path):
@@ -129,9 +109,10 @@ def file_type(input_file):
     If yes, return absolute path to
     file else throw ArgumentTypeError
     exception'''
+    input_file = os.path.abspath(input_file)
     if not os.path.isfile(input_file):
         raise argparse.ArgumentTypeError("Not a valid file path")
-    return os.path.abspath(input_file)
+    return input_file
 
 
 def outfile_type(input_file):
@@ -140,8 +121,8 @@ def outfile_type(input_file):
     returns abs path to file. PermissionError
     exception when there is no permission to 
     create directory'''
-    path = os.path.dirname(os.path.abspath(input_file))
-    print(os.path.abspath(input_file))
+    input_file = os.path.abspath(input_file)
+    path = os.path.dirname(input_file)
     if not os.path.isdir(path):
         try:
             os.mkdir(path)
@@ -149,7 +130,7 @@ def outfile_type(input_file):
             error(
                 "No permission to create file: {}".format(input_file)
             )
-    return os.path.join(path, input_file)
+    return input_file
 
 def write_handle_type(input_file):
     '''Returns a handle to an outfile'''
@@ -158,7 +139,6 @@ def write_handle_type(input_file):
 
 def read_handle_type(input_file):
     '''Returns a handle to an infile'''
-    
     return open(file_type(input_file), 'r') 
 
 
@@ -212,4 +192,4 @@ TYPES = {
     'project_dir_type': project_dir_type,
     'write_handle_type': write_handle_type,
     'read_handle_type': read_handle_type
-}
+    }

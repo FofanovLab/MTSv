@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from .command import Command
-from parsing import create_config_file
+from parsing import create_config_file, SECTIONS
 
 class Init(Command):
     config_section = []
@@ -10,6 +10,7 @@ class Init(Command):
     
     def run(self):
         print("running init")
+        print(self.params)
         create_config_file(
-            ["READPREP", "BINNING", "SUMMARY", "ANALYZE"],
+            SECTIONS,
             self.params['config'])
