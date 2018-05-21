@@ -1,6 +1,8 @@
 import argparse
+import configparser
 import os
 import logging
+import ast
 from pkg_resources import resource_stream, resource_filename
 from argutils import read, export
 from utils import(
@@ -11,32 +13,63 @@ from utils import(
 logger = logging.getLogger(__name__)
 
 
-def get_global_config(cmd_class):
-    include_cmds = cmd_class.config_line
+def create_config_file(commands, config_file):
+    cfg_file_str = ""
+    for cmd in commands:
+        spec = specfile_read(cmd)
+        opts = read.from_yaml(spec)
+        meta = opts['_meta_{}'.format(cmd.lower())]
+        del opts['_meta_{}'.format(cmd.lower())]
+        opts['_meta'] = meta
+        cfg_file_str += export.to_config(
+            cmd, opts) + "\n"
+    config_file.write(cfg_file_str)
+    config_file.close()
+
+def get_global_config(include_cmds):
     args_dict = {}
     for cmd in include_cmds:
-        spec = specfile_read(cmd_class.__name__.lower())
+        spec = specfile_read(cmd.lower())
         args_dict.update(read.from_yaml(spec))
     return args_dict
 
-# def get_defaults(parser, args):
-#     defaults = {}
-#     for key in vars(args):
-#         defaults[key] = parser.get_default(key)
-#     return defaults
+def get_global_defaults(cmd_class):
+    return {k: {'default': v['default'],
+        'type': v['type']} for 
+        k, v in get_global_config(
+            cmd_class.config_section).items()
+        if 'default' in v and 'type' in v}
 
-def get_config_defaults(config, sections):
-    cfg_defaults = {}
-    if config:
+
+def set_types(params, types):
+    for key, value in params.items():
+        if key in types:
+            params[key] = TYPES[types[key]](value)
+    return params
+
+def parse_config_sections(config_file, sections):
+    # pass for init incase a config file already
+    # exists
+    if config_file.mode == 'w':
+        return {}
+    config = configparser.ConfigParser()
+    config.read(config_file.name)
+    config_for_sections = {}
+    try:
         for section in sections:
             try:
                 for cmd, val in config.items(section):
-                    cfg_defaults[cmd] = val
+                    print(cmd, val)
+                    config_for_sections[cmd] = val
             except configparser.NoSectionError:
                 warn(
                     "{} section missing in config file, "
                     "using defaults".format(section))
-    return cfg_defaults
+    except configparser.ParsingError:
+        error(
+            "Cannot parse config file: {}".format(
+                config_file.name))
+    return config_for_sections
 
 def path_type(input_path):
     '''Path_type is for paths that should already exist.
@@ -118,6 +151,16 @@ def outfile_type(input_file):
             )
     return os.path.join(path, input_file)
 
+def write_handle_type(input_file):
+    '''Returns a handle to an outfile'''
+    return open(outfile_type(input_file), 'w')
+
+
+def read_handle_type(input_file):
+    '''Returns a handle to an infile'''
+    
+    return open(file_type(input_file), 'r') 
+
 
 def positive_int(input_val):
     '''Make a positive int type for argparse'''
@@ -159,11 +202,14 @@ TYPES = {
     'str': str,
     'float': float,
     'bool': bool,
+    'list': ast.literal_eval,
     'file_type': file_type,
     'outfile_type': outfile_type,
     'path_type': path_type,
     'outpath_type': outpath_type,
     'positive_int': positive_int,
     'nonneg_int': nonneg_int,
-    'project_dir_type': project_dir_type
+    'project_dir_type': project_dir_type,
+    'write_handle_type': write_handle_type,
+    'read_handle_type': read_handle_type
 }

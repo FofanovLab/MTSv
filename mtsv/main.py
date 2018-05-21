@@ -4,6 +4,9 @@ import logging
 import sys
 import datetime
 import os
+from provenance import Parameters
+import configargparse
+
 
 from mtsv import (
     DEFAULT_CFG_FNAME,
@@ -23,7 +26,9 @@ from parsing import (
     TYPES,
     specfile_path,
     specfile_read,
-    get_global_config)
+    get_global_config,
+    get_global_defaults
+    )
 
 from utils import(
     error,
@@ -63,15 +68,23 @@ def make_sub_parser(subparser, cmd, args_dict, cmd_class):
 
 
 
-def setup_and_run(args):
+def setup_and_run(parser):
     """Setup and run a command."""
-    cmd = args.cmd_class()
+    args = parser.parse_args()
     logger = logging.getLogger(__name__)
     args.log_file = set_log_file(
-        args.log_file, str(cmd), args.timestamp)
+        args.log_file,
+        args.cmd_class.__name__,
+        args.timestamp)
+    params = Parameters(
+        get_global_defaults(args.cmd_class),
+        args)
+    cmd = args.cmd_class(params)
+
+    print("ARGSLOG", args.log_file)
     config_logging(args.log_file, args.log)
     logger.info("Starting {}".format(cmd))
-    cmd.set_parameters(**vars(args))
+    #cmd.set_parameters(**vars(args))
     cmd.run()
 
 
@@ -86,9 +99,11 @@ def main(argv=None):
     )
 
     parser.add_argument(
-        "-c", "--config", type=TYPES['file_type'], default=DEFAULT_CFG_FNAME,
+        "-c", "--config", type=TYPES['read_handle_type'],
+        default=DEFAULT_CFG_FNAME,
         help="Specify path to config file, "
-        "not required if using default config")
+        "not required if using default config"
+    )
     parser.add_argument(
         '-wd', "--working_dir", type=TYPES['project_dir_type'], default=os.getcwd(),
         help="Specify working directory to place output"
@@ -123,7 +138,8 @@ def main(argv=None):
         help="initializes a directory with a pre-filled parameters file"
     )
     parser_init.add_argument(
-        "-c", "--config", type=TYPES['outfile_type'], default=DEFAULT_CFG_FNAME,
+        "-c", "--config", type=TYPES['write_handle_type'],
+        default=DEFAULT_CFG_FNAME,
         help="Specify path to write config file, "
         "not required if using default config"
     )
@@ -131,16 +147,15 @@ def main(argv=None):
 
             
     for command, cmd_class in COMMANDS.items():
-        args_dict = get_global_config(cmd_class)
+        args_dict = get_global_config(cmd_class.config_section)
         make_sub_parser(subparsers, command, args_dict, cmd_class)
     
     # Return help if no command is passed
     if len(sys.argv)==1:
         parser.print_help(sys.stdout)
         sys.exit(1)
-    args = parser.parse_args()
     try:
-        setup_and_run(args)
+        setup_and_run(parser)
     except KeyboardInterrupt:
         error("\n-- Stopped by user --", exception=False)
 

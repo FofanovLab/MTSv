@@ -1,7 +1,6 @@
 _meta_readprep:
   help: Read fragment quality control and deduplication (FASTQ -> FASTA)
 fastq:
-  positional: True
   nargs: +
   help: Path(s) to FASTQ files to QC and collapse.
 query_fasta_path:

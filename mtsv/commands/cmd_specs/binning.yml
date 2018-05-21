@@ -15,9 +15,10 @@ fasta_query_path:
   help: Path to FASTA query file.
   type: file_type
 fm_index_paths:
-  default: []
+  default: [/Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/MTSv/test/QueryFastas/*.fastas, /Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/MTSv/test/QueryFastas/*.fastas]
   help: List of paths to index files. Wildcards are allowed.
   nargs: +
+  type: list
 binning_outpath:
   default: ./Binning/
   help: Path to write binning files to.

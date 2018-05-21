@@ -1,19 +1,26 @@
 import logging
-from provenance import Parameters
+
 class Command:
-    config_line = []
-    def __init__(self):
+    config_section = []
+    def __init__(self, params):
         self._logger = logging.getLogger(__name__)
+        self._params = params.parameters
     
     def __repr__(self):
         return str(self.__class__.__name__)
         
-    def get_config_line(self):
-        return self.config_line
+    @classmethod
+    def get_config_line(cls):
+        return cls.config_section
+
     @property
-    def parameters(self, **kwargs):
-        parameters = Parameters(**kwargs)
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
+    def params(self):
+        return self._params
+
+
+    
+
+    
+
 
     
