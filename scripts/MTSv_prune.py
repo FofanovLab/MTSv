@@ -417,7 +417,7 @@ def oneclickjson(path):
 
             arguments[-1]['rollup-rank'] = "species"
 
-            with open(os.path.abspath(os.path.join(path,"artifacts/{0}.json".format(fh)), "w")) as file:
+            with open(os.path.abspath(os.path.join(path,"artifacts/{0}.json".format(fh))), "w") as file:
                 json.dump(arguments[-1], file, sort_keys=True, indent=4)
 
     return arguments
