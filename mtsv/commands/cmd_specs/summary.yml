@@ -8,6 +8,7 @@ binning_paths:
     databases can be combined.
     Wildcards are allowed.
   nargs: +
+  positional: True
 merge_file:
   default: ./summary/merged.txt
   help: File to place the merged binning results
@@ -21,9 +22,9 @@ summary_file:
   help: File to place summary table
   type: outfile_type
 taxdump_path:
-  default: None
   help: Path to taxdump file
   type: file_type
+  required: True
 tax_level:
   default: species
   help: >

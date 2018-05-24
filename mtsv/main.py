@@ -1,18 +1,13 @@
-from __future__ import absolute_import
 import argparse
 import logging
 import sys
 import datetime
 import os
-from argutils import (read, export)
 import configparser
-from provenance import Parameters
 
-from mtsv import (
-    DEFAULT_CFG_FNAME,
-    DEFAULT_LOG_FNAME)
-
-from commands import (
+from mtsv.argutils import (read, export)
+from mtsv.provenance import Parameters
+from mtsv.commands import (
     Init,
     Readprep,
     Binning,
@@ -22,23 +17,27 @@ from commands import (
     Pipeline
 )
 
-from parsing import (
+from mtsv.parsing import (
     TYPES,
     specfile_path,
     specfile_read,
     parse_config_sections,
     get_global_config,
     get_missing_sections
-    )
+)
 
-from utils import(
+from mtsv.utils import(
     error,
     warn,
     config_logging,
     set_log_file
 )
 
-# command_name: (cmd_class, include)
+from mtsv import (
+    DEFAULT_CFG_FNAME,
+    DEFAULT_LOG_FNAME)
+
+
 COMMANDS = {"analyze": Analyze,
             "binning": Binning,
             "readprep": Readprep,
@@ -59,9 +58,8 @@ def make_sub_parser(subparser, config, cmd, cmd_class):
         if 'default' in desc and 'help' in desc:
             desc['help'] += " (default: {})".format(desc['default'])
             del desc['default']
-        if 'positional' not in desc:
-            arg = "--{}".format(arg)
-        else:
+        arg = "--{}".format(arg)
+        if 'positional' in desc:
             del desc['positional']
         p.add_argument(
             arg, **desc
@@ -83,7 +81,7 @@ def add_cfg_to_args(argv, parser):
         args.config, args.cmd_class.config_section)
     for k, v in config_args.items():
         fmt_k = "--{}".format(k)
-        if fmt_k not in argv:
+        if fmt_k not in argv and v != None:
             argv += [fmt_k, v]
     missing = get_missing_sections(args.config)
     return parser.parse_args(argv[1:]), missing
@@ -105,7 +103,9 @@ def setup_and_run(argv, parser):
             "using defaults: {}".format(", ".join(missing)))
     params = Parameters(args)
     cmd = args.cmd_class(params)
+    print(type(cmd))
     logger.info("Starting {}".format(cmd))
+
     cmd.run()
 
 
@@ -164,6 +164,11 @@ def main(argv=None):
         '-lf', "--log_file", type=str,
         default=DEFAULT_LOG_FNAME,
         help="Log file"
+    )
+    parser.add_argument(
+        '-t', "--threads", type=TYPES['positive_int'],
+        default=4,
+        help="Number of worker threads to spawn."
     )
     parser.set_defaults(timestamp=datetime.datetime.now().strftime(
         '%Y-%m-%d_%H-%M-%S'))

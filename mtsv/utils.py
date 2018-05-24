@@ -49,7 +49,7 @@ def config_logging(handle, level):
         stream=handle,
         datefmt='%m/%d/%Y %I:%M:%S %p',
         level=getattr(logging, level),
-        filemode='w',
+        filemode='a',
         format='%(asctime)s %(levelname)s: [%(name)s] %(message)s')
 
 

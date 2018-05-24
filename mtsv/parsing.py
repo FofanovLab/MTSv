@@ -5,19 +5,18 @@ import ast
 import logging
 from contextlib import suppress
 from pkg_resources import resource_stream, resource_filename
-from argutils import read, export
-from utils import(
-    error,
-    warn
-)
+
+from mtsv.utils import(error, warn)
+from mtsv.argutils import (read, export)
+
 
 logger = logging.getLogger(__name__)
 SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
 
 
-def create_config_file(commands, config_file):
+def create_config_file(config_file):
     cfg_file_str = ""
-    for cmd in commands:
+    for cmd in SECTIONS:
         spec = specfile_read(cmd)
         opts = read.from_yaml(spec)
         meta = opts['_meta_{}'.format(cmd.lower())]
@@ -35,6 +34,30 @@ def get_global_config(include_cmds):
         args_dict.update(read.from_yaml(spec))
     return args_dict
 
+
+def format_commands(include_cmd, args, ignore, include):
+    command_list = []
+    for arg, desc in get_global_config([include_cmd]).items():
+        if '_meta' in arg:
+            continue
+        if 'positional' in desc:
+            continue
+        if arg in ignore:
+            continue
+        val = ''
+        if arg in args and args[arg] is not None:
+            try:
+                val = args[arg].name
+            except AttributeError:
+                val = str(args[arg]) 
+            command_list += ["--{}".format(arg), val]
+    for incl in include:
+        command_list.append(incl)
+    return " ".join(command_list)
+        
+        
+    
+
 def get_missing_sections(config_file):
     config = configparser.ConfigParser()
     config.read(config_file.name)
@@ -48,7 +71,10 @@ def parse_config_sections(config_file, sections):
         for section in sections:
             with suppress(configparser.NoSectionError):
                 for cmd, val in config.items(section):
-                    config_for_sections[cmd] = val                    
+                    # Only add if there is a value
+                    # avoids adding optional params
+                    if val:
+                        config_for_sections[cmd] = val                    
     except configparser.ParsingError:
         error(
             "Cannot parse config file: {}".format(
@@ -167,13 +193,13 @@ def nonneg_int(input_val):
 
 def specfile_read(name):
     """Return the specfile stream for a given command name."""
-    fp = os.path.join('commands', 'cmd_specs', name + '.yml')
+    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
     return resource_stream(__name__, fp)
 
 
 def specfile_path(name):
     """Return the specfile path for a given command name."""
-    fp = os.path.join('commands', 'cmd_specs', name + '.yml')
+    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
     return resource_filename(__name__, fp)
 
 

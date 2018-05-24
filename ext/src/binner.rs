@@ -5,6 +5,7 @@ use bio::alphabets::dna::RevComp;
 use bio::io::fasta;
 use cue::pipeline;
 
+
 use error::*;
 use index::{MGIndex, TaxId};
 use io::from_file;

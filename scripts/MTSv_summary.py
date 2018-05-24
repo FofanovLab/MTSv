@@ -3,7 +3,7 @@ from ete3 import NCBITaxa
 import os.path as path
 from  os import getcwd
 from os.path import expanduser
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import pandas as pd
 import numpy as np
 from multiprocessing import Pool
@@ -11,8 +11,8 @@ from functools import partial
 
 
 
-div_map = {2:'Bacteria', 10239: 'Viruses (excluding environmental sample',
-           2157: 'Archaea', 12884: 'Viroids', 28384: "Other and synthetic sequences",
+div_map = {2:"Bacteria", 10239: "Viruses (excluding environmental sample",
+           2157: "Archaea", 12884: "Viroids", 28384: "Other and synthetic sequences",
            2759: "Eukaryotes", 33090: "Green Plants", 4751: "Fungi",
            7742: "Vertebrates (excluding Primates, Chiroptera, Bos taurus, Canis lupus familiaris)",
            9443: "Primates (excluding Homo sapiens)",
@@ -24,6 +24,7 @@ split = str.split
 strip = str.strip
 rsplit = str.rsplit
 
+Record = namedtuple('Record', ['read_id', 'counts', 'taxa'])
 
 def path_type(input_path):
     if not path.isdir(input_path):
@@ -56,20 +57,26 @@ def parse_line(line):
 
 def parse_signature_hits(sig_file):
     data_dict = {}
-    read_list = []
+    read_set = set()
+    descendant_lookup = {}
     with open(sig_file, 'r') as infile:
         for line in infile:
-            taxa, counts, read = parse_line(line)
-            read_list.append(read)
-            for taxon in taxa:
+            data = parse_row(line)
+            read_set.add(data.read_id)
+            levels = NCBI.get_rank(data.taxa)
+            for taxon in data.taxa:
                 if taxon not in data_dict:
                     data_dict[taxon] = {
                         i: np.zeros(4, dtype=int)
-                        for i in range(len(counts))}
-                for sample, count in enumerate(counts):
+                        for i in range(len(data.counts))}
+                    if taxon in levels and levels[taxon] != 'species':
+                        for descendant in NCBI.get_descendant_taxa(
+                            taxon, collapse_subspecies=True):
+                            descendant_lookup[descendant] = taxon
+                for sample, count in enumerate(data.counts):
                     data_dict[taxon][sample] += [count,
                         bool(count), count, bool(count)]
-    return data_dict, read_list
+    return data_dict, read_set, descendant_lookup
 
 
 def get_lineage_in_signature(taxon, signature_taxa):
@@ -80,71 +87,64 @@ def get_lineage_in_signature(taxon, signature_taxa):
     return False
         
 
-def parse_row(counts, taxa):
-    taxa = [int(strip(tax)) for tax in split(taxa, ",")]
-    counts = [int(c) for c in split(counts, "_")[1:]]
-    return counts, taxa
+def parse_row(row):
+    read_id, taxa = split(row, ":")
+    taxa = np.array([tax for tax in split(taxa, ",")], dtype=int)
+    counts = np.array([c for c in split(read_id, "_")[1:]], dtype=int)
+    read_id = split(read_id, "_")[0]
+    return Record(read_id=read_id, counts=counts, taxa=taxa)
 
-
-def parse_chunks_verbose(chunk, sig_reads):
-    data_dict = {}
-    chunk = chunk[~chunk[0].isin(sig_reads)]
-    for _, (counts, taxa) in chunk.iterrows():
-        counts, taxa = parse_row(counts, taxa) 
-        for taxon in taxa:
-            if taxon not in data_dict:
-                data_dict[taxon] = {
-                        i: np.zeros(4, dtype=int)
-                        for i in range(len(counts))}
-            for sample, count in enumerate(counts):
-                data_dict[taxon][sample] += [count, bool(count), 0, 0]
-    return data_dict
-                
-
-def parse_chunks(chunk, sig_reads, sig_taxa):
-    data_dict = {}
-    chunk = chunk[~chunk[0].isin(sig_reads)]
-    for _, (counts, taxa) in chunk.iterrows():
-        counts, taxa = parse_row(counts, taxa)    
-        for taxon in np.intersect1d(taxa, sig_taxa, assume_unique=True):
-                if taxon not in data_dict:
-                    data_dict[taxon] = {
-                        i: np.zeros(4, dtype=int)
-                        for i in range(len(counts))}
-                for sample, count in enumerate(counts):
-                    data_dict[taxon][sample] += [count, bool(count), 0, 0]
-    return data_dict     
-
-
-def merge_dicts(sig_dict, dicts):
+def merge_dicts(sig_dict, all_dict):
     print("Merging Dictionary")
-    for dic in dicts:
-        for k, v in dic.items():
-            if k not in sig_dict:
-                sig_dict[k] = v
-            else:
-                for kk, vv in v.items():
-                    sig_dict[k][kk] += vv
+    for k, v in all_dict.items():
+        if k not in sig_dict:
+            sig_dict[k] = v
+        else:
+            for kk, vv in v.items():
+                sig_dict[k][kk] += vv
     return sig_dict
 
-def parse_all_hits(all_file, data_dict, sig_reads, threads=1, verbose=False):
+
+def parse_all_hits(all_file, data_dict, sig_reads, descendants, verbose=False):
     sig_taxa = set(data_dict.keys())
-    if verbose:
-        func = partial(parse_chunks_verbose, sig_reads=sig_reads)
-    else:
-        func = partial(parse_chunks, sig_reads=sig_reads, sig_taxa=sig_taxa)
-    p = Pool(threads)
-    results = p.map(
-        func, pd.read_csv(
-            all_file, sep=":", header=None, chunksize=1000, dtype=str))
-    return merge_dicts(data_dict, results)
+    all_data_dict = {}
+    with open(all_file, 'r') as infile:
+        for count, line in enumerate(infile):
+            print("LINE: {}".format(count))
+            data = parse_row(line)
+            if data.read_id in sig_reads:
+                    # already counted these
+                    continue
+            sig_spec = data.taxa
+            sig_des = np.intersect1d(
+                    data.taxa,
+                    list(descendants.keys()),
+                    assume_unique=True)
+            sig_des = np.array(
+                    [descendants[tax] for tax in sig_des], dtype=int)
+            if not verbose:
+                sig_spec = np.intersect1d(
+                    data.taxa, list(sig_taxa), assume_unique=True)
+            taxa_iter = np.unique(np.append(sig_spec, sig_des))
+            
+            for taxon in taxa_iter:
+                if taxon not in all_data_dict:
+                    all_data_dict[taxon] = {
+                            i: np.zeros(4, dtype=int)
+                            for i in range(len(data.counts))}
+                for sample, count in enumerate(data.counts):
+                    all_data_dict[taxon][sample] += [count, bool(count), 0, 0]
+
+                
+    return merge_dicts(data_dict, all_data_dict)
 
 
-def get_summary(all_file, sig_file, outpath, threads=1, verbose=False):
+def get_summary(all_file, sig_file, outpath, verbose=False):
     print("Parsing Signature Hits")
-    data_dict, sig_reads = parse_signature_hits(sig_file)
+    data_dict, sig_reads, descendants = parse_signature_hits(sig_file)
     print("Parsing All Hits")
-    data_dict = parse_all_hits(all_file, data_dict, sig_reads, threads, verbose)
+    data_dict = parse_all_hits(
+        all_file, data_dict, sig_reads, descendants, verbose)
     taxid2name = NCBI.get_taxid_translator(data_dict.keys())
     print("Writing to File")
 
@@ -217,11 +217,6 @@ if __name__ == "__main__":
         help="Report all taxa, not just signature hits"
     )
 
-    PARSER.add_argument(
-        "--threads", type=int, default=1,
-        help="Number of threads for multiprocessing"
-    )
-
     ARGS = PARSER.parse_args()
     if ARGS.update:
         NCBI = NCBITaxa()
@@ -237,5 +232,5 @@ if __name__ == "__main__":
     outfile = path.join(
         ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
 
-    get_summary(ARGS.all, ARGS.sig, outfile, ARGS.threads, ARGS.verbose)
+    get_summary(ARGS.all, ARGS.sig, outfile, ARGS.verbose)
 

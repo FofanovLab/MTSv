@@ -16,11 +16,18 @@ setup(name='mtsv',
       packages=find_packages(),
       license='LICENSE.txt',
       entry_points={'console_scripts': ['mtsv=mtsv.main:main']},
+      include_package_data=True,
       package_data={
-          'mtsv': ['commands/cmd_spec/*', 'ext/src/target/release/*']
+      'mtsv': ['commands/cmd_specs/*.yml']
       },
       data_files=[
-          ('ext', ['src/target/release/*'])
+          ('mtsv/ext', ['ext/target/release/mtsv-binner',
+                   'ext/target/release/mtsv-build',
+                   'ext/target/release/mtsv-chunk',
+                   'ext/target/release/mtsv-collapse',
+                   'ext/target/release/mtsv-readprep',
+                   'ext/target/release/mtsv-signature',
+                   'ext/target/release/mtsv-tree-build'])
       ],
       classifiers=[
           'Programming Language :: Python',
