@@ -15,9 +15,10 @@ fasta_query_path:
   help: Path to FASTA query file.
   type: file_type
 fm_index_paths:
-  default: []
   help: List of paths to index files. Wildcards are allowed.
   nargs: +
+  type: list
+  required: True
 binning_outpath:
   default: ./Binning/
   help: Path to write binning files to.

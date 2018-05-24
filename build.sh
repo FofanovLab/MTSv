@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # install ext
-#bash install.sh --prefix=$PREFIX
+bash install.sh --prefix=$PREFIX
 $PYTHON setup.py install
 
 # Add more build steps here, if they are necessary.

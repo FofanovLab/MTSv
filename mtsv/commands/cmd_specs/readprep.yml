@@ -1,9 +1,10 @@
 _meta_readprep:
   help: Read fragment quality control and deduplication (FASTQ -> FASTA)
 fastq:
-  positional: True
   nargs: +
   help: Path(s) to FASTQ files to QC and collapse.
+  required: True
+  positional: True
 query_fasta_path:
   default: ./QueryFastas/queries.fasta
   help: Path to desired output FASTA file.
@@ -12,7 +13,7 @@ adapters:
   help: Path to file containing adapters, one per line.
   type: file_type
 adapter-tolerance:
-  help:  Number of adapter characters to tolerate at start of reads.
+  help: Number of adapter characters to tolerate at start of reads.
   type: positive_int
 quality_min:
   help: Minimum FASTQ quality to tolerate per base.

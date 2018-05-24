@@ -14,7 +14,7 @@ build:
 
 requirements:
   build:
-  #  - rust>=1.8.0
+    - rust>=1.24.0
     - python
     - setuptools
   run:
@@ -24,7 +24,9 @@ requirements:
     - ete3
     - ete_toolchain
     - biopython
-    - argutils
+    - six
+    - pyyaml
+    - click
 
 test:
   files: 

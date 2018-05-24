@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include mtsv/commands/cmd_specs/*.yml
+include ext/target/release/*
+#include database

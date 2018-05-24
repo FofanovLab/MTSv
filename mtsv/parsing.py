@@ -1,42 +1,85 @@
 import argparse
+import configparser
 import os
+import ast
 import logging
+from contextlib import suppress
 from pkg_resources import resource_stream, resource_filename
-from argutils import read, export
-from utils import(
-    error,
-    warn
-)
+
+from mtsv.utils import(error, warn)
+from mtsv.argutils import (read, export)
+
 
 logger = logging.getLogger(__name__)
+SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
 
 
-def get_global_config(cmd_class):
-    include_cmds = cmd_class.config_line
+def create_config_file(config_file):
+    cfg_file_str = ""
+    for cmd in SECTIONS:
+        spec = specfile_read(cmd)
+        opts = read.from_yaml(spec)
+        meta = opts['_meta_{}'.format(cmd.lower())]
+        del opts['_meta_{}'.format(cmd.lower())]
+        opts['_meta'] = meta
+        cfg_file_str += export.to_config(
+            cmd, opts) + "\n"
+    config_file.write(cfg_file_str)
+    config_file.close()
+
+def get_global_config(include_cmds):
     args_dict = {}
     for cmd in include_cmds:
-        spec = specfile_read(cmd_class.__name__.lower())
+        spec = specfile_read(cmd.lower())
         args_dict.update(read.from_yaml(spec))
     return args_dict
 
-# def get_defaults(parser, args):
-#     defaults = {}
-#     for key in vars(args):
-#         defaults[key] = parser.get_default(key)
-#     return defaults
 
-def get_config_defaults(config, sections):
-    cfg_defaults = {}
-    if config:
-        for section in sections:
+def format_commands(include_cmd, args, ignore, include):
+    command_list = []
+    for arg, desc in get_global_config([include_cmd]).items():
+        if '_meta' in arg:
+            continue
+        if 'positional' in desc:
+            continue
+        if arg in ignore:
+            continue
+        val = ''
+        if arg in args and args[arg] is not None:
             try:
+                val = args[arg].name
+            except AttributeError:
+                val = str(args[arg]) 
+            command_list += ["--{}".format(arg), val]
+    for incl in include:
+        command_list.append(incl)
+    return " ".join(command_list)
+        
+        
+    
+
+def get_missing_sections(config_file):
+    config = configparser.ConfigParser()
+    config.read(config_file.name)
+    return [s for s in SECTIONS if s not in config.sections()]
+
+def parse_config_sections(config_file, sections):
+    config = configparser.ConfigParser()
+    config.read(config_file.name)
+    config_for_sections = {}
+    try:
+        for section in sections:
+            with suppress(configparser.NoSectionError):
                 for cmd, val in config.items(section):
-                    cfg_defaults[cmd] = val
-            except configparser.NoSectionError:
-                warn(
-                    "{} section missing in config file, "
-                    "using defaults".format(section))
-    return cfg_defaults
+                    # Only add if there is a value
+                    # avoids adding optional params
+                    if val:
+                        config_for_sections[cmd] = val                    
+    except configparser.ParsingError:
+        error(
+            "Cannot parse config file: {}".format(
+                config_file.name))
+    return config_for_sections
 
 def path_type(input_path):
     '''Path_type is for paths that should already exist.
@@ -49,11 +92,9 @@ def path_type(input_path):
 
 def project_dir_type(input_path):
     '''Creates a project directory if one does not exist and
-    changes the current working directory to this directory.
     Throws PermissionError if there are no permissions to create
-    directory. If path already exists and it is not empty, a warning
-    is issued. Returns absolute path to directory.'''
-    print(input_path)
+    directory. Returns absolute path to directory.'''
+    input_path = os.path.abspath(input_path)
     try:
         os.mkdir(input_path)
         logger.info("Creating Working Directory: {}".format(input_path))
@@ -63,11 +104,9 @@ def project_dir_type(input_path):
     except OSError:
         logger.info(
             "Directory already exists: {}. ".format(input_path))
-        if os.listdir(input_path):
-            warn("Files in {} may be overwritten!".format(input_path))
-    path = os.path.abspath(input_path)
-    os.chdir(path)
-    return path
+        # if os.listdir(input_path):
+        #     warn("Files in {} may be overwritten!".format(input_path))
+    return input_path
 
 
 def outpath_type(input_path):
@@ -96,9 +135,10 @@ def file_type(input_file):
     If yes, return absolute path to
     file else throw ArgumentTypeError
     exception'''
+    input_file = os.path.abspath(input_file)
     if not os.path.isfile(input_file):
         raise argparse.ArgumentTypeError("Not a valid file path")
-    return os.path.abspath(input_file)
+    return input_file
 
 
 def outfile_type(input_file):
@@ -107,8 +147,8 @@ def outfile_type(input_file):
     returns abs path to file. PermissionError
     exception when there is no permission to 
     create directory'''
-    path = os.path.dirname(os.path.abspath(input_file))
-    print(os.path.abspath(input_file))
+    input_file = os.path.abspath(input_file)
+    path = os.path.dirname(input_file)
     if not os.path.isdir(path):
         try:
             os.mkdir(path)
@@ -116,7 +156,16 @@ def outfile_type(input_file):
             error(
                 "No permission to create file: {}".format(input_file)
             )
-    return os.path.join(path, input_file)
+    return input_file
+
+def write_handle_type(input_file):
+    '''Returns a handle to an outfile'''
+    return open(outfile_type(input_file), 'w')
+
+
+def read_handle_type(input_file):
+    '''Returns a handle to an infile'''
+    return open(file_type(input_file), 'r') 
 
 
 def positive_int(input_val):
@@ -144,13 +193,13 @@ def nonneg_int(input_val):
 
 def specfile_read(name):
     """Return the specfile stream for a given command name."""
-    fp = os.path.join('commands', 'cmd_specs', name + '.yml')
+    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
     return resource_stream(__name__, fp)
 
 
 def specfile_path(name):
     """Return the specfile path for a given command name."""
-    fp = os.path.join('commands', 'cmd_specs', name + '.yml')
+    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
     return resource_filename(__name__, fp)
 
 
@@ -159,11 +208,14 @@ TYPES = {
     'str': str,
     'float': float,
     'bool': bool,
+    'list': ast.literal_eval,
     'file_type': file_type,
     'outfile_type': outfile_type,
     'path_type': path_type,
     'outpath_type': outpath_type,
     'positive_int': positive_int,
     'nonneg_int': nonneg_int,
-    'project_dir_type': project_dir_type
-}
+    'project_dir_type': project_dir_type,
+    'write_handle_type': write_handle_type,
+    'read_handle_type': read_handle_type
+    }
