@@ -53,16 +53,16 @@ def binner(cmd, workflow):
     @workflow.params(call=binner_bin, args=cmd.cml_args)
     # @workflow.message("Executing {name} with {threads} threads on the following files {input}.")
     # @workflow.log(cmd.params['log_file'].name)
-    @workflow.log("{index}.log")
+    @workflow.log(os.path.join(cmd.params['binning_outpath'],"{index}.log"))
     @workflow.threads(cmd.params['threads'])
-    @workflow.shellcmd("{params.call} --index {input} --results {output} {params.args} > {log}")
+    @workflow.shellcmd("{params.call} --index {input} --threads {threads} --results {output} {params.args} > {log} 2>&1")
     @workflow.run
     def __rule_binning(input, output, params, wildcards,
                        threads, resources, log, version, rule,
                        conda_env, singularity_img, singularity_args,
                        use_singularity, bench_record, jobid, is_shell):
         shell(
-            "{params.call} --index {input} --results {output} {params.args} > {log}")
+            "{params.call} --index {input} --threads {threads} --results {output} {params.args} > {log} 2>&1")
     ####################
     # Collapse 
     ####################
@@ -76,14 +76,14 @@ def binner(cmd, workflow):
         'merged.clp'))
     @workflow.log(cmd.params['log_file'].name)
     @workflow.params(call=collapse_bin)
-    @workflow.shellcmd("{params.call} {input} -o {output}")
+    @workflow.shellcmd("{params.call} {input} -o {output} > {log} 2>&1")
     @workflow.run
     def __rule_collapse(input, output, params, wildcards,
                         threads, resources, log, version, rule,
                         conda_env, singularity_img, singularity_args,
                         use_singularity, bench_record, jobid, is_shell):
         shell(
-            "{params.call} {input} -o {output}")
+            "{params.call} {input} -o {output} > {log} 2>&1")
 
     return workflow
 
