@@ -5,7 +5,7 @@ fastq:
   help: Path(s) to FASTQ files to QC and collapse.
   required: True
   positional: True
-query_fasta_path:
+fasta_query_path:
   default: ./QueryFastas/queries.fasta
   help: Path to desired output FASTA file.
   type: outfile_type

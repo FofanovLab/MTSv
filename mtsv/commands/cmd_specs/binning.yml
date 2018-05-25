@@ -10,15 +10,14 @@ binning_mode:
     fast=17,5,2, efficient=14,4,2, sensitive=11,3,1. Passing any of these
     parameters (SEED_SIZE, MIN_SEEDS, SEED_GAP) will override these settings.
   type: str
-fasta_query_path:
+fasta:
   default: ./QueryFastas/queries.fasta
   help: Path to FASTA query file.
   type: file_type
 fm_index_paths:
   help: List of paths to index files. Wildcards are allowed.
   nargs: +
-  type: list
-  required: True
+  type: str
 binning_outpath:
   default: ./Binning/
   help: Path to write binning files to.
@@ -27,15 +26,15 @@ edits:
   default: 3
   help: Edit distance to tolerate in matched reference sites
   type: nonneg_int
-seed_size:
+seed-size:
   default: 14
   help:  Exact match query size.
   type: positive_int
-min_seeds:
+min-seeds:
   default: 4
   help: Minimum number of seeds to perform alignment of a candidate site.
   type: positive_int
-seed_gap:
+seed-gap:
   default: 2
   help: Gap between seeds used for initial exact match.
   type: nonneg_int

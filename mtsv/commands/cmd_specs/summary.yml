@@ -1,21 +1,12 @@
 _meta_summary:
   help: Combine binning files, and find signature hits
-binning_paths:
-  default: [./binning/*]
-  help: >
-    List of paths to binning output.
-    Binning results from multiple sequence 
-    databases can be combined.
-    Wildcards are allowed.
-  nargs: +
-  positional: True
 merge_file:
   default: ./summary/merged.txt
-  help: File to place the merged binning results
-  type: outfile_type
+  help: Merged binning input file
+  type: file_type
 signature_file:
   default: ./summary/signature.txt
-  help: File to place signature hits
+  help: File to place signature hits output
   type: outfile_type
 summary_file:
   default: ./summary/summary.csv

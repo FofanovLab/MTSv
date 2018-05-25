@@ -1,27 +1,28 @@
-import configparser
 import os
-from functools import wraps
-from snakemake.workflow import Workflow, Rules
-import snakemake.workflow
-from snakemake import shell
-from snakemake.logging import setup_logger, Logger
 import logging
-from pkg_resources import resource_filename
-
 from mtsv.parsing import (
     create_config_file,
-    specfile_read,
     format_commands
     )
+from mtsv.commands.rules import (
+    readprep,
+    binner,
+    summary,
+    analyze,
+    extract,
+    setup_workflow
+)
 
 
 class Command:
     config_section = []
-    targets = []
 
     def __init__(self, params):
         self._logger = logging.getLogger(__name__)
         self._params = params.params
+        self._rules = []
+        self._targets = []
+        self._cml_args = []
 
     def __repr__(self):
         return str(self.__class__.__name__)
@@ -31,60 +32,45 @@ class Command:
         return cls.config_section
 
     @property
-    def get_targets(self):
-        return self.targets
-
-    @property
     def params(self):
         return self._params
 
+    @property
+    def rules(self):
+        return self._rules
+
+    @rules.setter
+    def rules(self, rules):
+        self._rules = rules
+
+    @property
+    def targets(self):
+        return self._targets
+
+    @targets.setter
+    def targets(self, targets):
+        self._targets = targets
+        
+    @property
+    def cml_args(self):
+        return self._cml_args
+
+    @cml_args.setter
+    def cml_args(self, cml_args):
+        self._cml_args = cml_args
+
     def run(self):
-        workflow = self.snek()
+        workflow = setup_workflow(self.params)
+        for rule in self.rules:
+            workflow = rule(self, workflow)
         workflow.check()
         print("EXECUTING")
         workflow.execute(nolock=True,
             targets=self.targets, updated_files=[],
             forceall=self.params['force'], resources={},
             dryrun=False)
-        
-    def snek(self):
-        readprep = bin_path('mtsv-reaprep')
-        binner = bin_path('mtsv-binner')
-        collapse = bin_path('mtsv-collapse')
-        signature = bin_path('mtsv-signature')
-        # temp
-        p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
-        readprep = p + "mtsv-readprep"
-        binner = p + "mtsv-binner"
-        collapse = p + "mtsv-collapse"
-        signature = p + "mtsv-signature"
 
-        setup_logger()
-        workflow = Workflow(
-            "__file__",
-            overwrite_workdir=self.params['working_dir'])
-        if self.params['cluster_cfg'] is not None:
-            workflow.cluster_cfg = self.params['cluster_cfg']
-        snakemake.workflow.rules = Rules()
-        snakemake.workflow.config = dict()
-        @workflow.rule(name='readprep')
-        @workflow.docstring("""Read fragment quality control and deduplication (FASTQ -> FASTA)""")
-        @workflow.input(self.params['fastq'])
-        @workflow.output(self.params['query_fasta_path'])
-        @workflow.params(cmd=readprep, params=self.cml_params)
-        @workflow.log(self.params['log_file'].name)
-        @workflow.threads(self.params['threads'])
-        @workflow.shellcmd("{params.cmd} {input} -o {output} {params.params} >> {log} 2>&1")
-        
-        @workflow.run
-        def __rule_readprep(input, output, params, wildcards, 
-            threads, resources, log, version, rule,
-            conda_env, singularity_img, singularity_args,
-            use_singularity, bench_record, jobid, is_shell):
-            shell(
-                "{params.cmd} {input} -o {output} {params.params} >> {log} 2>&1")
-        return workflow
-# "{readprep} {input} -o {output} --threads {threads} {readprep_params}"
+
 class Init(Command):
     config_section = []
 
@@ -104,6 +90,7 @@ class Analyze(Command):
     def __init__(self, params):
         print("Running analysis")
         super().__init__(params)
+        self.rules = [analyze]
         self.targets = [self.params['analysis_file']]
 
 
@@ -113,10 +100,28 @@ class Binning(Command):
     def __init__(self, params):
         print("Running binning")
         super().__init__(params)
-        self.targets = [join(
-            self.params['binning_outpath'],
-            '{index}_binned.bin')]
+        self.rules = [binner]
+        index_names = [os.path.basename(p).split(
+            ".")[0] + ".bn" for p in self.params['fm_index_paths']]
+        # self.targets = [os.path.join(
+        #     self.params['binning_outpath'], index_name) for index_name in index_names]
+        self.targets = [os.path.join(
+            self.params['binning_outpath'], "merged.clp")]
+        self._mode_dict = {'fast': {'seed-size': 17, 'min-seeds': 5, 'seed-gap': 2},
+                          'efficient': {'seed-size': 14, 'min-seeds': 4, 'seed-gap': 2},
+                          'sensitive': {'seed-size': 11, 'min-seeds': 3, 'seed-gap': 1}}
+        self._set_binning_mode()
+        self.cml_args = format_commands(
+            'BINNING',
+            self.params,
+            ['binning_mode', 'fm_index_paths', 'binning_outpath'], []
+        )
 
+    def _set_binning_mode(self):
+        bin_mode = self._mode_dict[self.params['binning_mode']]
+        self.params['seed-size'] = bin_mode['seed-size']
+        self.params['min-seeds'] = bin_mode['min-seeds']
+        self.params['seed-gap'] = bin_mode['seed-gap']
 
 class Extract(Command):
     config_section=["EXTRACT"]
@@ -124,6 +129,7 @@ class Extract(Command):
     def __init__(self, params):
         print("running extract")
         super().__init__(self, params)
+        self.rules = [extract]
         self.targets = []
 
 
@@ -133,16 +139,15 @@ class Readprep(Command):
     def __init__(self, params):
         print("running readprep")
         super().__init__(params)
-        self.targets = [self.params['query_fasta_path']]
-        
-        self.cml_params = format_commands(
+        self.targets = [self.params['fasta_query_path']]
+        self.rules = [readprep]     
+        self.cml_args = format_commands(
             'READPREP',
             self.params,
-            ['query_fasta_path', 'kmer', 'trim_mode'],
+            ['fasta_query_path', 'kmer', 'trim_mode'],
             ['--segment', str(self.params['kmer'])]
             if self.params['trim_mode'] == 'segment'
             else ['--{}'.format(self.params['trim_mode'])])
-        
 
 
 class Summary(Command):
@@ -150,6 +155,7 @@ class Summary(Command):
     def __init__(self, params):
         print("running summary")
         super().__init__(params)
+        self.rules = [summary]
         self.targets = []
 
 
@@ -159,11 +165,9 @@ class Pipeline(Command):
     def __init__(self, params):
         print("Running Pipeline")
         super().__init__(params)
+        self.rules = [readprep, binner, summary, analyze]
         self.targets=[self.params['analysis_file']]
 
 
 
-def bin_path(cmd):
-    """Return the specfile path for a given command name."""
-    fp=os.path.join('ext', 'cmd')
-    return resource_filename('mtsv', fp)
+
