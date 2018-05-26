@@ -38,21 +38,28 @@ def oneclickbuild(args):
                                   args.path) for x in iglob(os.path.join(args.path,"flat_files/*.gz"))])
     for fp in iglob(os.path.join(args.path,"artifacts/*_ff.txt")):
         db = list(os.path.split(fp))
-        db[1] = db[1].replace("_ff.txt",".fas")
-        db = os.path.abspath(os.path.join(db[0], db[1]))
-
+        print(db)
+        db[1] = db[1].strip().replace("_ff.txt",".fas")
+        print(db)
+        db = os.path.abspath("{0}{1}{2}".format(db[0],os.sep,db[1]))
+        print(db)
         with open(os.path.abspath(fp), "r" ) as file:
             temp = file.readlines()
+
         with open(os.path.abspath(fp), "w") as file:
             for x in temp:
-                file.write(x.strip(".gz"))
+                if x.strip().rsplit(".",1)[1] == "gz":
+                    x= x.strip().rsplit(".",1)[0]
+                file.write("{0}\n".format(x))
 
-        with open(os.devnull, "w") as null:
-            build_db(os.path.abspath(fp),db,null,null,args.threads,null)
+        # with open(os.devnull, "w") as null:
+        build_db(os.path.abspath(fp), db, os.devnull, os.devnull, args.threads, os.devnull)
+
     arguments = oneclickjson(args.path)
+
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
-    shutil.rmtree(os.path.join(args.path, "flat_files" ))
+    # shutil.rmtree(os.path.join(args.path, "flat_files" ))
 
 def partition(args):
     partition_list = []
@@ -116,7 +123,7 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-oc", "--oneclick", "-oneclick",action='store_true')
     group.add_argument("-ocdl", "--oneclickdl", "-oneclickdl",action='store_true')
-    group.add_argument("-ocbuild", "--oneclickbuild", "-oneclickdc",action='store_true')
+    group.add_argument("-ocbld", "--oneclickbuild", "-oneclickbuild",action='store_true')
     group.add_argument("-ocprt", "--oneclickpartition", "-oneclickpartition", action='store_true')
 
     group.add_argument("-c", "--custom", "-custom", action='store_true')
@@ -153,6 +160,7 @@ def main():
 
     if args.oneclick:
         args.path = os.path.abspath(oneclickdl(args))
+        print(args.path)
         oneclickbuild(args)
         oneclickfmbuild(args, args.partitions == default_parts)
 
