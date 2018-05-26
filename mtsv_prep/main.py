@@ -14,6 +14,7 @@ try:
     from scripts.MTSv_prune import *
 except:
     from MTSv_prune import *
+
 file_lock = RLock()
 
 def oneclickdl(args):
@@ -51,7 +52,7 @@ def oneclickbuild(args):
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
     shutil.rmtree(os.path.join(args.path, "flat_files" ))
-    
+
 def partition(args):
     partition_list = []
     for db in args.customdb:
@@ -63,7 +64,7 @@ def partition(args):
                 temp = prt.split("-")
                 if len(temp) == 2:
                     inc = set(temp[0].split(","))
-                    exc = set(temp[0].split(","))
+                    exc = set(temp[1].split(","))
                 else:
                     inc = set(temp[0].split(","))
                     exc = set()

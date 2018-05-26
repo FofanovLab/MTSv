@@ -304,7 +304,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path):
                             out.write(seq)
                         line_count = 0
                         seq = bytearray()
-
+    return os.path.abspath(name)
 # writes a new or updates json config file
 def gen_json(configuration, args):
     if args.update and args.configuration_path:
@@ -496,7 +496,7 @@ def ftp_dl(x):
     except:
         pass
 
-def pull(thread_count=1, excluded=set(), path=""):
+def pull(path="",thread_count=1,databases ={"genbank"} ):
     if not path:
         string_date = datetime.datetime.now().strftime("%b-%d-%Y")
     else:
@@ -539,7 +539,7 @@ def pull(thread_count=1, excluded=set(), path=""):
     to_download = []
     level2path = {}
 
-    if "genbank" not in excluded:
+    if "genbank" in databases:
         for fp in connection.nlst(genbank_dir):
             base_fp = os.path.basename(fp)
             for ind,char in enumerate(base_fp):
@@ -573,7 +573,7 @@ def pull(thread_count=1, excluded=set(), path=""):
                 continue
         except:
             pass
-        if line[11].strip().decode() not in excluded:
+        if line[11].strip().decode() in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -601,7 +601,7 @@ def pull(thread_count=1, excluded=set(), path=""):
         except:
             pass
 
-        if line[11].strip().decode() not in excluded:
+        if line[11].strip().decode() in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -644,7 +644,9 @@ if __name__ =="__main__":
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-oc", "--oneclick", "-oneclick",action='store_true')
+    # group.add_argument("-oc", "--oneclick", "-oneclick",action='store_true')
+    # group.add_argument("-ocdl", "--oneclickdl", "-oneclickdl",action='store_true')
+    # group.add_argument("-ocdc", "--oneclickdc", "-oneclickdc",action='store_true')
 
     group.add_argument("-pl", "--pull", "-pull",action='store_true')
     group.add_argument("-gc", "--generate-config","-generate-config", action='store_true',
