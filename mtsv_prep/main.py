@@ -22,11 +22,12 @@ def oneclickdl(args):
 
 def decompression(x, path):
     output = subprocess.PIPE
-    subprocess.run(['gunzip',x], stderr=output, stdout=output)
-    if output:
-        with file_lock:
-            with open(os.path.join(path, "artifacts/decompression.log"), "a") as out:
-                out.write("{0}\n".format(x))
+    if not os.path.isfile(x.strip(".gz")):
+        subprocess.run(['gunzip',x], stderr=output, stdout=output)
+        if output:
+            with file_lock:
+                with open(os.path.join(path, "artifacts/decompression.log"), "a") as out:
+                    out.write("{0}\n".format(x))
     return x.strip(".gz")
 
 def oneclickbuild(args):
@@ -38,7 +39,7 @@ def oneclickbuild(args):
     for fp in iglob(os.path.join(args.path,"artifacts/*_ff.txt")):
         db = list(os.path.split(fp))
         db[1] = db[1].replace("_ff.txt",".fas")
-        db = os.path.abspath(os.path.join(db))
+        db = os.path.abspath(os.path.join(db[0], db[1]))
 
         with open(os.path.abspath(fp), "r" ) as file:
             temp = file.readlines()

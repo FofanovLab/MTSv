@@ -472,7 +472,9 @@ def ftp_dl(x):
         fp_path = fp_path[1]
         try:
             outpath = os.path.join(raw_path, os.path.basename(fp_path))
-            # try:
+            if os.path.isfile(outpath.strip(".gz")):
+                continue
+
             file_size = connection.size(fp_path)
             if not os.path.isfile(outpath) or file_size != os.path.getsize(outpath):
                 with open(outpath, "wb") as out_file:
