@@ -1,0 +1,20 @@
+_meta_database:
+  help: Download and build sequence databases and indices.
+default_path:
+  default: []
+  help: Path to default database.
+rollup_rank:
+  default: species
+  choices: [species, genus, family]
+  help: NCBI rank to set sequence headers.
+download_only:
+  default: False
+  action: 'store_true'
+  help: Only perform download step.
+build_only:
+  type: path_type
+  help: Build from local database that exists at this path.
+overwrite:
+  default: False
+  action: 'store_true'
+  help: Force current database to be overwritten.

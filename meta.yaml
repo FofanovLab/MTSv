@@ -11,6 +11,8 @@ build:
   number: 0
   entry_points:
     - mtsv = mtsv.main:main
+    - mtsv_setup = mtsv.mtsv_prep.main:main
+    - mtsv_plugin = mtsv.mtsv_plugin.main:main
 
 requirements:
   build:

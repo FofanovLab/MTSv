@@ -15,10 +15,12 @@ setup(name='mtsv',
       long_description=read('README.md'),
       packages=find_packages(),
       license='LICENSE.txt',
-      entry_points={'console_scripts': ['mtsv=mtsv.main:main']},
+      entry_points={'console_scripts': ['mtsv=mtsv.main:main',
+      'mtsv_setup=mtsv.mtsv_prep.main:main',
+      'mtsv_plugins=mtsv.mtsv_plugin.main:main']},
       include_package_data=True,
       package_data={
-      'mtsv': ['commands/cmd_specs/*.yml']
+      'mtsv': ['commands/cmd_specs/*.yml', 'scripts/*.py']
       },
       data_files=[
           ('mtsv/ext', ['ext/target/release/mtsv-binner',

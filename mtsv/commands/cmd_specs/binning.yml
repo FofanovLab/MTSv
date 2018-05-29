@@ -17,24 +17,24 @@ fasta:
 fm_index_paths:
   help: List of paths to index files. Wildcards are allowed.
   nargs: +
-  type: str
 binning_outpath:
   default: ./Binning/
   help: Path to write binning files to.
   type: outpath_type
+merge_file:
+  default: ./Binning/merged.clp
+  help: Merged binning output file
+  type: outfile_type
 edits:
   default: 3
   help: Edit distance to tolerate in matched reference sites
   type: nonneg_int
 seed-size:
-  default: 14
   help:  Exact match query size.
   type: positive_int
 min-seeds:
-  default: 4
   help: Minimum number of seeds to perform alignment of a candidate site.
   type: positive_int
 seed-gap:
-  default: 2
   help: Gap between seeds used for initial exact match.
   type: nonneg_int

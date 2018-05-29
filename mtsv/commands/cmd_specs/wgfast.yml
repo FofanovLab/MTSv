@@ -1,0 +1,60 @@
+_meta_wgfast:
+  help: Whole genome focused array SNP typing
+reference_directory:
+  help: Path to reference file directory
+  type: path_type
+taxa:
+  help: Extract reads for these taxa
+  nargs: +
+coverage:
+  help: minimum SNP coverage required to be called a SNP
+  default: 3
+  type: positive_int
+proportion:
+  help: proportion of alleles to be called a SNP
+  default: 0.9
+  type: proportion
+keep:
+  help: Keep temp files?
+  type: bool
+  default: False
+subsample:
+  help: Run subsample routine?
+  type: bool
+  default: True
+subnums:
+  help: Number of subsamples to process
+  type: positive_int
+  default: 100
+doc:
+  help: Run depth of coverage on all files?
+  type: bool
+  default: True
+temp:
+  help: Temporary directory for GATK analysis
+  outpath_type: ./tmp
+method:
+  help: method to insert unknown genomes
+  choices: [MP, ML]
+  default: ML
+fudge_factor:
+  help: How close does a subsample have to be from true placement?
+  type: float
+  default: 0.1
+only_subs:
+  help: Only run sub-sample routine and exit?
+  type: bool
+  default: False
+model:
+  help: Which model to run with raxml.
+  choices: [GTRGAMMA, ASC_GTRGAMMA, GTRCAT, ASC_GTRCAT]
+trim:
+  help: Trim sequences with trimmomatic?
+  type: bool
+  default: True
+gatk_method:
+  help: How to call GATK?
+  choices: [EMIT_ALL_CONFIDENT_SITES, EMIT_ALL_SITES]
+  default: EMIT_ALL_CONFIDENT_SITES
+
+

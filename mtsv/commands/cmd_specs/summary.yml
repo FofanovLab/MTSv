@@ -1,8 +1,8 @@
 _meta_summary:
   help: Combine binning files, and find signature hits
 merge_file:
-  default: ./summary/merged.txt
-  help: Merged binning input file
+  default: ./Binning/merged.clp
+  help: Merged binning output file
   type: file_type
 signature_file:
   default: ./summary/signature.txt
@@ -15,7 +15,11 @@ summary_file:
 taxdump_path:
   help: Path to taxdump file
   type: file_type
-  required: True
+  default: None
+tree_index:
+  help: Path to taxonomic index file
+  type: file_type
+  default: None
 tax_level:
   default: species
   help: >

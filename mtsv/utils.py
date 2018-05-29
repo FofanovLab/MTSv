@@ -2,6 +2,9 @@ import textwrap
 import sys
 import click
 import logging
+import os
+from pkg_resources import resource_stream, resource_filename
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,23 +41,39 @@ def quote(text, width=72, quote="", nl=True):
     return out
 
 
-def config_logging(handle, level):
+def config_logging(file_name, level):
     """Configure logging
 
     Arguments:
-        log_file_name (handle): log file handle
         level (str): Logging level
     """
     logging.basicConfig(
-        stream=handle,
+        filename=file_name,
         datefmt='%m/%d/%Y %I:%M:%S %p',
         level=getattr(logging, level),
-        filemode='a',
+        filemode='w',
         format='%(asctime)s %(levelname)s: [%(name)s] %(message)s')
 
 
 def set_log_file(log_file, command_name, timestamp):
-    log_file = log_file.format(
+    return log_file.format(
         COMMAND=str(command_name).lower(),
         TIMESTAMP=timestamp)
-    return open(log_file, 'w')
+
+
+def specfile_read(name):
+    """Return the specfile stream for a given command name."""
+    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
+    return resource_stream(__name__, fp)
+
+
+def specfile_path(name):
+    """Return the specfile path for a given command name."""
+    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
+    return resource_filename(__name__, fp)
+
+
+def bin_path(cmd):
+    """Return the specfile path for a given command name."""
+    fp = os.path.join('ext', 'cmd')
+    return resource_filename('mtsv', fp)

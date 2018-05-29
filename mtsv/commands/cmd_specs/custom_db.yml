@@ -1,0 +1,17 @@
+_meta_custom_db:
+  help: Build a custom database with certain taxid subtrees.
+custom_path:
+  default: []
+  help: Path to custom database
+rollup_rank:
+  default: species
+  choices: [species, genus, family]
+  help: NCBI rank to set sequence headers.
+customdb:
+  default: genbank
+  nargs: +
+  help: >
+    List of the sequence databases to include.
+    Choose from Chromosome, Scaffold, and/or genbank.
+
+

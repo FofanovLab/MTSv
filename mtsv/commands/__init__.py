@@ -64,15 +64,37 @@ class Command:
         for rule in self.rules:
             workflow = rule(self, workflow)
         workflow.check()
-        print("EXECUTING")
         workflow.execute(nolock=True,
             targets=self.targets, updated_files=[],
             forceall=self.params['force'], resources={},
-            dryrun=False)
+                         dryrun=False, printshellcmds=True)
 
+class Database(Command):
+    config_section = ["DATABASE"]
+
+    def __init__(self, params):
+        print("running Database")
+        super().__init__(params)
+        print(self.params)
+
+class CustomDB(Command):
+    
+    config_section = ["CUSTOM_DB"]
+
+    def __init__(self, params):
+        print("running custom database")
+        super().__init__(params)
+        print(self.params)
+
+class WGFast(Command):
+    config_section = ["WGFast"]
+
+    def __init__(self, params):
+        print("Running WGFast")
+        super().__init__(params)
+        print(self.params)
 
 class Init(Command):
-    config_section = []
 
     def __init__(self, params):
         print("Running init")
@@ -103,25 +125,29 @@ class Binning(Command):
         self.rules = [binner]
         index_names = [os.path.basename(p).split(
             ".")[0] + ".bn" for p in self.params['fm_index_paths']]
-        # self.targets = [os.path.join(
-        #     self.params['binning_outpath'], index_name) for index_name in index_names]
         self.targets = [os.path.join(
             self.params['binning_outpath'], "merged.clp")]
-        self._mode_dict = {'fast': {'seed-size': 17, 'min-seeds': 5, 'seed-gap': 2},
-                          'efficient': {'seed-size': 14, 'min-seeds': 4, 'seed-gap': 2},
-                          'sensitive': {'seed-size': 11, 'min-seeds': 3, 'seed-gap': 1}}
+        self._mode_dict = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
+                          'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
+                          'sensitive': {'seed_size': 11, 'min_seeds': 3, 'seed_gap': 1}}
         self._set_binning_mode()
         self.cml_args = format_commands(
             'BINNING',
             self.params,
-            ['binning_mode', 'fm_index_paths', 'binning_outpath'], []
+            ['binning_mode', 'fm_index_paths', 'merge_file', 'binning_outpath'], []
         )
+
 
     def _set_binning_mode(self):
         bin_mode = self._mode_dict[self.params['binning_mode']]
-        self.params['seed-size'] = bin_mode['seed-size']
-        self.params['min-seeds'] = bin_mode['min-seeds']
-        self.params['seed-gap'] = bin_mode['seed-gap']
+        for key, value in bin_mode.items():
+            if self.params[key] == None:
+                self.params[key] = value
+            # change back to dash instead of underscore
+
+            self.params[key.replace("_", "-")] = self.params[key]
+            del self.params[key]
+
 
 class Extract(Command):
     config_section=["EXTRACT"]
@@ -156,7 +182,15 @@ class Summary(Command):
         print("running summary")
         super().__init__(params)
         self.rules = [summary]
-        self.targets = []
+        # self.targets = [self.params['summary_file']]
+        self.targets = [self.params['signature_file']]
+        self.cmd_args = format_commands(
+            'SUMMARY',
+            self.params,
+            ['taxdump_path', 'tax_level', 'merge_file', 'signature_file', 'summary_file', 'tree_index'],
+            ["--{}".format(self.params['tax_level'])] if
+                self.params['tax_level'] != 'species' else [])
+        print("CMDS", self.cmd_args)
 
 
 class Pipeline(Command):

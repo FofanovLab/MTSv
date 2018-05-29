@@ -19,8 +19,6 @@ from mtsv.commands import (
 
 from mtsv.parsing import (
     TYPES,
-    specfile_path,
-    specfile_read,
     parse_config_sections,
     get_global_config,
     get_missing_sections
@@ -38,18 +36,25 @@ from mtsv import (
     DEFAULT_LOG_FNAME)
 
 
-COMMANDS = {"analyze": Analyze,
+
+COMMANDS = {
+            "analyze": Analyze,
             "binning": Binning,
             "readprep": Readprep,
             "summary": Summary,
             "extract": Extract,
-            "pipeline": Pipeline,
+            "pipeline": Pipeline
+            
             }
+
+
 
 def make_sub_parser(subparser, config, cmd, cmd_class):
     global_defaults = get_global_config(cmd_class.config_section)
+    print(cmd)
     help_str = global_defaults["_meta_{}".format(cmd)]["help"]
     p = subparser.add_parser(cmd, help=help_str)
+    exclusive = None
     for arg, desc in global_defaults.items():
         if "_meta" in arg:
             continue
@@ -61,10 +66,12 @@ def make_sub_parser(subparser, config, cmd, cmd_class):
         arg = "--{}".format(arg)
         if 'positional' in desc:
             del desc['positional']
+
         p.add_argument(
             arg, **desc
         )
     config_args = parse_config_sections(config, cmd_class.config_section)
+    print(config_args)
     p.set_defaults(cmd_class=cmd_class, **config_args)
 
 
@@ -73,6 +80,7 @@ def add_cfg_to_args(argv, parser):
     arguments to catch argparse errors'''
     args = parser.parse_args()
     d = vars(args)
+    print("ARGS", d)
     # change workingdir to abspath
     d['working_dir'] = os.getcwd()
     if "init" in argv:
@@ -97,6 +105,7 @@ def setup_and_run(argv, parser):
         args.cmd_class.__name__,
         args.timestamp)
     config_logging(args.log_file, args.log)
+
     if missing:
         warn(
             "Section(s) missing in config file, "
@@ -128,10 +137,8 @@ def main(argv=None):
     cfgparser = argparse.ArgumentParser(
         add_help=False
     )
-
-    
     cfgparser.add_argument(
-        '-c', "--config", type=TYPES['read_handle_type'],
+        '-c', "--config", type=str,
         default=DEFAULT_CFG_FNAME,
         help="Specify path to config file, "
              "not required if using default config"
@@ -139,7 +146,7 @@ def main(argv=None):
 
     pre_args, _ = cfgparser.parse_known_args()
 
- 
+
     parser = argparse.ArgumentParser(
         prog="MTSV",
         description="Metagenomic analysis pipeline",
@@ -172,6 +179,7 @@ def main(argv=None):
     )
     parser.set_defaults(timestamp=datetime.datetime.now().strftime(
         '%Y-%m-%d_%H-%M-%S'))
+
 
     subparsers = parser.add_subparsers(
         title="commands", metavar="COMMAND",

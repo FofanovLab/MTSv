@@ -1,18 +1,16 @@
 import os
 import glob
+from mtsv.utils import bin_path
 from snakemake.workflow import Workflow, Rules, expand
 import snakemake.workflow
 from snakemake import shell
-from snakemake.logging import setup_logger, Logger
-from pkg_resources import resource_filename
+from snakemake.logging import setup_logger
 
-def bin_path(cmd):
-    """Return the specfile path for a given command name."""
-    fp = os.path.join('ext', 'cmd')
-    return resource_filename('mtsv', fp)
+
+
 
 def setup_workflow(params):
-    setup_logger()
+    # setup_logger()
     workflow = Workflow(
         "__file__",
         overwrite_workdir=params['working_dir'])
@@ -20,6 +18,7 @@ def setup_workflow(params):
         workflow.cluster_cfg = params['cluster_cfg']
     snakemake.workflow.rules = Rules()
     snakemake.workflow.config = dict()
+
     return workflow
     
 def binner(cmd, workflow):
@@ -39,8 +38,6 @@ def binner(cmd, workflow):
             _indices.append(idx)
             index2path[idx] = _dir
     
-    # print("INDEX", _indices, "INFIE", infiles, cmd.params['fm_index_paths'])
-    print(index2path)
     binned_files = [os.path.join(cmd.params['binning_outpath'], idx + ".bn") 
                 for idx in _indices]
     print("BINNED", binned_files)
@@ -51,8 +48,7 @@ def binner(cmd, workflow):
     @workflow.input(os.path.join(list(index2path.values())[0], "{index}.index"))
     @workflow.output(os.path.join(cmd.params['binning_outpath'], "{index}.bn"))
     @workflow.params(call=binner_bin, args=cmd.cml_args)
-    # @workflow.message("Executing {name} with {threads} threads on the following files {input}.")
-    # @workflow.log(cmd.params['log_file'].name)
+    @workflow.message("Executing Binner with {threads} threads on the following files {input}.")
     @workflow.log(os.path.join(cmd.params['binning_outpath'],"{index}.log"))
     @workflow.threads(cmd.params['threads'])
     @workflow.shellcmd("{params.call} --index {input} --threads {threads} --results {output} {params.args} > {log} 2>&1")
@@ -71,10 +67,8 @@ def binner(cmd, workflow):
     @workflow.docstring("""Combine the output of multiple separate mtsv runs. """)
     @workflow.message("Merging binning output files into {output}.")
     @workflow.input(binned_files)
-    @workflow.output(os.path.join(
-        cmd.params['binning_outpath'],
-        'merged.clp'))
-    @workflow.log(cmd.params['log_file'].name)
+    @workflow.output(cmd.params['merge_file'])
+    @workflow.log(cmd.params['log_file'])
     @workflow.params(call=collapse_bin)
     @workflow.shellcmd("{params.call} {input} -o {output} > {log} 2>&1")
     @workflow.run
@@ -88,8 +82,6 @@ def binner(cmd, workflow):
     return workflow
 
 
-
-
 def readprep(cmd, workflow):
     readprep_bin = bin_path('mtsv-readprep')
     ##### TEMP ######
@@ -101,7 +93,7 @@ def readprep(cmd, workflow):
     @workflow.input(cmd.params['fastq'])
     @workflow.output(cmd.params['fasta_query_path'])
     @workflow.params(call=readprep_bin, args=cmd.cml_args)
-    @workflow.log(cmd.params['log_file'].name)
+    @workflow.log(cmd.params['log_file'])
     @workflow.threads(cmd.params['threads'])
     @workflow.shellcmd("{params.call} {input} -o {output} {params.args} >> {log} 2>&1")
     @workflow.run
@@ -116,6 +108,30 @@ def readprep(cmd, workflow):
 
 def summary(cmd, workflow):
     signature_bin = bin_path('mtsv-signature')
+    
+    ###### TEMP ######
+    p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
+    signature_bin = p + "mtsv-signature"
+
+    @workflow.rule(name='signature')
+    @workflow.docstring("""Find signature hits""")
+    @workflow.input(
+        infile=cmd.params['merge_file'],
+        index=cmd.params['tree_index'])
+    @workflow.output(cmd.params['signature_file'])
+    @workflow.params(call=signature_bin, args=cmd.cml_args)
+    @workflow.log(cmd.params['log_file'])
+    @workflow.threads(cmd.params['threads'])
+    @workflow.shellcmd(
+        "{params.call} --index {input.index} --input {input.infile} --output {output} {params.args} >> {log} 2>&1")
+    @workflow.run
+    def __rule_signature(input, output, params, wildcards,
+                        threads, resources, log, version, rule,
+                        conda_env, singularity_img, singularity_args,
+                        use_singularity, bench_record, jobid, is_shell):
+        shell(
+            "{params.call} --index {input.index} --input {input.infile} --output {output} {params.args} >> {log} 2>&1")
+
     return workflow
 
 def analyze(cmd, workflow):

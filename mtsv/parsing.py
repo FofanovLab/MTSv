@@ -4,9 +4,8 @@ import os
 import ast
 import logging
 from contextlib import suppress
-from pkg_resources import resource_stream, resource_filename
 
-from mtsv.utils import(error, warn)
+from mtsv.utils import(error, warn, specfile_read)
 from mtsv.argutils import (read, export)
 
 
@@ -54,18 +53,15 @@ def format_commands(include_cmd, args, ignore, include):
     for incl in include:
         command_list.append(incl)
     return " ".join(command_list)
-        
-        
-    
 
 def get_missing_sections(config_file):
     config = configparser.ConfigParser()
-    config.read(config_file.name)
+    config.read(config_file)
     return [s for s in SECTIONS if s not in config.sections()]
 
 def parse_config_sections(config_file, sections):
     config = configparser.ConfigParser()
-    config.read(config_file.name)
+    config.read(config_file)
     config_for_sections = {}
     try:
         for section in sections:
@@ -135,7 +131,9 @@ def file_type(input_file):
     If yes, return absolute path to
     file else throw ArgumentTypeError
     exception'''
+
     input_file = os.path.abspath(input_file)
+    print(input_file)
     if not os.path.isfile(input_file):
         raise argparse.ArgumentTypeError("Not a valid file path")
     return input_file
@@ -190,17 +188,27 @@ def nonneg_int(input_val):
     return input_val
 
 
+def proportion(input_val):
+    """make proportion type for argparse"""
+    try:
+        input_val = float(input_val)
+        if input_val > 1 or input_val < 0:
+            raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError("Not a proportion")
+    return input_value
 
-def specfile_read(name):
-    """Return the specfile stream for a given command name."""
-    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
-    return resource_stream(__name__, fp)
 
+def positive_int(input_val):
+    '''Make a positive int type for argparse'''
+    try:
+        input_val = int(input_val)
+        if input_val <= 0:
+            raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError("Not a positive integer")
+    return input_val
 
-def specfile_path(name):
-    """Return the specfile path for a given command name."""
-    fp = os.path.join('commands', 'cmd_specs', name.lower() + '.yml')
-    return resource_filename(__name__, fp)
 
 
 TYPES = {
@@ -215,6 +223,7 @@ TYPES = {
     'outpath_type': outpath_type,
     'positive_int': positive_int,
     'nonneg_int': nonneg_int,
+    'proportion': proportion,
     'project_dir_type': project_dir_type,
     'write_handle_type': write_handle_type,
     'read_handle_type': read_handle_type
