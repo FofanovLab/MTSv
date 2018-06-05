@@ -1,4 +1,4 @@
 #!/bin/bash -e -x
-cd ext
+cd mtsv/ext
 #cargo test
 cargo build --release

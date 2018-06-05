@@ -19,7 +19,6 @@ def error(msg, exception=True, wrap=True):
     else:
         msg = quote(msg, width=75) if wrap else msg
         click.secho(msg, fg='red', err=True)
-        logger.error(msg)
         sys.exit(1)
 
 
@@ -27,7 +26,6 @@ def warn(msg):
     '''Prints a warning message to stderr.'''
     text = quote(msg, quote="!> ", nl=False)
     click.secho(text, err=True, fg='red')
-    logger.warning(msg)
 
 
 def quote(text, width=72, quote="", nl=True):
@@ -74,6 +72,11 @@ def specfile_path(name):
 
 
 def bin_path(cmd):
-    """Return the specfile path for a given command name."""
-    fp = os.path.join('ext', 'cmd')
+    """Return the binary path for a given command name."""
+    fp = os.path.join('ext', cmd)
+    return resource_filename('mtsv', fp)
+
+def script_path(script_name):
+    """ Return the script path for given script name."""
+    fp = os.path.join('scripts', script_name)
     return resource_filename('mtsv', fp)

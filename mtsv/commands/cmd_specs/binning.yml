@@ -15,8 +15,11 @@ fasta:
   help: Path to FASTA query file.
   type: file_type
 fm_index_paths:
-  help: List of paths to index files. Wildcards are allowed.
+  help: >
+    List of paths to index files, absolute or relative to working dir. 
+    Wildcards are allowed.
   nargs: +
+  action: Glob
 binning_outpath:
   default: ./Binning/
   help: Path to write binning files to.

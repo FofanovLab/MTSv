@@ -1,17 +1,42 @@
 import argparse
 import configparser
 import os
+import sys
 import ast
 import logging
 from contextlib import suppress
+from glob import glob
 
 from mtsv.utils import(error, warn, specfile_read)
 from mtsv.argutils import (read, export)
-
+from mtsv import (DEFAULT_LOG_FNAME, DEFAULT_CFG_FNAME)
 
 logger = logging.getLogger(__name__)
 SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
 
+def make_sub_parser(subparser, cmd, cmd_class):
+    global_defaults = get_global_config(cmd_class.config_section)
+    help_str = global_defaults["_meta_{}".format(cmd)]["help"]
+    p = subparser.add_parser(cmd, help=help_str)
+    for arg, desc in global_defaults.items():
+        if "_meta" in arg:
+            continue
+        if 'type' in desc:
+            desc['type'] = TYPES[desc['type']]
+        if 'default' in desc and 'help' in desc:
+            desc['help'] += " (default: {})".format(desc['default'])
+        if 'action' in desc and desc['action'] in ACTIONS:
+            desc['action'] = getattr(
+                sys.modules[__name__], desc['action'])
+        arg = "--{}".format(arg)
+        if 'positional' in desc:
+            del desc['positional']
+
+        p.add_argument(
+            arg, **desc
+        )
+    add_default_arguments(p)
+    p.set_defaults(cmd_class=cmd_class)
 
 def create_config_file(config_file):
     cfg_file_str = ""
@@ -54,6 +79,51 @@ def format_commands(include_cmd, args, ignore, include):
         command_list.append(incl)
     return " ".join(command_list)
 
+
+
+
+def add_default_arguments(parser):
+    parser.add_argument(
+        '-wd', "--working_dir", type=str,
+        default=os.getcwd(),
+        help="Specify working directory to place output. "
+             "(default: {})".format(os.getcwd())
+    )
+    parser.add_argument(
+        '-c', "--config", type=outfile_type,
+        help="Specify path to config file path, "
+             "relative to working directory, "
+             "not required if using default config. "
+             "(default: {})".format(DEFAULT_CFG_FNAME)
+    )
+    parser.add_argument(
+        '-f', "--force", action="store_true",
+        help="Force rerun of steps. (default: False)"
+    )
+    parser.add_argument(
+        '-cls', "--cluster_cfg", type=file_type,
+        help="Cluster configuration file path, "
+             "absolute or relative to working dir."
+             "(default: None)"
+    )
+    parser.add_argument(
+        '-l', "--log", type=str, default="INFO",
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+        help="Set logging level. (default: INFO)"
+    )
+    parser.add_argument(
+        '-lf', "--log_file", type=outfile_type,
+        default=DEFAULT_LOG_FNAME,
+        help="Set log file path, "
+             "absolute or relative to working dir. "
+             "(default: ./{})".format(DEFAULT_LOG_FNAME)
+    )
+    parser.add_argument(
+        '-t', "--threads", type=positive_int,
+        default=4,
+        help="Number of worker threads to spawn. (default: 4)"
+    )
+
 def get_missing_sections(config_file):
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -91,18 +161,32 @@ def project_dir_type(input_path):
     Throws PermissionError if there are no permissions to create
     directory. Returns absolute path to directory.'''
     input_path = os.path.abspath(input_path)
-    try:
-        os.mkdir(input_path)
-        logger.info("Creating Working Directory: {}".format(input_path))
-    except PermissionError:
-        error(
-            "No permission to make directory: {}".format(input_path))
-    except OSError:
-        logger.info(
-            "Directory already exists: {}. ".format(input_path))
-        # if os.listdir(input_path):
-        #     warn("Files in {} may be overwritten!".format(input_path))
+    if not os.path.isdir(input_path):
+        try:
+            os.mkdir(input_path)
+        except PermissionError:
+            error(
+                "No permission to make directory: {}".format(input_path))
+    if os.getcwd() != input_path:
+        os.chdir(input_path)
     return input_path
+
+
+def path_list_type(input_paths):
+    '''Returns list of absolute paths using glob'''
+    glob_list = []
+    for path in input_paths:
+        glob_list += glob(path)
+    if not glob_list:
+        raise argparse.ArgumentTypeError("Not a valid path")
+    return list({os.path.abspath(path) for path in glob_list})
+
+class Glob(argparse.Action):
+    def __init__(self, option_strings, dest, nargs='+', **kwargs):
+        super(Glob, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = path_list_type(values)
+        setattr(namespace, self.dest, values)
 
 
 def outpath_type(input_path):
@@ -226,5 +310,7 @@ TYPES = {
     'proportion': proportion,
     'project_dir_type': project_dir_type,
     'write_handle_type': write_handle_type,
-    'read_handle_type': read_handle_type
+    'read_handle_type': read_handle_type,
+    'path_list_type': path_list_type
     }
+ACTIONS = {'Glob': Glob}

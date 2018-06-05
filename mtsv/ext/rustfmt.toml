@@ -1,0 +1,6 @@
+reorder_imports = true
+wrap_comments = true
+wrap_match_arms = true
+match_block_trailing_comma = true
+ideal_width = 100
+impl_empty_single_line = false

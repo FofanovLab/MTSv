@@ -25,9 +25,9 @@ def binner(cmd, workflow):
     binner_bin = bin_path('mtsv-binner')
     collapse_bin = bin_path('mtsv-collapse')
     #### TEMP #####
-    p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
-    binner_bin = p + "mtsv-binner"
-    collapse_bin = p + "mtsv-collapse"
+    # p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
+    # binner_bin = p + "mtsv-binner"
+    # collapse_bin = p + "mtsv-collapse"
     
     _indices = []
     index2path = {}
@@ -84,7 +84,7 @@ def binner(cmd, workflow):
 
 def readprep(cmd, workflow):
     readprep_bin = bin_path('mtsv-readprep')
-    ##### TEMP ######
+    #### TEMP ######
     p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
     readprep_bin = p + "mtsv-readprep"
 
@@ -110,8 +110,8 @@ def summary(cmd, workflow):
     signature_bin = bin_path('mtsv-signature')
     
     ###### TEMP ######
-    p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
-    signature_bin = p + "mtsv-signature"
+    # p = "~/Desktop/Fofanov_Projects/Repos/MTSv/ext/target/release/"
+    # signature_bin = p + "mtsv-signature"
 
     @workflow.rule(name='signature')
     @workflow.docstring("""Find signature hits""")

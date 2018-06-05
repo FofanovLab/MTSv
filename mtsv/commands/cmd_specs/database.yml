@@ -1,8 +1,7 @@
 _meta_database:
   help: Download and build sequence databases and indices.
-default_path:
-  default: []
-  help: Path to default database.
+path:
+  help: Change location of default database.
 rollup_rank:
   default: species
   choices: [species, genus, family]
@@ -17,4 +16,5 @@ build_only:
 overwrite:
   default: False
   action: 'store_true'
-  help: Force current database to be overwritten.
+  help: Force current database to be overwritten/removed.
+

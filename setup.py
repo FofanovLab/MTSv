@@ -23,13 +23,13 @@ setup(name='mtsv',
       'mtsv': ['commands/cmd_specs/*.yml', 'scripts/*.py']
       },
       data_files=[
-          ('mtsv/ext', ['ext/target/release/mtsv-binner',
-                   'ext/target/release/mtsv-build',
-                   'ext/target/release/mtsv-chunk',
-                   'ext/target/release/mtsv-collapse',
-                   'ext/target/release/mtsv-readprep',
-                   'ext/target/release/mtsv-signature',
-                   'ext/target/release/mtsv-tree-build'])
+          ('mtsv/ext', ['mtsv/ext/target/release/mtsv-binner',
+                   'mtsv/ext/target/release/mtsv-build',
+                   'mtsv/ext/target/release/mtsv-chunk',
+                   'mtsv/ext/target/release/mtsv-collapse',
+                   'mtsv/ext/target/release/mtsv-readprep',
+                   'mtsv/ext/target/release/mtsv-signature',
+                   'mtsv/ext/target/release/mtsv-tree-build'])
       ],
       classifiers=[
           'Programming Language :: Python',
