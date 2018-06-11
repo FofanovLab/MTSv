@@ -1,0 +1,112 @@
+import os
+import pandas as pd
+import numpy as np
+from Bio import SeqIO
+from mtsv.parsing import parse_query_id
+from mtsv.utils import bin_path
+
+shell.prefix("set -euo pipefail;")
+
+BINS = {
+    name: bin_path('mtsv-{}'.format(name))
+    for name in [
+        'binner','collapse']}
+
+REPORT = "binning_report.html"
+
+INDEX_PATH = os.path.dirname(config['fm_index_paths'][0])
+INDEX = [os.path.basename(p).split(".")[0] for p in config['fm_index_paths']]
+INDEX_OUT = [
+        os.path.join(
+            config['binning_outpath'], "{}.bn".format(indx)) for indx in INDEX]
+LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
+        for indx in INDEX]    
+    
+rule all:
+    input: REPORT
+
+rule report:
+    input:
+        clps = config['merge_file'],
+        fasta = config['fasta']
+    output:
+        rep=REPORT,
+        unaligned = os.path.join(
+            config['binning_outpath'],
+            'unaligned_queries.fasta')
+    run:
+        from snakemake.utils import report
+        queries = SeqIO.to_dict(
+            SeqIO.parse(input['fasta'], "fasta"))
+        hits = np.loadtxt(
+            input['clps'], delimiter=":", dtype=str, usecols=0)
+        n_hits = len(hits)
+        total_queries = len(queries)
+        no_hits = np.setdiff1d(
+            list(queries.keys()),
+            hits,
+            assume_unique=True)
+        n_misses = len(no_hits)
+        n_total_misses = "\t".join(np.array(np.sum(
+            np.array(
+                [parse_query_id(miss) for miss in no_hits],
+                dtype=int), axis=0), dtype=str))
+        
+        no_hit_queries = [queries[query] for query in no_hits]
+        with open(output['unaligned'], "w") as output_handle:
+            SeqIO.write(no_hit_queries, output_handle, "fasta")
+        
+        report("""
+        Binning Report
+        ================================
+        Hits are reported in:\n
+        {input.clps}\n
+        There were **{n_hits}** unique hits out 
+        of **{total_queries}** unique queries.\n
+        There were **{n_misses}** queries with no hits.\n
+        These missed sequences are reported in Misses_.\n
+        Total number of reads associated with misses by sample:\n
+        **{n_total_misses}**
+        """, output['rep'], Misses=output['unaligned'])
+            
+rule binning:
+    """Metagenomics binning"""
+    output:
+        os.path.join(config['binning_outpath'], "{index}.bn")
+    input:
+        reads = config['fasta'],
+        fm_index = os.path.join(INDEX_PATH, "{index}.index")
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
+        time=lambda wildcards, attempt: attempt * config['time']
+    params:
+        call=BINS['binner'],
+        args=config['binning_cml_args']
+    message:
+        "Executing Binner with {threads} threads on the following files {input}."
+    log:
+        os.path.join(config['binning_outpath'], "{index}.log")
+    threads:
+        config['threads']
+    shell:
+        """{params.call} --index {input.fm_index} --threads {threads} 
+        --results {output} --fasta {input.reads} {params.args} >> {log} 2>&1 """
+
+
+rule collapse:
+    """Combine the output of multiple separate mtsv runs. """
+    output:
+        config['merge_file']
+    input:
+        INDEX_OUT
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
+        time=lambda wildcards, attempt: attempt * config['time']
+    message:
+        "Merging binning output files into {output}."
+    log:
+        config['log_file']
+    params:
+        call=BINS['collapse']
+    shell:
+        """{params.call} {input} -o {output} >> {log} 2>&1"""

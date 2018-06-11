@@ -1,0 +1,105 @@
+import os
+from mtsv.utils import bin_path
+from mtsv.parsing import parse_query_id
+from Bio import SeqIO
+import numpy as np
+
+
+shell.prefix("set -euo pipefail;")
+REPORT = "readprep_report.html"
+
+
+def get_unique_counts(counts):
+    return np.array(np.array(counts, dtype=bool), dtype=int)
+
+BIN = bin_path('mtsv-readprep')
+
+rule all:
+    input:
+        REPORT
+
+rule report:
+    input:
+        fasta=config['fasta'],
+        fastq=config['fastq']
+    output:
+        REPORT
+    run:
+        from snakemake.utils import report
+        record_counts = []
+        unique_counts = []
+        query_size = 0
+        counts = []
+        with open(input[0]) as fasta:
+            for i, record in enumerate(SeqIO.parse(fasta, "fasta")):
+                if i == 0:
+                    query_size = len(record.seq)
+                    record_counts = parse_query_id(record.id)
+                    counts.append(sum(record_counts))
+                    unique_counts = get_unique_counts(record_counts)
+                else:
+                    count_list = parse_query_id(record.id)
+                    record_counts += count_list
+                    unique_counts += get_unique_counts(count_list)
+                    counts.append(sum(count_list))
+
+        file_string = "\n".join([input[1]])
+        total_queries = i        
+        mean_counts = np.mean(counts)
+        median_counts = np.median(counts)
+        max_counts = np.max(counts)
+        min_counts = np.min(counts)
+        stats = "{0:<15}{1:<15}{2:<15}{3:<15}".format(
+            min_counts,
+            mean_counts,
+            median_counts,
+            max_counts
+        )
+        data = ["{0:<21}{1:<11}{2:<15}{3:<18}".format(i,j,k,l) for i,j,k,l in zip(
+            [os.path.basename(p) for p in input.fastq],
+            range(1, len(record_counts) + 1),
+            record_counts,
+            unique_counts)]
+        data = "\n".join(data)
+
+        report("""
+        Readprep Report
+        ===================================
+
+        **Queries were generated from:** \n
+        {file_string}\n
+        This resulted in **{total_queries}** unique query sequences
+        of size **{query_size}**.\n
+        **Written to:**\n
+        {input.fasta}\n
+        Statistics for the number of copies per unique query:\n
+        ============   ============   ============   ============
+        Min            Mean            Median        Max
+        ============   ============   ============   ============
+        {stats}
+        ============   ============   ============   ============
+
+        
+        By Sample:\n
+        ==================== ========== ============== ==================
+        Sample File          Sample ID  No. of Queries No. Unique Queries
+        ==================== ========== ============== ==================
+        {data}
+        ==================== ========== ============== ==================
+        """, output[0])
+
+rule readprep:
+    """Read fragment quality control and deduplication (FASTQ -> FASTA)"""
+    output: config['fasta']
+    input: config['fastq']
+    resources: 
+        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
+        time=lambda wildcards, attempt: attempt * config['time']
+    params:
+        call=BIN,
+        args=config['readprep_cml_args']
+    threads: config['threads']
+    log: config['log_file']
+    message: "Running Readprep on {input}"
+    shell:
+        '''{params.call} {input} -o {output} {params.args} >> {log} 2>&1'''

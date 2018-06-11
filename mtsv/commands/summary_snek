@@ -1,0 +1,88 @@
+import os
+from mtsv.utils import bin_path
+from mtsv.parsing import parse_query_id
+
+shell.prefix("set -euo pipefail;")
+
+BIN = bin_path('mtsv-signature')
+SCRIPTS = script_path('MTSv_summary.py')
+REPORT = "summary_report.html"
+
+rule all:
+    input:
+        REPORT
+
+rule report:
+    input:
+        sig=config['signature_file'],
+        summary=config['summary_file']
+    output:
+        REPORT
+    run:
+        from snakemake.utils import report
+        sig = np.loadtxt(
+            input['sig'], delimiter=":", dtype=str, usecols=0)
+        n_sig_unique = len(sig)
+        n_total_sig = "\t".join(np.array(np.sum(
+            np.array(
+                [parse_query_id(s) for s in sig],
+                dtype=int), axis=0), dtype=str))
+         
+        report(
+            """ 
+            Summary Report
+            ============================
+            **Signature hits are reported in:**\n
+            {input.sig}\n
+            **Summary table:** \n
+            {input.summary}
+            Summary_\n
+            There were **{n_sig_unique}** unique signature hits.\n
+            Total number of reads assocated with signature hits:\n
+            **n_total_sig**
+            
+            
+            """, output[0], Summary=input['summary'])
+
+rule signature:
+    """Find signature hits"""
+    output:
+        config['signature_file']
+    input:
+        infile = config['merge_file'],
+        index = config['tree_index']
+    params:
+        call = BIN,
+        args = config['signature_cml_args']
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
+        time=lambda wildcards, attempt: attempt * config['time']
+    log:
+        config['log_file']
+    threads:
+        config['threads']
+    message: """Finding signature reads from {input}. Writing to {output}"""
+    shell:
+        """{params.call} --index {input.index} 
+        --input {input.infile} --output {output} 
+        {params.args} >> {log} 2>&1"""
+
+rule summary:
+    """Summarize number of total and signature hits for each taxa"""
+    output: config['summary_file']
+    input: 
+        sig=config['signature_file'],
+        clp=config['merge_file']
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
+        time=lambda wildcards, attempt: attempt * config['time']
+    params:
+        taxdump=config['taxdump_path']
+    threads:
+        config['threads']
+    log:
+        config['log_file']
+    message:
+        """Running summary on {input.sig} and {input.clp}.
+        Writing to {output}"""
+    script: SCRIPT
