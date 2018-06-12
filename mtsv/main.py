@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import argparse
 import logging
 import sys
@@ -7,7 +6,7 @@ import os
 import configparser
 
 from mtsv.argutils import (read, export)
-from mtsv.provenance import Parameters
+from mtsv.parameters import Parameters
 from mtsv.commands import (
     Init,
     Readprep,
@@ -45,7 +44,6 @@ COMMANDS = {
     "pipeline": Pipeline
 }
 
-
 def add_cfg_to_args(argv, args, parser):
     '''treat config arguments as command line
     arguments to catch argparse errors'''
@@ -57,7 +55,7 @@ def add_cfg_to_args(argv, args, parser):
         if fmt_k not in argv and v != None:
             argv += [fmt_k, v]
     missing = get_missing_sections(args.config)
-    return parser.parse_args(argv[1:]), missing
+    return parser.parse_known_args(argv[1:])[0], missing
 
 
 def change_wkdir(argv):
@@ -72,7 +70,7 @@ def change_wkdir(argv):
 def setup_and_run(argv, parser):
     """Setup and run a command."""
     change_wkdir(argv)
-    args = parser.parse_args()
+    args, snake_args = parser.parse_known_args()
     if args.cmd_class.__name__ != "Init":
         if args.config is not None:
             args, missing = add_cfg_to_args(argv, args, parser)
@@ -86,10 +84,14 @@ def setup_and_run(argv, parser):
             args.timestamp)
         config_logging(args.log_file, args.log)
 
-
-    params = Parameters(args)
+    params = Parameters(args, snake_args)
+    params.write_parameters(
+        "{cmd}_{timestamp}_params.txt".format(
+            cmd=args.cmd_class.__name__,
+            timestamp=args.timestamp))
     cmd = args.cmd_class(params)
     cmd.run()
+
 
 
 def main(argv=None):

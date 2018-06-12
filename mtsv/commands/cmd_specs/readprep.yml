@@ -8,7 +8,7 @@ fastq:
   required: True
   positional: True
   action: Glob
-fasta_query_path:
+fasta:
   default: ./QueryFastas/queries.fasta
   help: Path to desired output FASTA file.
   type: outfile_type

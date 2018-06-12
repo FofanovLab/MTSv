@@ -16,17 +16,18 @@ def main(argv=None):
         add_help=False
     )
 
-    cfgparser.add_argument
+    cfgparser.add_argument(
         '-c', "--config", type=str,
         help="Specify path to config file, "
              "not required if using default config."
+    )
     
     pre_args, _ = cfgparser.parse_known_args()
 
 
     parser = argparse.ArgumentParser(
         prog="mtsv-plugin",
-        description="Plugins and extensions to MTSv"
+        description="Plugins and extensions to MTSv",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[cfgparser]
     )

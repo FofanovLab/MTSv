@@ -2,8 +2,9 @@ import os
 import pandas as pd
 import numpy as np
 from Bio import SeqIO
-from mtsv.parsing import parse_query_id
-from mtsv.utils import bin_path
+from mtsv.parsing import parse_query_id, format_cml_params
+from mtsv.utils import bin_path, track_file_params
+
 
 shell.prefix("set -euo pipefail;")
 
@@ -21,11 +22,33 @@ INDEX_OUT = [
             config['binning_outpath'], "{}.bn".format(indx)) for indx in INDEX]
 LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
         for indx in INDEX]    
+
+MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
+             'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
+             'sensitive': {'seed_size': 11, 'min_seeds': 3, 'seed_gap': 1}}
+
+BIN_MODE = MODE_DICT[config['binning_mode']]
+for key, value in BIN_MODE.items():
+    if key not in config:
+        config[key] = value
+    # change back to dash instead of underscore
+    config[key.replace("_", "-")] = config[key]
+    del config[key]
+
+CML_PARAMS = format_cml_params(
+    'BINNING',
+    config,
+    ['binning_mode', 'fm_index_paths',
+    'merge_file', 'binning_outpath'],
+    [])
     
-rule all:
+config['mem'] = 20
+config['time'] = 1
+
+rule binning_all:
     input: REPORT
 
-rule report:
+rule binning_report:
     input:
         clps = config['merge_file'],
         fasta = config['fasta']
@@ -56,6 +79,8 @@ rule report:
         with open(output['unaligned'], "w") as output_handle:
             SeqIO.write(no_hit_queries, output_handle, "fasta")
         
+        track_file_params('merge_file', config['merge_file'], config)
+        
         report("""
         Binning Report
         ================================
@@ -81,7 +106,7 @@ rule binning:
         time=lambda wildcards, attempt: attempt * config['time']
     params:
         call=BINS['binner'],
-        args=config['binning_cml_args']
+        args=CML_PARAMS
     message:
         "Executing Binner with {threads} threads on the following files {input}."
     log:

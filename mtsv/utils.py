@@ -3,6 +3,7 @@ import sys
 import click
 import logging
 import os
+import json
 from pkg_resources import resource_stream, resource_filename
 
 
@@ -80,3 +81,55 @@ def script_path(script_name):
     """ Return the script path for given script name."""
     fp = os.path.join('scripts', script_name)
     return resource_filename('mtsv', fp)
+
+
+def snake_path(rule_name):
+    """ Return the script path for given script name."""
+    fp = os.path.join('commands', 'snakefiles', rule_name)
+    return resource_filename('mtsv', fp)
+
+
+def line_generator(file_name, n_lines):
+    f = open(file_name, 'r')
+    f.seek(0, 2)
+    file_size = f.tell()
+    f.seek(0)
+    dat = ""
+    go = True
+    while go:
+        while dat.count("\n") < n_lines:
+            if f.tell() < file_size:
+                dat += f.read(n_lines*500)
+            else:
+                go = False
+                break
+        lines = [l for l in dat.split("\n") if l != ""]
+        dat = "\n".join(lines[n_lines:])
+        yield lines[:n_lines]
+    return
+
+def track_file_params(
+    file_type, file_path, params):
+    track_file = os.path.join(
+        os.path.dirname(file_path), ".params")
+    track_dict = {file_type:
+                    {file_path: params}}
+    if os.path.isfile(track_file):
+        json_data = open(track_file).read()
+        record = json.loads(json_data)
+        if file_type in record:
+            record[file_type][file_path] = track_dict[file_type][file_path]
+        else:
+            record[file_type] = track_dict[file_type]
+    else:
+        record = track_dict
+    record = json.dumps(record)
+    with open(track_file, 'w') as out:
+        out.write(record)
+
+
+split = str.split
+strip = str.strip
+rsplit = str.rsplit
+
+

@@ -1,17 +1,18 @@
+import logging
+import sys
+import os
 import argparse
 from ete3 import NCBITaxa
-import os.path as path
-from  os import getcwd
-from os.path import expanduser
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 import pandas as pd
 import numpy as np
 from multiprocessing import Pool
 from functools import partial
+from mtsv.utils import config_logging, line_generator
+from mtsv.parsing import parse_output_row
 
 
-
-div_map = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
+DIV_MAP = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
            2157: "Archaea", 12884: "Viroids", 28384: "Other and synthetic sequences",
            2759: "Eukaryotes", 33090: "Green Plants", 4751: "Fungi",
            7742: "Vertebrates (excluding Primates, Chiroptera, Bos taurus, Canis lupus familiaris)",
@@ -20,63 +21,54 @@ div_map = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
            9606: "Homo sapiens"}
 
 
-split = str.split
-strip = str.strip
-rsplit = str.rsplit
-
 Record = namedtuple('Record', ['read_id', 'counts', 'taxa'])
 
-def path_type(input_path):
-    if not path.isdir(input_path):
-        raise argparse.ArgumentTypeError(
-            "Not a valid path: {}".format(input_path))
-    return path.abspath(input_path)
-
-def file_type(input_file):
-    if not path.isfile(input_file):
-        raise argparse.ArgumentTypeError(
-            "Not a valid file path: {}".format(input_file))
-    return path.abspath(input_file)
 
 def tax2div(taxid):
     try:
         lineage = NCBI.get_lineage(taxid)
         for level in lineage[::-1]:
-            if level in div_map:
-                return div_map[level]
+            if level in DIV_MAP:
+                return DIV_MAP[level]
         return "Unknown"
     except ValueError:
         return "Unknown"
 
-def parse_line(line):
-    line = rsplit(strip(line), ":", 1)
-    taxa = [int(strip(tax)) for tax in split(line[1], ",")]
-    counts = [int(c) for c in split(line[0], "_")[1:]]
-    return taxa, counts, line[0]
 
-
-def parse_signature_hits(sig_file):
+def parse_signature_hits(lines):
     data_dict = {}
     read_set = set()
-    descendant_lookup = {}
-    with open(sig_file, 'r') as infile:
-        for line in infile:
-            data = parse_row(line)
-            read_set.add(data.read_id)
-            levels = NCBI.get_rank(data.taxa)
-            for taxon in data.taxa:
-                if taxon not in data_dict:
-                    data_dict[taxon] = {
-                        i: np.zeros(4, dtype=int)
-                        for i in range(len(data.counts))}
-                    if taxon in levels and levels[taxon] != 'species':
-                        for descendant in NCBI.get_descendant_taxa(
-                            taxon, collapse_subspecies=True):
-                            descendant_lookup[descendant] = taxon
-                for sample, count in enumerate(data.counts):
-                    data_dict[taxon][sample] += [count,
-                        bool(count), count, bool(count)]
-    return data_dict, read_set, descendant_lookup
+    for line in lines:
+        data = parse_row(line)
+        read_set.add(data.read_id)
+        for taxon in data.taxa:
+            if taxon not in data_dict:
+                data_dict[taxon] = {
+                    i: np.zeros(4, dtype=int)
+                    for i in range(len(data.counts))}
+            for sample, count in enumerate(data.counts):
+                data_dict[taxon][sample] += [count,
+                    bool(count), count, bool(count)]
+    return data_dict, read_set
+
+def sig_reduce(iterator):
+    dic, reads = zip(*iterator)
+    read_set = set()
+    for _read in reads:
+        read_set.update(_read)
+    data_dict = all_reduce(dic)
+    return data_dict, read_set
+
+
+def get_descendants(taxa):
+    levels = NCBI.get_rank(taxa)
+    descendants = {}
+    for taxon in taxa:
+        if taxon in levels and levels[taxon] != "species":
+            for descendant in NCBI.get_descendant_taxa(
+                    taxon, collapse_subspecies=True):
+                descendants[descendant] = taxon
+    return descendants
 
 
 def get_lineage_in_signature(taxon, signature_taxa):
@@ -87,15 +79,9 @@ def get_lineage_in_signature(taxon, signature_taxa):
     return False
         
 
-def parse_row(row):
-    read_id, taxa = split(row, ":")
-    taxa = np.array([tax for tax in split(taxa, ",")], dtype=int)
-    counts = np.array([c for c in split(read_id, "_")[1:]], dtype=int)
-    read_id = split(read_id, "_")[0]
-    return Record(read_id=read_id, counts=counts, taxa=taxa)
+
 
 def merge_dicts(sig_dict, all_dict):
-    print("Merging Dictionary")
     for k, v in all_dict.items():
         if k not in sig_dict:
             sig_dict[k] = v
@@ -105,48 +91,73 @@ def merge_dicts(sig_dict, all_dict):
     return sig_dict
 
 
-def parse_all_hits(all_file, data_dict, sig_reads, descendants, verbose=False):
-    sig_taxa = set(data_dict.keys())
+def parse_all_hits(lines, sig_taxa, sig_reads, descendants):
     all_data_dict = {}
-    with open(all_file, 'r') as infile:
-        for count, line in enumerate(infile):
-            print("LINE: {}".format(count))
-            data = parse_row(line)
-            if data.read_id in sig_reads:
-                    # already counted these
-                    continue
-            sig_spec = data.taxa
-            sig_des = np.intersect1d(
-                    data.taxa,
-                    list(descendants.keys()),
-                    assume_unique=True)
-            sig_des = np.array(
-                    [descendants[tax] for tax in sig_des], dtype=int)
-            if not verbose:
-                sig_spec = np.intersect1d(
-                    data.taxa, list(sig_taxa), assume_unique=True)
-            taxa_iter = np.unique(np.append(sig_spec, sig_des))
-            
-            for taxon in taxa_iter:
-                if taxon not in all_data_dict:
-                    all_data_dict[taxon] = {
-                            i: np.zeros(4, dtype=int)
-                            for i in range(len(data.counts))}
-                for sample, count in enumerate(data.counts):
-                    all_data_dict[taxon][sample] += [count, bool(count), 0, 0]
+    for line in lines:
+        data = parse_row(line)
+        if data.read_id in sig_reads:
+            # already counted these in sig_hits
+            continue
+        # check if taxa are descendants of rolled up signature taxa
+        # get those that overlap with signature
+        sig_des = np.array([descendants[tax] for tax in np.intersect1d(
+            data.taxa,
+            list(descendants.keys()),
+            assume_unique=True)], dtype=int)
+        # get species taxa that overlap with sig taxa
+        sig_spec = np.intersect1d(
+            data.taxa, list(sig_taxa), assume_unique=True)
+        # Unique taxa for read that are also signature
+        # with roll up to signature taxa level
+        taxa_iter = np.unique(np.append(sig_spec, sig_des))
+        for taxon in taxa_iter:
+            if taxon not in all_data_dict:
+                all_data_dict[taxon] = {
+                    i: np.zeros(4, dtype=int)
+                    for i in range(len(data.counts))}
+            for sample, count in enumerate(data.counts):
+                all_data_dict[taxon][sample] += [count, bool(count), 0, 0]
+    return all_data_dict
 
-                
-    return merge_dicts(data_dict, all_data_dict)
+def all_reduce(iterator):
+    data_dict = {}
+    for dic in iterator:
+        for taxon, counts in dic.items():
+            if taxon in data_dict:
+                data_dict[taxon] = np.add(
+                    data_dict[taxon], counts)
+            else:
+                data_dict[taxon] = counts
+    return data_dict
+        
 
 
-def get_summary(all_file, sig_file, outpath, verbose=False):
-    print("Parsing Signature Hits")
-    data_dict, sig_reads, descendants = parse_signature_hits(sig_file)
-    print("Parsing All Hits")
-    data_dict = parse_all_hits(
-        all_file, data_dict, sig_reads, descendants, verbose)
+
+def get_summary(all_file, sig_file, outfile, threads, log):
+    logger = logging.getLogger(__name__)
+    config_logging(log, 'INFO')
+    logger.info("Parsing Signature Hits")
+    p = Pool(threads)
+    get_lines = line_generator(sig_file, 5000)
+    sig_results = p.imap(parse_signature_hits, get_lines)
+    p.close()
+    p.join()
+    sig_dict, read_set = sig_reduce(sig_results)
+    descendants = get_descendants(sig_dict.keys())
+    logger.info("Parsing All Hits")
+    p = Pool(threads)
+    get_lines = line_generator(all_file, 5000)
+    parse_all_partial = partial(
+        parse_all_hits,
+        sig_taxa=list(sig_dict.keys()),
+        sig_reads=read_set, descendants=descendants)
+    all_results = p.imap(parse_all_partial, get_lines)
+    p.close()
+    p.join()
+    all_dict = all_reduce(all_results)
+    data_dict = merge_dicts(sig_dict, all_dict)
     taxid2name = NCBI.get_taxid_translator(data_dict.keys())
-    print("Writing to File")
+    logger.info("Writing to File: {}".format(outfile))
 
     data_list = []
     for taxa, samples in data_dict.items():
@@ -168,69 +179,23 @@ def get_summary(all_file, sig_file, outpath, verbose=False):
     data_frame = pd.DataFrame(
         data_list,
         columns=column_names)
-    data_frame.to_csv(outfile, index=False) 
-
+    data_frame['total'] = data_frame[
+        ["Unique Signature Hits (S{})".format(i)
+        for i in range(1, n_samples + 1)]].sum(axis=1)
+    data_frame = data_frame.sort_values('total')
+    data_frame = data_frame.drop('total', axis=1)
+    data_frame.to_csv(
+        outfile, index=False) 
 
 
 if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser(
-        prog="MTSv Summary",
-        description="Summarize number of total and signature "
-                    "hits for each taxa.",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    # NCBI = NCBITaxa(snakemake.params[0])
+    NCBI = NCBITaxa()
+    get_summary(
+        snakemake.input[1],
+        snakemake.input[0],
+        snakemake.output[0],
+        snakemake.threads,
+        snakemake.log[0])
 
-    PARSER.add_argument(
-        "project_name", metavar='PROJECT_NAME', type=str,
-        help="Project name and output file prefix"
-    )
-
-    PARSER.add_argument(
-        "all", metavar="COLLAPSE_FILE", type=file_type,
-        help="Path to MTSv-collapse output file"
-    )
-
-    PARSER.add_argument(
-        "sig", metavar="SIGNATURE_FILE", type=file_type,
-        help="Path to MTSv-inform output file"
-    )
     
-    PARSER.add_argument(
-        "-o", "--out_path", type=path_type, default="./",
-        help="Output directory"
-    )
-
-    PARSER.add_argument(
-        "--update", action="store_true",
-        help="Update taxdump"
-    )
-
-    PARSER.add_argument(
-        "--taxdump", type=file_type, default=None,
-        help="Alternative path to taxdump. "
-             "Default is home directory where ete3 "
-             "automatically downloads the file."
-    )
-
-    PARSER.add_argument(
-        "--verbose", action="store_true",
-        help="Report all taxa, not just signature hits"
-    )
-
-    ARGS = PARSER.parse_args()
-    if ARGS.update:
-        NCBI = NCBITaxa()
-        NCBI.update_taxonomy_database()
-
-    elif ARGS.taxdump is not None:
-        NCBI = NCBITaxa(
-            taxdump_file=path.abspath(ARGS.taxdump))
-    
-    else:
-        NCBI = NCBITaxa()
-
-    outfile = path.join(
-        ARGS.out_path, "{0}_summary.csv".format(ARGS.project_name))
-
-    get_summary(ARGS.all, ARGS.sig, outfile, ARGS.verbose)
-

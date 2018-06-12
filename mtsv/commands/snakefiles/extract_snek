@@ -1,12 +1,8 @@
 import os
-from mtsv.utils import bin_path
-from mtsv.parsing import parse_query_id
+from mtsv.utils import script_path
 
-shell.prefix("set -euo pipefail;")
-
-BIN = bin_path('mtsv-signature')
-SCRIPTS = script_path('MTSv_summary.py')
-REPORT = "summary_report.html"
+SCRIPT = script_path('MTSv_extract.py')
+REPORT = "extract_report.html"
 
 rule all:
     input:
@@ -14,8 +10,7 @@ rule all:
 
 rule report:
     input:
-        sig=config['signature_file'],
-        summary=config['summary_file']
+        
     output:
         REPORT
     run:
@@ -27,7 +22,8 @@ rule report:
             np.array(
                 [parse_query_id(s) for s in sig],
                 dtype=int), axis=0), dtype=str))
-         
+        track_file_params(
+            'summary', config['summary_file'], config)
         report(
             """ 
             Summary Report
@@ -44,8 +40,8 @@ rule report:
             
             """, output[0], Summary=input['summary'])
 
-rule signature:
-    """Find signature hits"""
+rule extract:
+    """ Get read sequences associated with a given taxid"""
     output:
         config['signature_file']
     input:
@@ -53,7 +49,7 @@ rule signature:
         index = config['tree_index']
     params:
         call = BIN,
-        args = config['signature_cml_args']
+        args = CML_PARAMS
     resources:
         mem_mb=lambda wildcards, attempt: attempt * config['mem'],
         time=lambda wildcards, attempt: attempt * config['time']

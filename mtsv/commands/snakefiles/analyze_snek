@@ -1,0 +1,5 @@
+import os
+from mtsv.utils import bin_path, script_path
+from mtsv.parsing import format_cml_params
+
+shell.prefix("set -euo pipefail;")

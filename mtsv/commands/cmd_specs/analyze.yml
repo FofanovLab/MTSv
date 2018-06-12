@@ -6,7 +6,11 @@ analysis_file:
   help: File to write output.
 signature_cutoff:
   help: >
-    Run analysis only for taxa with unique signature 
+    Run analysis only for taxa with unique signature
     hits that are greater than SIGNATURE CUTOFF.
   default: 20
   type: nonneg_int
+summary_file:
+  default: ./summary/summary.csv
+  help: Path to summary output
+  type: file_type

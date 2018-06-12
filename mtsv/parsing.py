@@ -4,6 +4,7 @@ import os
 import sys
 import ast
 import logging
+import numpy as np
 from contextlib import suppress
 from glob import glob
 
@@ -17,7 +18,9 @@ SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
 def make_sub_parser(subparser, cmd, cmd_class):
     global_defaults = get_global_config(cmd_class.config_section)
     help_str = global_defaults["_meta_{}".format(cmd)]["help"]
-    p = subparser.add_parser(cmd, help=help_str)
+    p = subparser.add_parser(
+        cmd, help=help_str,
+        description="Additional Snakemake commands may also be provided")
     for arg, desc in global_defaults.items():
         if "_meta" in arg:
             continue
@@ -55,11 +58,20 @@ def get_global_config(include_cmds):
     args_dict = {}
     for cmd in include_cmds:
         spec = specfile_read(cmd.lower())
-        args_dict.update(read.from_yaml(spec))
+        args_from_yaml = read.from_yaml(spec)
+        for key, value in args_from_yaml.items():
+            if key in args_dict:
+                # for full pipeline, ensure that
+                # the outfile version replaces
+                # any input files so argparse does
+                # not assume they should be present
+                if 'out' in args_dict[key]['type']:
+                    continue
+            args_dict[key] = value
     return args_dict
 
 
-def format_commands(include_cmd, args, ignore, include):
+def format_cml_params(include_cmd, args, ignore, include):
     command_list = []
     for arg, desc in get_global_config([include_cmd]).items():
         if '_meta' in arg:
@@ -68,7 +80,6 @@ def format_commands(include_cmd, args, ignore, include):
             continue
         if arg in ignore:
             continue
-        val = ''
         if arg in args and args[arg] is not None:
             try:
                 val = args[arg].name
@@ -78,8 +89,6 @@ def format_commands(include_cmd, args, ignore, include):
     for incl in include:
         command_list.append(incl)
     return " ".join(command_list)
-
-
 
 
 def add_default_arguments(parser):
@@ -95,16 +104,6 @@ def add_default_arguments(parser):
              "relative to working directory, "
              "not required if using default config. "
              "(default: {})".format(DEFAULT_CFG_FNAME)
-    )
-    parser.add_argument(
-        '-f', "--force", action="store_true",
-        help="Force rerun of steps. (default: False)"
-    )
-    parser.add_argument(
-        '-cls', "--cluster_cfg", type=file_type,
-        help="Cluster configuration file path, "
-             "absolute or relative to working dir."
-             "(default: None)"
     )
     parser.add_argument(
         '-l', "--log", type=str, default="INFO",
@@ -217,7 +216,6 @@ def file_type(input_file):
     exception'''
 
     input_file = os.path.abspath(input_file)
-    print(input_file)
     if not os.path.isfile(input_file):
         raise argparse.ArgumentTypeError("Not a valid file path")
     return input_file
@@ -293,6 +291,16 @@ def positive_int(input_val):
         raise argparse.ArgumentTypeError("Not a positive integer")
     return input_val
 
+
+def parse_output_row(row):
+    read_id, taxa = split(row, ":")
+    taxa = np.array([tax for tax in split(taxa, ",")], dtype=int)
+    counts = np.array([c for c in split(read_id, "_")[1:]], dtype=int)
+    read_id = split(read_id, "_")[0]
+    return Record(read_id=read_id, counts=counts, taxa=taxa)
+
+def parse_query_id(query_id):
+    return np.array([int(q) for q in query_id.split("_")[1:]])
 
 
 TYPES = {

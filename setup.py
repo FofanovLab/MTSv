@@ -20,7 +20,10 @@ setup(name='mtsv',
       'mtsv_plugins=mtsv.mtsv_plugin.main:main']},
       include_package_data=True,
       package_data={
-      'mtsv': ['commands/cmd_specs/*.yml', 'scripts/*.py']
+      'mtsv': [
+          'commands/cmd_specs/*.yml',
+          'scripts/*.py',
+          'commands/snakefiles/*snek']
       },
       data_files=[
           ('mtsv/ext', ['mtsv/ext/target/release/mtsv-binner',

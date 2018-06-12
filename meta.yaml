@@ -17,24 +17,20 @@ build:
 requirements:
   build:
     - rust>=1.24.0
-    - python
+    - python>=3.5
     - setuptools
   run:
-    - python
-    - snakemake
+    - python>=3.5
+    - snakemake>=4.1
     - pandas>=0.20.3
     - ete3
     - ete_toolchain
     - biopython
     - six
+    - numpy
     - pyyaml
     - click
 
-test:
-  files: 
-    - ext_test.sh
-  commands:
-    - time bash ./ext_test.sh  # [not win]
-    - bash ext_test.sh  # [win]
+
 
 

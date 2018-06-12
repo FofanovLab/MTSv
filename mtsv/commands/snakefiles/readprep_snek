@@ -1,24 +1,34 @@
 import os
-from mtsv.utils import bin_path
-from mtsv.parsing import parse_query_id
+from mtsv.utils import bin_path, track_file_params
+from mtsv.parsing import parse_query_id, format_cml_params
 from Bio import SeqIO
 import numpy as np
+
 
 
 shell.prefix("set -euo pipefail;")
 REPORT = "readprep_report.html"
 
+CML_PARAMS = format_cml_params(
+    'READPREP', config,
+    ['fasta_query_path', 'kmer', 'trim_mode'],
+    ['--segment', str(config['kmer'])] if config['trim_mode'] == 'segment'
+    else ['--{}'.format(config['trim_mode'])]
+)
+
+config['mem'] = 20
+config['time'] = 1
 
 def get_unique_counts(counts):
     return np.array(np.array(counts, dtype=bool), dtype=int)
 
 BIN = bin_path('mtsv-readprep')
 
-rule all:
+rule readprep_all:
     input:
         REPORT
 
-rule report:
+rule readprep_report:
     input:
         fasta=config['fasta'],
         fastq=config['fastq']
@@ -61,7 +71,7 @@ rule report:
             record_counts,
             unique_counts)]
         data = "\n".join(data)
-
+        track_file_params('readprep', config['fasta'], config)
         report("""
         Readprep Report
         ===================================
@@ -97,7 +107,7 @@ rule readprep:
         time=lambda wildcards, attempt: attempt * config['time']
     params:
         call=BIN,
-        args=config['readprep_cml_args']
+        args=CML_PARAMS
     threads: config['threads']
     log: config['log_file']
     message: "Running Readprep on {input}"
