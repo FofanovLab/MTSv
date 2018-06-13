@@ -3,7 +3,6 @@ import sys
 import os
 import argparse
 from ete3 import NCBITaxa
-from collections import namedtuple
 import pandas as pd
 import numpy as np
 from multiprocessing import Pool
@@ -21,7 +20,6 @@ DIV_MAP = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
            9606: "Homo sapiens"}
 
 
-Record = namedtuple('Record', ['read_id', 'counts', 'taxa'])
 
 
 def tax2div(taxid):
