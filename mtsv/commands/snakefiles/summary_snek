@@ -76,9 +76,7 @@ rule signature:
         config['threads']
     message: """Finding signature reads from {input}. Writing to {output}"""
     shell:
-        """{params.call} --index {input.index} 
-        --input {input.infile} --output {output} 
-        {params.args} >> {log} 2>&1"""
+        """{params.call} --index {input.index} --input {input.infile} --output {output} {params.args} >> {log} 2>&1"""
 
 rule summary:
     """Summarize number of total and signature hits for each taxa"""

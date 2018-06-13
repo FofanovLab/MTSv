@@ -38,7 +38,7 @@ for key, value in BIN_MODE.items():
 CML_PARAMS = format_cml_params(
     'BINNING',
     config,
-    ['binning_mode', 'fm_index_paths',
+    ['binning_mode', 'fm_index_paths', 'fasta',
     'merge_file', 'binning_outpath'],
     [])
     
@@ -114,8 +114,7 @@ rule binning:
     threads:
         config['threads']
     shell:
-        """{params.call} --index {input.fm_index} --threads {threads} 
-        --results {output} --fasta {input.reads} {params.args} >> {log} 2>&1 """
+        """{params.call} --index {input.fm_index} --threads {threads} --results {output} --fasta {input.reads} {params.args} >> {log} 2>&1 """
 
 
 rule collapse:
