@@ -138,7 +138,7 @@ def main(argv=None):
         help="Specify path to write config file, "
         "not required if using default config"
     )
-    parser.add_argument(
+    parser_init.add_argument(
         '-wd', "--working_dir", type=str,
         default=os.getcwd(),
         help="Specify working directory to place output. "
