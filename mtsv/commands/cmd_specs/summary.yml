@@ -5,11 +5,11 @@ merge_file:
   help: Merged binning output file
   type: file_type
 signature_file:
-  default: ./summary/signature.txt
+  default: ./Summary/signature.txt
   help: File to place signature hits output
   type: outfile_type
 summary_file:
-  default: ./summary/summary.csv
+  default: ./Summary/summary.csv
   help: File to place summary table
   type: outfile_type
 taxdump_path:

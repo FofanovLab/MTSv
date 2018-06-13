@@ -11,6 +11,6 @@ signature_cutoff:
   default: 20
   type: nonneg_int
 summary_file:
-  default: ./summary/summary.csv
+  default: ./Summary/summary.csv
   help: Path to summary output
   type: file_type

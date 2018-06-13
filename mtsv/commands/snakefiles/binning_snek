@@ -38,7 +38,7 @@ for key, value in BIN_MODE.items():
 CML_PARAMS = format_cml_params(
     'BINNING',
     config,
-    ['binning_mode', 'fm_index_paths',
+    ['binning_mode', 'fm_index_paths', 'fasta',
     'merge_file', 'binning_outpath'],
     [])
     

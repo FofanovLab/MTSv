@@ -15,6 +15,10 @@ from mtsv import (DEFAULT_LOG_FNAME, DEFAULT_CFG_FNAME)
 logger = logging.getLogger(__name__)
 SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
 
+split = str.split
+strip = str.strip
+rsplit = str.rsplit
+
 def make_sub_parser(subparser, cmd, cmd_class):
     global_defaults = get_global_config(cmd_class.config_section)
     help_str = global_defaults["_meta_{}".format(cmd)]["help"]

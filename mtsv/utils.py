@@ -128,8 +128,6 @@ def track_file_params(
         out.write(record)
 
 
-split = str.split
-strip = str.strip
-rsplit = str.rsplit
+
 
 
