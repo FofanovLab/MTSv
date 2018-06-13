@@ -40,8 +40,11 @@ rule readprep_report:
         unique_counts = []
         query_size = 0
         counts = []
+        total_queries = 0
+
         with open(input[0]) as fasta:
             for i, record in enumerate(SeqIO.parse(fasta, "fasta")):
+                total_queries += 1
                 if i == 0:
                     query_size = len(record.seq)
                     record_counts = parse_query_id(record.id)
@@ -54,11 +57,16 @@ rule readprep_report:
                     counts.append(sum(count_list))
 
         file_string = "\n".join([input[1]])
-        total_queries = i        
-        mean_counts = np.mean(counts)
-        median_counts = np.median(counts)
-        max_counts = np.max(counts)
-        min_counts = np.min(counts)
+        if len(counts):
+            mean_counts = np.mean(counts)
+            median_counts = np.median(counts)
+            max_counts = np.max(counts)
+            min_counts = np.min(counts)
+        else:
+            mean_counts = 0
+            median_counts = 0
+            max_counts = 0
+            min_counts = 0
         stats = "{0:<15}{1:<15}{2:<15}{3:<15}".format(
             min_counts,
             mean_counts,

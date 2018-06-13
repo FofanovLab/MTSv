@@ -15,13 +15,20 @@ class Parameters:
     def snake_params(self):
         return self._snake_params
 
-    def write_parameters(self, file_name):
+    def write_parameters(self):
+        file_name = "{cmd}_{timestamp}_params.txt".format(
+            cmd=self.params['cmd_class'].__name__,
+            timestamp=self.params['timestamp'])
         with open(file_name, 'w') as out:
             for k, v in self.params.items():
-                try:
-                    # get file name from file handles
+                if hasattr(v, 'name'):
+                    # file handles
                     v = v.name
-                except AttributeError:
+                elif hasattr(v, '__name__'):
+                    # class instance
+                    v = v.__name__
+                else:
+                    # other
                     v = str(v)
                 out.write("{0}: {1}\n".format(k, v))
             

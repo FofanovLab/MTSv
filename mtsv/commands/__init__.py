@@ -11,8 +11,7 @@ class Command:
     config_section = []
 
     def __init__(self, params):
-        self._params = params.params
-        self._snake_params = params.snake_params
+        self._params = params
         self._rules = []
 
     def __repr__(self):
@@ -24,11 +23,11 @@ class Command:
 
     @property
     def params(self):
-        return self._params
+        return self._params.params
     
     @property
     def snake_params(self):
-        return self._snake_params
+        return self._params.snake_params
 
     @property
     def rules(self):
@@ -52,6 +51,7 @@ class Command:
                         # stdout = sp.PIPE,
                         # stderr=sp.PIPE,
                         check=True)
+                self._params.write_parameters()
             except sp.CalledProcessError as e:
                 print(e)
             

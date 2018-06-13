@@ -44,18 +44,35 @@ COMMANDS = {
     "pipeline": Pipeline
 }
 
-def add_cfg_to_args(argv, args, parser):
+def add_cfg_to_args(argv, parser):
     '''treat config arguments as command line
     arguments to catch argparse errors'''
+    config = get_config_from_argv(argv)
     config_args = parse_config_sections(
-        args.config,
-        args.cmd_class.config_section)
+        config,
+        get_command_from_argv(argv).config_section)
     for k, v in config_args.items():
         fmt_k = "--{}".format(k)
         if fmt_k not in argv and v != None:
             argv += [fmt_k, v]
-    missing = get_missing_sections(args.config)
-    return parser.parse_known_args(argv[1:])[0], missing
+    missing = get_missing_sections(config)
+    args, snake_args = parser.parse_known_args(argv[1:])
+    return args, snake_args, missing
+
+
+
+def get_command_from_argv(argv):
+    return COMMANDS[argv[1]]
+
+def get_config_from_argv(argv):
+    index = -1
+    opts = ['-c', '--config']
+    for opt in opts:
+        if opt in argv:
+            index = argv.index(opt)
+    if index != -1:
+        return argv[index + 1]
+        
 
 
 def change_wkdir(argv):
@@ -70,26 +87,27 @@ def change_wkdir(argv):
 def setup_and_run(argv, parser):
     """Setup and run a command."""
     change_wkdir(argv)
-    args, snake_args = parser.parse_known_args()
-    if args.cmd_class.__name__ != "Init":
-        if args.config is not None:
-            args, missing = add_cfg_to_args(argv, args, parser)
+    if argv[1] != "init":
+        if '--config' in argv or '-c' in argv:
+            args, snake_args, missing = add_cfg_to_args(argv, parser)
             if missing:
                 warn(
                 "Section(s) missing in config file, "
                 "using defaults: {}".format(", ".join(missing)))
+        else:
+            args, snake_args = parser.parse_known_args()
         args.log_file = set_log_file(
             args.log_file,
             args.cmd_class.__name__,
             args.timestamp)
         config_logging(args.log_file, args.log)
+    else:
+        args, snake_args = parser.parse_args(), []
 
     params = Parameters(args, snake_args)
-    params.write_parameters(
-        "{cmd}_{timestamp}_params.txt".format(
-            cmd=args.cmd_class.__name__,
-            timestamp=args.timestamp))
+
     cmd = args.cmd_class(params)
+
     cmd.run()
 
 
@@ -119,6 +137,12 @@ def main(argv=None):
         default=DEFAULT_CFG_FNAME,
         help="Specify path to write config file, "
         "not required if using default config"
+    )
+    parser.add_argument(
+        '-wd', "--working_dir", type=str,
+        default=os.getcwd(),
+        help="Specify working directory to place output. "
+        "(default: {})".format(os.getcwd())
     )
     parser_init.set_defaults(cmd_class=Init)
 
