@@ -10,8 +10,6 @@ source:
 build:
   number: 0
   binary_relocation: True
-  rpaths:
-    - lib64/
   entry_points:
     - mtsv = mtsv.main:main
     - mtsv_setup = mtsv.mtsv_prep.main:main
