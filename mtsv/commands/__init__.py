@@ -44,7 +44,7 @@ class Command:
                 "{0}={1}".format(k,v)
                 for k, v in self.params.items() if v is not None]
             cmd += config
-            cmd += ["--restart-times", "3"]
+            cmd += ["--restart-times", "3", "--nolock"]
             cmd += self.snake_params
             try:
                 p = sp.run(cmd,
