@@ -7,6 +7,8 @@ import logging
 import numpy as np
 from contextlib import suppress
 from glob import glob
+from collections import namedtuple
+
 
 from mtsv.utils import(error, warn, specfile_read)
 from mtsv.argutils import (read, export)
@@ -295,6 +297,8 @@ def positive_int(input_val):
         raise argparse.ArgumentTypeError("Not a positive integer")
     return input_val
 
+
+Record = namedtuple('Record', ['read_id', 'counts', 'taxa'])
 
 def parse_output_row(row):
     read_id, taxa = split(row, ":")
