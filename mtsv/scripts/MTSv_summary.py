@@ -39,7 +39,7 @@ def parse_signature_hits(lines):
     data_dict = {}
     read_set = set()
     for line in lines:
-        data = parse_row(line)
+        data = parse_output_row(line)
         read_set.add(data.read_id)
         for taxon in data.taxa:
             if taxon not in data_dict:
@@ -94,7 +94,7 @@ def merge_dicts(sig_dict, all_dict):
 def parse_all_hits(lines, sig_taxa, sig_reads, descendants):
     all_data_dict = {}
     for line in lines:
-        data = parse_row(line)
+        data = parse_output_row(line)
         if data.read_id in sig_reads:
             # already counted these in sig_hits
             continue
