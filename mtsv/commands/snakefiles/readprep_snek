@@ -67,7 +67,7 @@ rule readprep_report:
             median_counts = 0
             max_counts = 0
             min_counts = 0
-        stats = "{0:<15}{1:<15}{2:<15}{3:<15}".format(
+        stats = "{0:<15}{1:<15.2f}{2:<15}{3:<15}".format(
             min_counts,
             mean_counts,
             median_counts,
