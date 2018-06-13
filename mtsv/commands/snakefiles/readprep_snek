@@ -11,7 +11,7 @@ REPORT = "readprep_report.html"
 
 CML_PARAMS = format_cml_params(
     'READPREP', config,
-    ['fasta_query_path', 'kmer', 'trim_mode'],
+    ['fasta', 'kmer', 'trim_mode'],
     ['--segment', str(config['kmer'])] if config['trim_mode'] == 'segment'
     else ['--{}'.format(config['trim_mode'])]
 )
