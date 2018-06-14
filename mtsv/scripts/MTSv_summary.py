@@ -187,20 +187,12 @@ def get_summary(all_file, sig_file, outfile, threads, log):
 
 
 if __name__ == "__main__":
-    NCBI = NCBITaxa()
-    # NCBI = NCBITaxa(snakemake.params[0])
-    # get_summary(
-    #     snakemake.input[1],
-    #     snakemake.input[0],
-    #     snakemake.output[0],
-    #     snakemake.threads,
-    #     snakemake.log[0])
-
-    get_summary(
-        "/Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/test/test_all.txt",
-        "/Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/test/test_sig.txt",
-        "/Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/test/out.txt",
-        1, "/Users/tarafurstenau/Desktop/Fofanov_Projects/Dev/test/log.log")
-        
+      NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+      get_summary(
+          snakemake.input[1],
+          snakemake.input[0],
+          snakemake.output[0],
+          snakemake.threads,
+          snakemake.log[0])        
 
     
