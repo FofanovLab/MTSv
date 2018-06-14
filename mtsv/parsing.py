@@ -308,7 +308,7 @@ def parse_output_row(row):
     return Record(read_id=read_id, counts=counts, taxa=taxa)
 
 def parse_query_id(query_id):
-    return np.array([int(q) for q in query_id.split("_")[1:]])
+    return [int(q) for q in query_id.split("_")[1:]]
 
 
 TYPES = {
