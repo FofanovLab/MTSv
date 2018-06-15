@@ -1,5 +1,8 @@
 _meta_custom_db:
   help: Build a custom database with certain taxid subtrees.
+default_path:
+  default: []
+  help: Path to custom database
 custom_path:
   default: []
   help: Path to custom database
@@ -7,11 +10,24 @@ rollup_rank:
   default: species
   choices: [species, genus, family]
   help: NCBI rank to set sequence headers.
+partitions:
+  default: ["2,2157", "10239,12884", "28384", "2759-33090,4751,7742", "33090", "4751", "7742-9443,9397,9913,9615", "9443-9606", "9397", "9913", "9615", "9606"]
+  help: list of '-' delimited tuples of comma seperated TaxIDs for inclusion and exclusion ex. 1386-1392,1396 would create a FM-index of the genus Bacillus without B. anthracis and B. cereus if no exclusion desire no '-' is needed
 customdb:
-  default: genbank
+  default: ["genbank"]
   nargs: +
   help: >
     List of the sequence databases to include.
-    Choose from Chromosome, Scaffold, and/or genbank.
+    Choose from Complete Genome, Chromosome, Scaffold, and/or genbank.
+chunk_size:
+  default: 2
+  help: Initial size (GB) of fasta partitions for building fm indices. (FM indices will be 10-15 times this size)
+path:
+  default: None
+  help: Path to Parent directory built by Database option
+debug:
+  default: False
+  action: 'store_true'
+  help: argparse.SUPPRESS
 
 

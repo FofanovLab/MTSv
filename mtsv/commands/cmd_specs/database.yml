@@ -11,8 +11,12 @@ download_only:
   action: 'store_true'
   help: Only perform download step.
 build_only:
-  type: path_type
+  default: False
+  action: 'store_true'
   help: Build from local database that exists at this path.
+includedb:
+  default: ["genbank","Complete Genome","Chromosome","Scaffold"]
+  help: Subsets of defaults can be specified for download
 overwrite:
   default: False
   action: 'store_true'

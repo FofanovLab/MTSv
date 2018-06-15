@@ -228,7 +228,10 @@ def roll_up(tx_id, rank, c2p, prev_roll=None):
 # Call function (uses depth first search) to get a set of all child of the taxid repeat for tax ids to exclude
 # use set difference to get desired leaf taxids
 # Opens fasta DB and out file reading sequence in from start of sequence header roll up occuring at runtime
-def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path):
+def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=False):
+    if debug:
+        return os.path.abspath(name)
+
     if len(in_tx) ==1:
         temp = []
         try:

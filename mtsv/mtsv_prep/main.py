@@ -1,8 +1,6 @@
 import subprocess
 import sys
-from io import BytesIO
 import argparse
-import fnmatch
 import os
 import datetime
 import inspect
@@ -11,18 +9,33 @@ from time import sleep
 import gzip
 import tarfile
 from multiprocessing import Pool, Queue, Process, Manager, RLock
-import pickle, json
 from glob import iglob
-from mtsv.commands import (
-    Database,
-    CustomDB
-)
+from mtsv.commands import Command
 from mtsv.parsing import make_sub_parser
-try:
-    from scripts.MTSv_prune import *
-except:
-    from MTSv_prune import *
+from mtsv.mtsv_prep.MTSv_prune import *
 
+from mtsv.utils import error, bin_path
+
+from snakemake.workflow import Workflow, Rules, expand
+import snakemake.workflow
+from snakemake import shell
+
+class Database(Command):
+    config_section = ["DATABASE"]
+
+    def __init__(self, params):
+        print("running Database")
+        super().__init__(params)
+        print(self.params)
+
+
+class CustomDB(Command):
+    config_section = ["CUSTOM_DB"]
+
+    def __init__(self, params):
+        print("running custom database")
+        super().__init__(params)
+        print(self.params)
 
 DEFAULT_DB_PATH = os.path.join(
     inspect.getfile(inspect.currentframe()),
@@ -34,8 +47,8 @@ DEFAULT_PARTITIONS = ["2,2157", "10239,12884", "28384",
                       "9443-9606", "9397", "9913", "9615", "9606"]
 
 COMMANDS = {
-    "database": Database,
-    "custom_db": CustomDB
+    "database" : Database,
+    "custom_db": CustomDB,
     }
 
 FILE_LOCK = RLock()
@@ -93,9 +106,14 @@ def partition(args):
         arguments = parse_json(os.path.join(args.path, "artifacts/{0}.json"))
         for prt in args.partitions:
             try:
-                path = os.path.join(args.path, "indices",db, prt.replace(",","_"))
-                os.makedirs(path, exist_ok=args.overwrite)
-                temp = prt.split("-")
+                if args.debug:
+                    path = os.path.join(args.path, "indices", db, prt.replace(",", "_"))
+                    temp = prt.split("-")
+
+                else:
+                    path = os.path.join(args.path, "indices", db, prt.replace(",", "_"))
+                    os.makedirs(path, exist_ok=args.overwrite)
+                    temp = prt.split("-")
                 if len(temp) == 2:
                     inc = set(temp[0].split(","))
                     exc = set(temp[1].split(","))
@@ -104,27 +122,71 @@ def partition(args):
                     exc = set()
                 partition_list.append( ( inc, args.rollup_rank, exc, 1,args.minimum, args.maximum,
                                          os.path.join(path, "{0}.fas".format(prt.replace(",","_"))),
-                                        arguments["fasta-path"], arguments["serialization-path"]  ) )
+                                        arguments["fasta-path"], arguments["serialization-path"], args.debug  ) )
             except OSError:
                 print("Partion folder {0} exists please use --overwrite to repartition".format(path))
 
     with Pool(args.threads) as p:
-        return p.starmap(clip, partition_list)
+        return p.starmap(clip, partition_list, args.debug)
 
 
 def chunk(file_list):
     dir_set = set()
     for fp in file_list:
-        subprocess.run("mtsv-chunk --input {0} --output {1}".format(fp, os.path.dirname(fp)).split())
+        subprocess.run("{2} --input {0} --output {1}".format(fp, os.path.dirname(fp)).split(), bin_path('mtsv-chunk'))
         dir_set.add(os.path.dirname(fp))
     return list(dir_set)
+
+def snake(args):
+    chunk_path = bin_path('mtsv-chunk')
+    fm_build_path = bin_path('mtsv-build')
+    print(chunk_path)
+    print(fm_build_path)
+    print(args)
+
+    print(partition(args))
+    # for i in args:
+    #     print(i)
+    workflow = Workflow(
+        "__file__",
+        overwrite_workdir=args.working_dir)
+    if args.cluster_cfg is not None:
+        workflow.cluster_cfg = args.cluster_cfg
+    snakemake.workflow.rules = Rules()
+    snakemake.workflow.config = dict()
+
+
+
+
+    # @workflow.rule(name='chunking')
+    # @workflow.docstring("""Fasta chunking""")
+    # @workflow.input(os.path.join("test", "{}.index"))
+    # @workflow.output(os.path.join(cmd.params['binning_outpath'], "{index}.bn"))
+    # @workflow.params(call=chunk_path, args=args.chunk_size)
+    # @workflow.message("Executing Fasta chunking on the follow files {input}.")
+    # @workflow.log(os.path.join(args.path,"artifacts/logs/""{index}.log"))
+    # @workflow.threads(1)
+    # @workflow.shellcmd("{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1")
+    # @workflow.run
+    # def __rule_chunking(input, output, params, wildcards,
+    #                    threads, resources, log, version, rule,
+    #                    conda_env, singularity_img, singularity_args,
+    #                    use_singularity, bench_record, jobid, is_shell):
+    #     shell(
+    #         "{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1"
+    #     )
+    #
+    # workflow.check()
+    # print("Dry run first ...")
+    # workflow.execute(dryrun=True, updated_files=[])
+    # return workflow
 
 def fm_build(dir_list):
     fm_list = []
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.fmi".format(os.path.basename(fp).split(".")[0]))
-            subprocess.run("mtsv-build --fasta {0} --index {1}.fmi".format(os.path.abspath(fp), out_file))
+            subprocess.run("{2} --fasta {0} --index {1}.fmi".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')))
             fm_list.append(out_file)
     return fm_list
 
@@ -140,8 +202,64 @@ def oneclickfmbuild(args, is_default):
 
 
 def setup_and_run(parser):
+
     args = parser.parse_args()
+
     print(args)
+    if str(args) == "Namespace()":
+        sys.argv[1] = "database"
+        args = parser.parse_args()
+        # args.cmd_class = Database
+        # print(args)
+        args.path = os.path.abspath(oneclickdl(args))
+        oneclickbuild(args)
+
+        sys.argv[1] = "custom_db"
+        args = parser.parse_args()
+        # print(args)
+
+        oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+
+    elif args.cmd_class == Database:
+        if args.download_only:
+            # if not args.path:
+            args.path = os.path.abspath(oneclickdl(args))
+            # else:
+
+        elif args.build_only:
+            if os.path.isdir(args.path):
+                oneclickbuild(args)
+            else:
+                print("A valid path was not specified")
+        else:
+            args.path = os.path.abspath(oneclickdl(args))
+            oneclickbuild(args)
+
+    elif args.cmd_class == CustomDB:
+        # print("TODO Clipper")
+        pass
+        # snake(args)
+
+
+        # args.path = os.path.abspath(oneclickdl(args))
+        # oneclickbuild(args)
+        # oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+
+#   print(args.path)
+    #     oneclickbuild(args)
+    #     oneclickfmbuild(args, args.partitions == default_parts)
+    # if args.do
+    # elif args.oneclickdl:
+    #     print(os.path.abspath(oneclickdl(args)))
+    # elif args.oneclickbuild:
+    #     if os.path.isdir(args.path):
+    #         oneclickbuild(args)
+    #     else:
+    #         print("Path to parent of */flats_files/ needs to be specified or downloaded")
+    # elif args.oneclickpartition:
+    #     oneclickfmbuild(args, args.partitions == default_parts)
+
+
 
 def main(argv=None):
     if argv is None:
@@ -163,6 +281,7 @@ def main(argv=None):
             subparsers, command, cmd_class
         )
 
+    subparsers.add_parser("oneclick")
     if len(argv)==1:
         parser.print_help(sys.stdout)
         sys.exit(1)
