@@ -11,7 +11,7 @@ import tarfile
 from multiprocessing import Pool, Queue, Process, Manager, RLock
 from glob import iglob
 from mtsv.commands import Command
-from mtsv.parsing import make_sub_parser
+from mtsv.parsing import make_sub_parser, get_global_config, ACTIONS, TYPES, add_default_arguments
 from mtsv.mtsv_prep.MTSv_prune import *
 
 from mtsv.utils import error, bin_path
@@ -54,6 +54,8 @@ COMMANDS = {
 FILE_LOCK = RLock()
 
 def oneclickdl(args):
+    print()
+    print(args)
     return pull(
         path=args.path,
         thread_count=args.threads,
@@ -206,39 +208,37 @@ def setup_and_run(parser):
     args = parser.parse_args()
 
     print(args)
-    if str(args) == "Namespace()":
+    try:
+        if args.cmd_class == Database:
+            if args.download_only:
+                # if not args.path:
+                args.path = os.path.abspath(oneclickdl(args))
+                # else:
+
+            elif args.build_only:
+                if os.path.isdir(args.path):
+                    oneclickbuild(args)
+                else:
+                    print("A valid path was not specified")
+            else:
+                args.path = os.path.abspath(oneclickdl(args))
+                oneclickbuild(args)
+
+        elif args.cmd_class == CustomDB:
+            # print("TODO Clipper")
+            pass
+            # snake(args)
+    except AttributeError:
+
         sys.argv[1] = "database"
-        args = parser.parse_args()
-        # args.cmd_class = Database
-        # print(args)
+        args = parser.parse_known_args()[0]
         args.path = os.path.abspath(oneclickdl(args))
         oneclickbuild(args)
 
         sys.argv[1] = "custom_db"
-        args = parser.parse_args()
-        # print(args)
+        args = parser.parse_known_args()[0]
 
         oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
-
-    elif args.cmd_class == Database:
-        if args.download_only:
-            # if not args.path:
-            args.path = os.path.abspath(oneclickdl(args))
-            # else:
-
-        elif args.build_only:
-            if os.path.isdir(args.path):
-                oneclickbuild(args)
-            else:
-                print("A valid path was not specified")
-        else:
-            args.path = os.path.abspath(oneclickdl(args))
-            oneclickbuild(args)
-
-    elif args.cmd_class == CustomDB:
-        # print("TODO Clipper")
-        pass
-        # snake(args)
 
 
         # args.path = os.path.abspath(oneclickdl(args))
@@ -281,7 +281,38 @@ def main(argv=None):
             subparsers, command, cmd_class
         )
 
-    subparsers.add_parser("oneclick")
+    p = subparsers.add_parser("oneclick")
+    for command, cmd_class in COMMANDS.items():
+        for arg, desc in get_global_config(cmd_class.config_section).items():
+            if "_meta" in arg:
+                continue
+            if 'type' in desc:
+                desc['type'] = TYPES[desc['type']]
+            if 'default' in desc and 'help' in desc:
+                desc['help'] += " (default: {})".format(desc['default'])
+            if 'action' in desc and desc['action'] in ACTIONS:
+                desc['action'] = getattr(
+                    sys.modules[__name__], desc['action'])
+            arg = "--{}".format(arg)
+            if 'positional' in desc:
+                del desc['positional']
+            try:
+                p.add_argument(
+                    arg, **desc
+                )
+            except argparse.ArgumentError:
+                continue
+        try:
+            add_default_arguments(p)
+        except argparse.ArgumentError:
+            pass
+        # p.set_defaults(cmd_class=cmd_class)
+
+        # print(command, get_global_config(cmd_class.config_section))
+
+
+    # print(parser)
+    # print(subparsers)
     if len(argv)==1:
         parser.print_help(sys.stdout)
         sys.exit(1)
