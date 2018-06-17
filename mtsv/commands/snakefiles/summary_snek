@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from mtsv.utils import bin_path, script_path
+from mtsv.utils import bin_path, script_path, track_file_params
 from mtsv.parsing import parse_query_id, format_cml_params
 shell.prefix("set -euo pipefail;")
 
@@ -33,7 +33,7 @@ rule summary_report:
         REPORT
     run:
         from snakemake.utils import report
-        sig = np.loadtxt(
+        sig = np.genfromtxt(
             input['sig'], delimiter=":", dtype=str, usecols=0)
         n_sig_unique = len(sig)
         n_total_sig = "\t".join(np.array(np.sum(
@@ -49,11 +49,11 @@ rule summary_report:
             **Signature hits are reported in:**\n
             {input.sig}\n
             **Summary table:** \n
-            {input.summary}
+            {input.summary}\n
             Summary_\n
             There were **{n_sig_unique}** unique signature hits.\n
             Total number of reads assocated with signature hits:\n
-            **n_total_sig**
+            **{n_total_sig}**
             
             
             """, output[0], Summary=input['summary'])
