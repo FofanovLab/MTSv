@@ -1,14 +1,32 @@
 _meta_extract:
-  help: Get read sequences associated with a given taxid
+  help: Get query sequences associated with a given taxid
 extract_path:
   default: ./Extracted_Reads/
   help: Directory to place extracted read sets.
   type: outpath_type
-taxdump_path:
-  default: None
-  help: Path to taxdump file.
-  type: file_type
 taxids:
   help: List of species to extract.
   nargs: +
   default: []
+taxdump_path:
+  help: Path to taxdump file.
+  type: file_type
+  default: None
+merge_file:
+  help: Merged binning output file.
+  type: file_type
+  default: ./Binning/merged.clp
+by_sample:
+  help: Further breakdown extracted queries by sample
+  type: bool
+  default: False
+descendants:
+  help: >
+    Include all descendant taxa in extracted queries. Queries are 
+    extracted before roll up, so by default, descendant taxa will be
+    included in search if a higher level taxid is provided. If False,
+    only exact matches to taxid will be returned and likely no matches 
+    to higher level taxids will be found.
+  type: bool
+  default: True
+  

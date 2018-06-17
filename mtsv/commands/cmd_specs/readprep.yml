@@ -10,7 +10,7 @@ fastq:
   action: Glob
 fasta:
   default: ./QueryFastas/queries.fasta
-  help: Path to desired output FASTA file.
+  help: Path to FASTA query file.
   type: outfile_type
 adapters:
   help: Path to file containing adapters, one per line.

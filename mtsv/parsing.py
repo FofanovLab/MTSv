@@ -298,14 +298,17 @@ def positive_int(input_val):
     return input_val
 
 
-Record = namedtuple('Record', ['read_id', 'counts', 'taxa'])
+Record = namedtuple('Record', ['read_id', 'counts', 'taxa', 'read_name'])
 
 def parse_output_row(row):
-    read_id, taxa = split(row, ":")
+    read_name, taxa = split(row, ":")
     taxa = np.array([tax for tax in split(taxa, ",")], dtype=int)
-    counts = np.array([c for c in split(read_id, "_")[1:]], dtype=int)
-    read_id = split(read_id, "_")[0]
-    return Record(read_id=read_id, counts=counts, taxa=taxa)
+    counts = np.array([c for c in split(read_name, "_")[1:]], dtype=int)
+    read_id = split(read_name, "_")[0]
+    return Record(
+        read_id=read_id, counts=counts, taxa=taxa, read_name=read_name)
+
+
 
 def parse_query_id(query_id):
     return [int(q) for q in query_id.split("_")[1:]]

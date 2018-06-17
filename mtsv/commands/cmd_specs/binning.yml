@@ -26,7 +26,7 @@ binning_outpath:
   type: outpath_type
 merge_file:
   default: ./Binning/merged.clp
-  help: Merged binning output file
+  help: Merged binning output file.
   type: outfile_type
 edits:
   default: 3
