@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from mtsv.utils import bin_path, script_path
+from mtsv.utils import bin_path, script_path, track_file_params
 from mtsv.parsing import parse_query_id, format_cml_params
 shell.prefix("set -euo pipefail;")
 
@@ -18,8 +18,7 @@ CML_PARAMS = format_cml_params(
     ["--{}".format(config['tax_level'])] if
         config['tax_level'] != 'species' else [])
 
-config['mem'] = 5
-config['time'] = 1
+MEM = 20
 
 rule summary_all:
     input:
@@ -53,7 +52,7 @@ rule summary_report:
             Summary_\n
             There were **{n_sig_unique}** unique signature hits.\n
             Total number of reads assocated with signature hits:\n
-            **n_total_sig**
+            **{n_total_sig}**
             
             
             """, output[0], Summary=input['summary'])
@@ -69,8 +68,7 @@ rule signature:
         call = BIN,
         args = CML_PARAMS
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
-        time=lambda wildcards, attempt: attempt * config['time']
+        mem_mb=lambda wildcards, attempt: attempt * MEM
     log:
         config['log_file']
     threads:
