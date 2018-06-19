@@ -1,11 +1,12 @@
 from Bio import SeqIO
 from ete3 import NCBITaxa
 import logging
+import os
 import numpy as np
 from collections import defaultdict
 from multiprocessing import Pool
 from functools import partial
-from mtsv.utils import line_generator
+from mtsv.utils import line_generator, config_logging 
 from mtsv.parsing import parse_output_row
 
 
@@ -22,8 +23,8 @@ def get_decendants(taxids, des_flag):
             des = [taxid]
         descendants += des
         parents += [taxid for _ in range(len(des))]
-    return np.array(parents, dtype=int),
-            np.array(descendants, dtype=int)
+    return (np.array(parents, dtype=int),
+            np.array(descendants, dtype=int))
 
 
 def get_targets(clps_data_chunk, parents, descendants):
@@ -40,16 +41,15 @@ def reduce_targets(taxids, targets):
     # were no hits
     all_targets = {tax:[] for tax in taxids}
     for target in targets:
-        for k, v in target:
+        for k, v in target.items():
             all_targets[k].extend(v)
     return all_targets
 
 def mtsv_extract(
     taxids, clps_file, query_fasta,
-    descendants, by_sample, outpath, threads, log):
+    descendants, by_sample, outpath, threads):
     # for higher level taxids, include all descendants in output
-    logger = logging.getLogger(__name__)
-    parents, descendants = get_decendants(taxids, descentants)
+    parents, descendants = get_decendants(taxids, descendants)
     targets_partial = partial(
                         get_targets,
                         parents=parents,
@@ -60,25 +60,37 @@ def mtsv_extract(
     p.close()
     p.join()
     targets = reduce_targets(taxids, target_dicts)
-    query_fasta_dict = SeqIO.to_dict(
-        SeqIO.parse(query_fasta, "fasta"))
-    
-    fun = write_sequences_by_sample if by_sample else write_sequences
-    write_partial = partial(fun,
-                            query_fasta=query_fasta_dict,
-                            outpath=outpath)
+    # Don't build sequence dictionary if no
+    # hits were found
+    query_fasta_dict = {}
+    if sum([len(t) for t in targets.values()]):
+        query_fasta_dict = SeqIO.to_dict(
+            SeqIO.parse(query_fasta, "fasta"))
+
+    if by_sample:
+        with open(clps_file, 'r') as infile:
+            n_samples = len(
+                parse_output_row(infile.readline()).counts)
+            write_partial = partial(
+                write_sequences_by_sample,
+                query_fastas=query_fasta_dict,
+                outpath=outpath,
+                n_samples=n_samples)
+    else:
+        write_partial = partial(write_sequences,
+                                query_fastas=query_fasta_dict,
+                                outpath=outpath)
     p = Pool(threads)
-    p.imap(write_partial, targets.items())
+    p.map(write_partial, targets.items())
     
 
 def write_sequences_by_sample(
-    targets_dict, query_fastas, outpath):
+    targets_dict, query_fastas, outpath, n_samples):                                                                                           
     if not len(targets_dict[1]):
         logger.info(
             "There were no sequences for taxid: {}".format(
                 targets_dict[0]))
-        return   
-    sample_dict = defaultdict(list)
+    sample_dict = {i:[] for i in range(n_samples)}
     for query in targets_dict[1]:
         samples = np.where(
             np.array(s.split("_")[1:], dtype=int))[0]
@@ -87,7 +99,7 @@ def write_sequences_by_sample(
     for sample, queries in sample_dict.items():
         file_name = os.path.join(
             outpath,
-            "{0}_{1}.fasta".format(targets_dict[0], sample))
+            "{0}_{1}.fasta".format(targets_dict[0], sample + 1))
         with open(file_name, 'w') as handle:
             records = [query_fastas[query] for query in queries]
             SeqIO.write(records, handle, "fasta")               
@@ -97,7 +109,7 @@ def write_sequences_by_sample(
 def write_sequences(
     targets_dict, query_fastas, outpath):
     file_name = os.path.join(
-        outpath, targets_dict[0] + ".fasta")
+        outpath, str(targets_dict[0]) + ".fasta")
     with open(file_name, 'w') as handle:
         if not len(targets_dict[1]):
             logger.info(
@@ -109,17 +121,16 @@ def write_sequences(
 
 
 if __name__ == "__main__":
+    config_logging(snakemake.log[0], "INFO")
+    logger = logging.getLogger(__name__)    
 
     NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
 
     mtsv_extract(
-        snakemake.params[1],
-        snakemake.input[1],
-        snakemake.input[0],
-        snakemake.params[3],
-        snakemake.params[4],
-        snakemake.params[2],
-        snakemake.threads,
-        snakemake.log[0])
-
-
+         snakemake.params[1],
+         snakemake.input[1],
+         snakemake.input[0],
+         snakemake.params[3],
+         snakemake.params[4],
+         snakemake.params[2],
+         snakemake.threads)

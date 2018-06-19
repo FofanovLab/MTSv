@@ -2,12 +2,15 @@ import os
 import json
 import itertools as it
 from mtsv.utils import script_path
+from glob import glob
 from mtsv.parsing import parse_output_row, file_type, parse_query_id
 from Bio import SeqIO
 SCRIPT = script_path('MTSv_extract.py')
 REPORT = "extract_report.html"
 
 MEM=30
+
+
 if config['by_sample']:
     # get number of samples
     with open(config['merge_file'], 'r') as infile:
@@ -18,42 +21,43 @@ if config['by_sample']:
         config['extract_path'],
         "{0}_{1}.fasta".format(tax, n))
               for tax, n in it.product(
-                  taxids, range(1, n_samples + 1))]
+                  config['taxids'],
+                  range(1, n_samples + 1))]
 
 else:
-    OUTPUT = [os.path.join(config['extract_path'], tax + ".fasta") 
+    OUTPUT = [os.path.join(config['extract_path'], str(tax) + ".fasta") 
     for tax in config['taxids']]
 
-[open(f, 'a').close() for f in OUTPUT]
 
-FASTA = file_type(json.load(
+FASTA = file_type(json.loads(
     open(os.path.join(
         os.path.dirname(
             config['merge_file']),
-        ".params"), 'r').read())['merge_file'][config['merge_file']]['fasta'])    
+        ".params"), 'r').read())['merge_file'][config['merge_file']]['fasta'])   
+
 
 rule all:
     input:
         REPORT
 
 rule extract_report:
-    input:
-        OUTPUT
+    input: OUTPUT
     output:
         REPORT
     params:
         path=config['extract_path']
     run:
         from snakemake.utils import report
-        total_queries = [len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input[0]]
+        print("INPUT", input)
+        total_queries = [len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input]
         _files = [os.path.basename(out) for out in OUTPUT]
-        data = zip(_files, total_queries)  
+        data = "\n".join(["{0:<23} {1:<11}".format(f, q) for f, q in zip(_files, total_queries)])
         report(
             """ 
             Extract Report
             ============================
             **Extracted taxa fasta files are reported in:**\n
-            {params.extract_path}\n
+            {params.path}\n
             Number of unique queries per file:\n
             =========================  ============
             File                       No. Queries

@@ -54,7 +54,7 @@ def add_cfg_to_args(argv, parser):
     for k, v in config_args.items():
         fmt_k = "--{}".format(k)
         if fmt_k not in argv and v != None:
-            argv += [fmt_k, v]
+            argv += [fmt_k] + v.split(" ")
     missing = get_missing_sections(config)
     args, snake_args = parser.parse_known_args(argv[1:])
     return args, snake_args, missing
@@ -72,7 +72,6 @@ def get_config_from_argv(argv):
             index = argv.index(opt)
     if index != -1:
         return argv[index + 1]
-        
 
 
 def change_wkdir(argv):

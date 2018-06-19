@@ -85,7 +85,7 @@ class Extract(Command):
     config_section=["EXTRACT"]
 
     def __init__(self, params):
-        super().__init__(self, params)
+        super().__init__(params)
         self.rules = [SNAKEFILES['extract']]
 
 class Readprep(Command):
