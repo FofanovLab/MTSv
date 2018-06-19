@@ -228,16 +228,18 @@ def setup_and_run(parser):
             # print("TODO Clipper")
             pass
             # snake(args)
+            oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+
     except AttributeError:
 
         sys.argv[1] = "database"
         args = parser.parse_known_args()[0]
         args.path = os.path.abspath(oneclickdl(args))
         oneclickbuild(args)
-
+        path = args.path
         sys.argv[1] = "custom_db"
         args = parser.parse_known_args()[0]
-
+        args.path = path
         oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
 
 
