@@ -16,7 +16,7 @@ def get_candidate_taxa(summary_file, outfile, signature_cutoff):
                 sample + 1)] > signature_cutoff]
         taxa_set.update(list(d.TaxID))
     ranks = NCBI.get_rank(list(taxa_set))
-    taxa = [k if v=="species" for k, v in ranks.items()]
+    taxa = [k for k, v in ranks.items() if v == "species"]
     np.savetxt(outfile, taxa, fmt="%d")
 
 if __name__ == "__main__":

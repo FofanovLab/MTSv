@@ -1,5 +1,6 @@
 import os
 import subprocess as sp
+import argparse
 from mtsv.parsing import create_config_file
 from mtsv.utils import snake_path
 
@@ -73,11 +74,11 @@ class Analyze(Command):
         super().__init__(params)
         self.rules = [SNAKEFILES['analyze']]
 
-
 class Binning(Command):
     config_section = ["BINNING"]
 
     def __init__(self, params):
+        if ''
         super().__init__(params)
         self.rules = [SNAKEFILES['binning']]
 
@@ -92,6 +93,12 @@ class Readprep(Command):
     config_section=["READPREP"]
 
     def __init__(self, params):
+        if 'adapters' in self.params and 'adapter-tolerance' not in self.params:
+            raise argparse.ArgumentError(
+                '--adapters requires --adapter-tolerance')
+        if 'adapter-tolerance' in self.params and 'adapters' not in self.params:
+            raise argparse.ArgumentError(
+                '--adapter-tolerance requires --adapters') 
         super().__init__(params)
         self.rules = [SNAKEFILES['readprep']]     
 

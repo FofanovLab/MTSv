@@ -112,11 +112,6 @@ def add_default_arguments(parser):
              "(default: {})".format(DEFAULT_CFG_FNAME)
     )
     parser.add_argument(
-        '-l', "--log", type=str, default="INFO",
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        help="Set logging level. (default: INFO)"
-    )
-    parser.add_argument(
         '-lf', "--log_file", type=outfile_type,
         default=DEFAULT_LOG_FNAME,
         help="Set log file path, "

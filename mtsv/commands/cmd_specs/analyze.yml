@@ -21,9 +21,7 @@ n_kmers:
     of the candidate taxa. These will be used to estimate
     expected values.
   type: positive_int
-db_config:
-  type: file_type
-  help: Path to database config file.
 
-  
+
+
   

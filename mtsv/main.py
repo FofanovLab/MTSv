@@ -27,7 +27,6 @@ from mtsv.parsing import (
 from mtsv.utils import(
     error,
     warn,
-    config_logging,
     set_log_file
 )
 
@@ -99,7 +98,6 @@ def setup_and_run(argv, parser):
             args.log_file,
             args.cmd_class.__name__,
             args.timestamp)
-        config_logging(args.log_file, args.log)
     else:
         args, snake_args = parser.parse_args(), []
 

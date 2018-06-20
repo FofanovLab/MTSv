@@ -12,14 +12,6 @@ summary_file:
   default: ./Summary/summary.csv
   help: File to place summary table.
   type: outfile_type
-taxdump_path:
-  help: Path to taxdump file.
-  type: file_type
-  default: None
-tree_index:
-  help: Path to taxonomic index file.
-  type: file_type
-  default: None
 tax_level:
   default: species
   help: >

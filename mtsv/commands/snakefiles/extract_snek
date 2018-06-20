@@ -1,7 +1,7 @@
 import os
 import json
 import itertools as it
-from mtsv.utils import script_path
+from mtsv.utils import script_path, get_database_params
 from glob import glob
 from mtsv.parsing import parse_output_row, file_type, parse_query_id
 from Bio import SeqIO
@@ -10,6 +10,15 @@ REPORT = "extract_report.html"
 
 MEM=30
 
+
+if "database_config" not in config:
+    config['database_config'] = json.loads(open(os.path.join(
+        os.path.basename(config['merge_file']),
+        ".params"),
+        'r').read())['merge_file'][config['merge_file']]['database_config']
+
+config['taxdump_path'] = file_type(get_database_params(
+    config['database_config'], 'taxdump-path'))
 
 if config['by_sample']:
     # get number of samples

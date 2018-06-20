@@ -1,13 +1,27 @@
 import os
 import numpy as np
-from mtsv.utils import bin_path, script_path, track_file_params
-from mtsv.parsing import parse_query_id, format_cml_params
+import json
+from mtsv.utils import (
+    bin_path, script_path,
+    track_file_params,
+    get_database_params)
+from mtsv.parsing import parse_query_id, format_cml_params, file_type
 shell.prefix("set -euo pipefail;")
 
 BIN = bin_path('mtsv-signature')
 SCRIPT = script_path('MTSv_summary.py')
 REPORT = "summary_report.html"
 
+if "database_config" not in config:
+    config['database_config'] = json.loads(open(os.path.join(
+        os.path.basename(config['merge_file']),
+        ".params"),
+        'r').read())['merge_file'][config['merge_file']]['database_config']
+    
+config['taxdump_path'] = file_type(get_database_params(
+    config['database_config'], 'taxdump-path'))
+config['tree_index'] = file_type(get_database_params(
+    config['database_config'], 'tree-index'))
 
 CML_PARAMS = format_cml_params(
     'SUMMARY',

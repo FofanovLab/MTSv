@@ -8,10 +8,6 @@ taxids:
   help: List of species to extract. (Space separated)
   nargs: +
   required: True
-taxdump_path:
-  help: Path to taxdump file.
-  type: file_type
-  default: None
 merge_file:
   help: Merged binning output file.
   type: file_type
