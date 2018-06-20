@@ -40,7 +40,7 @@ rule summary_report:
                 [parse_query_id(s) for s in sig],
                 dtype=int), axis=0), dtype=str))
         track_file_params(
-            'summary', config['summary_file'], config)
+            'summary_file', config['summary_file'], config)
         report(
             """ 
             Summary Report

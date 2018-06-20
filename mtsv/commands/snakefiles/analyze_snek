@@ -1,5 +1,120 @@
 import os
-from mtsv.utils import bin_path, script_path
-from mtsv.parsing import format_cml_params
+import json
+from mtsv.utils import script_path
+from mtsv.parsing import format_cml_params, file_type
+
+include: "binning_snek"
+include: "summary_snek"
 
 shell.prefix("set -euo pipefail;")
+
+SCRIPTS = {
+    'candidate_taxa': script_path("MTSv_candidate_taxa.py"),
+    'random_kmers': script_path("MTSv_random_kmers.py"),
+    'analyze': script_path("MTSv_analyze.py")
+}
+
+REPORT = "analyze_report.html"
+config['analyze_outpath'] = os.path.dirname(config['analysis_file'])
+
+CANDIDATE_TAXA = os.path.join(
+                    config['analyze_outpath'],
+                    "candidate_taxa.txt")
+
+
+
+def get_prior_params(config):
+    # trace back parameters from input files
+    summary_params = json.loads(open(os.path.join(
+        os.path.basename(config['summary_file']),
+        ".params"), 'r').read())['summary_file'][config['summary_file']]
+    merge_file = summary_params['merge_file']
+    bin_params = json.loads(open(os.path.join(
+        os.path.basename(merge_file),
+        ".params"), 'r').read())['merge_file'][merge_file]
+    kmer = json.loads(open(os.path.join(
+        os.path.basename(bin_params['fasta']),
+        ".params"), 'r').read())['readprep'][bin_params['fasta']]['kmer']
+    config['kmer'] = kmer
+    for key in ['seed-size', 'min-seeds',
+        'seed-gap', 'edits', 'fm_index_paths',
+        'binning_mode']:
+        config[key.replace("-", "_")] = bin_params[key]
+    for key in ['tree_index', 'taxdump_path']:
+        config[key] = file_type(summary_params[key])
+    config['fm_index_paths'] = [file_type(f) for f in params['fm_index_paths']]
+    config['summary_file_in'] = config['summary_file']
+    return config
+
+def add_new_params(config):
+    config['binning_outpath'] = config['analyze_outpath']
+    config['fasta'] = os.path.join(
+        config['analyze_outpath'],
+        "analysis_queries.fasta")
+    config['merge_file'] = os.path.join(
+        config['analyze_outpath'],
+        "merged.clp")
+    config['signature_file'] = os.path.join(
+        config['analyze_outpath'],
+        "signature.txt")
+    config['summary_file'] = os.path.join(
+        config['analyze_outpath'],
+        "summary.csv")
+    return config
+
+
+config = get_prior_params(config)
+config = add_new_params(config)
+
+
+rule analyze_all:
+    input:
+        REPORT
+
+rule analyze_report:
+    input: config['analysis_file']
+    output: REPORT
+    run:
+        from snakemake.utils import report
+        report(''' ''', output[0])
+
+# Get list of taxa to analyze
+rule candidate_taxa:
+    input: config['summary_file_in']
+    output: CANDIDATE_TAXA
+    message:
+        """Getting candidate taxa from {input} that
+        have more than {params.cutoff} unique signture hits.
+        Writing to {output}"""
+    params:
+        cutoff = config['signature_cutoff'],
+        taxdump = config['taxdump_path']
+    script: SCRIPTS['candidate_taxa']
+
+
+rule random_kmers:
+    input: CANDIDATE_TAXA
+    output: config['fasta']
+    message:
+        """Generating random kmers from candidate taxa.
+        Writing to {output}"""
+    params:
+        kmer_size=params['kmer'],
+        n_kmers=config['n_kmers'],
+        fasta_path=FASTA_DB,
+        pickle_path=PICKLE
+    threads:
+        config['threads']
+    script: SCRIPTS['random_kmers']
+
+
+rule analyze:
+    input: config['summary_file']
+    output: config['analysis_file']
+    message: """Analyzing statistics. Writing to {output}."""
+    params:
+        obs_summary=config['summary_file_in'],
+        taxa=CANDIDATE_TAXA
+    script: SCRIPTS['analyze']    
+
+    

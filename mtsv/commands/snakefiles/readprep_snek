@@ -78,6 +78,7 @@ rule readprep_report:
             record_counts,
             unique_counts)]
         data = "\n".join(data)
+        config['kmer'] = query_size
         track_file_params('readprep', config['fasta'], config)
         report("""
         Readprep Report

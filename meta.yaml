@@ -27,6 +27,7 @@ requirements:
     - ete3
     - ete_toolchain
     - biopython
+    - scipy
     - six
     - numpy
     - pyyaml
