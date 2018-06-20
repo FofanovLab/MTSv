@@ -5,7 +5,7 @@ package:
   version: {{ data.get('version') }}
 
 source:
-  path: ./  #update with git repo
+  git_url: https://github.com/FofanovLab/MTSv
 
 build:
   number: 0

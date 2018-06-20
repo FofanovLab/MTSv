@@ -78,7 +78,6 @@ class Binning(Command):
     config_section = ["BINNING"]
 
     def __init__(self, params):
-        if ''
         super().__init__(params)
         self.rules = [SNAKEFILES['binning']]
 
