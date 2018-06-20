@@ -23,4 +23,4 @@ install:
   - source activate test-environment
   - conda install -q python=3.6 pip requests conda-build jinja2 anaconda-client 
   - conda build . -c bioconda -c etetoolkit -c conda-forge 
-  - conda install --use-local $PACKAGENAME -c bioconda -c etetoolkit -c conda-forge -y
+  - conda install mtsv --use-local -c bioconda -c etetoolkit -c conda-forge -y
