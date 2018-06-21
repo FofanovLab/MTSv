@@ -150,7 +150,7 @@ def main(argv=None):
     # Return help if no command is passed
     if len(argv) == 1:
         parser.print_help(sys.stdout)
-        sys.exit(1)
+        sys.exit(0)
     try:
         setup_and_run(argv, parser)
     except KeyboardInterrupt:
