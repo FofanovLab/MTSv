@@ -8,7 +8,7 @@ from ftplib import FTP
 from time import sleep
 import gzip
 import tarfile
-from multiprocessing import Pool, Queue, Process, Manager, RLock
+from multiprocessing import Pool, Queue, Process, Manager, RLock, freeze_support
 from glob import iglob
 from mtsv.commands import Command
 from mtsv.parsing import make_sub_parser, get_global_config, ACTIONS, TYPES, add_default_arguments
@@ -101,11 +101,13 @@ def oneclickbuild(args):
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
     # shutil.rmtree(os.path.join(args.path, "flat_files" ))
+def mapper(x):
+    return clip(*x)
 
 def partition(args):
     partition_list = []
     for db in args.customdb:
-        arguments = parse_json(os.path.join(args.path, "artifacts/{0}.json"))
+        arguments = parse_json(os.path.join(args.path, "artifacts/{0}.json".format(db)))
         for prt in args.partitions:
             try:
                 if args.debug:
@@ -122,15 +124,26 @@ def partition(args):
                 else:
                     inc = set(temp[0].split(","))
                     exc = set()
-                partition_list.append( ( inc, args.rollup_rank, exc, 1,args.minimum, args.maximum,
-                                         os.path.join(path, "{0}.fas".format(prt.replace(",","_"))),
-                                        arguments["fasta-path"], arguments["serialization-path"], args.debug  ) )
+                partition_list.append( ( list(inc), args.rollup_rank, list(exc), os.path.join(path,
+                                        "{0}.fas".format(prt.replace(",","_"))),arguments['minimum-length'],
+                                         arguments['maximum-length'], arguments["fasta-path"],
+                                         arguments["serialization-path"], args.debug  ) )
             except OSError:
                 print("Partion folder {0} exists please use --overwrite to repartition".format(path))
+            # except AttributeError as e:
+            #     print(e)
+            #     raise KeyboardInterrupt
 
-    with Pool(args.threads) as p:
-        return p.starmap(clip, partition_list, args.debug)
+    # ret_list = []
+    # for i in partition_list:
+    #     ret_list.append(clip(*i))
+    p = Pool(args.threads)
+    ret_list = p.starmap(clip, partition_list)
+    # p.close()
+    # p.join()
 
+    print(ret_list)
+    return ret_list
 
 def chunk(file_list):
     dir_set = set()
@@ -209,6 +222,7 @@ def setup_and_run(parser):
 
     print(args)
     try:
+
         if args.cmd_class == Database:
             if args.download_only:
                 # if not args.path:
@@ -225,13 +239,12 @@ def setup_and_run(parser):
                 oneclickbuild(args)
 
         elif args.cmd_class == CustomDB:
-            # print("TODO Clipper")
-            pass
+            print("TODO Clipper")
             # snake(args)
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
 
     except AttributeError:
-
+        print("oneclick")
         sys.argv[1] = "database"
         args = parser.parse_known_args()[0]
         args.path = os.path.abspath(oneclickdl(args))
@@ -379,4 +392,5 @@ def main(argv=None):
     #     oneclickfmbuild(args, args.partitions == default_parts)
 
 if __name__ == "__main__":
+    freeze_support()
     main()

@@ -29,8 +29,10 @@ debug:
   default: False
   action: 'store_true'
   help: argparse.SUPPRESS
-configuration_path:
-  default: []
-  help: Path/s to JSON file/s
+overwrite:
+  default: False
+  action: 'store_true'
+  help: Force current database to be overwritten/removed.
+
 
 
