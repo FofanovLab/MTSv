@@ -4,8 +4,7 @@ fastq:
   nargs: +
   help: >
     Path(s) to FASTQ files to QC and collapse,
-    absolute path or relative to working dir.
-  required: True
+    absolute path or relative to working dir [REQUIRED].
   positional: True
   action: Glob
 fasta:

@@ -5,7 +5,7 @@ extract_path:
   help: Directory to place extracted read sets.
   type: outpath_type
 taxids:
-  help: List of species to extract. (Space separated)
+  help: List of species to extract. (Space separated) [REQUIRED]
   nargs: +
   required: True
 merge_file:
