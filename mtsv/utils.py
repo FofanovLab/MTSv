@@ -127,7 +127,8 @@ def track_file_params(
     with open(track_file, 'w') as out:
         out.write(record)
 
-
+def get_database_params(filepath, value):
+    return json.loads(open(filepath, 'r').read())[value]
 
 
 

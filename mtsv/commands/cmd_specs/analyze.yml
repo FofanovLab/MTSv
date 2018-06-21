@@ -14,3 +14,14 @@ summary_file:
   default: ./Summary/summary.csv
   help: Path to summary output
   type: file_type
+n_kmers:
+  default: 100000
+  help: >
+    Up to N_KMERS random kmers will be generated for each
+    of the candidate taxa. These will be used to estimate
+    expected values.
+  type: positive_int
+
+
+
+  

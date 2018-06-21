@@ -4,19 +4,18 @@ fastq:
   nargs: +
   help: >
     Path(s) to FASTQ files to QC and collapse,
-    absolute path or relative to working dir.
-  required: True
+    absolute path or relative to working dir [REQUIRED].
   positional: True
   action: Glob
 fasta:
   default: ./QueryFastas/queries.fasta
-  help: Path to desired output FASTA file.
+  help: Path to FASTA query file.
   type: outfile_type
 adapters:
-  help: Path to file containing adapters, one per line.
+  help: Path to file containing adapters, one per line, must also provide value for ADAPTER-TOLERANCE.
   type: file_type
 adapter-tolerance:
-  help: Number of adapter characters to tolerate at start of reads.
+  help: Number of adapter characters to tolerate at start of reads. Must also provide ADAPTORS path.
   type: positive_int
 quality_min:
   help: Minimum FASTQ quality to tolerate per base.

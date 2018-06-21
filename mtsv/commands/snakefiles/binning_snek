@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 from Bio import SeqIO
-from mtsv.parsing import parse_query_id, format_cml_params
-from mtsv.utils import bin_path, track_file_params
+from mtsv.parsing import parse_query_id, format_cml_params, file_type
+from mtsv.utils import bin_path, track_file_params, get_database_params
 
 
 shell.prefix("set -euo pipefail;")
@@ -14,7 +14,8 @@ BINS = {
         'binner','collapse']}
 
 REPORT = "binning_report.html"
-
+config['fm_index_paths'] = [file_type(f) for f in get_database_params(
+    config['database_config'], 'fm-index-paths')]
 INDEX_PATH = os.path.dirname(config['fm_index_paths'][0])
 INDEX = [os.path.basename(p).split(".")[0] for p in config['fm_index_paths']]
 INDEX_OUT = [
@@ -23,17 +24,14 @@ INDEX_OUT = [
 LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
         for indx in INDEX]    
 
-MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
-             'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
-             'sensitive': {'seed_size': 11, 'min_seeds': 3, 'seed_gap': 1}}
+MODE_DICT = {'fast': {'seed-size': 17, 'min-seeds': 5, 'seed-gap': 2},
+             'efficient': {'seed-size': 14, 'min-seeds': 4, 'seed-gap': 2},
+             'sensitive': {'seed-size': 11, 'min-seeds': 3, 'seed-gap': 1}}
 
 BIN_MODE = MODE_DICT[config['binning_mode']]
 for key, value in BIN_MODE.items():
     if key not in config:
         config[key] = value
-    # change back to dash instead of underscore
-    config[key.replace("_", "-")] = config[key]
-    del config[key]
 
 CML_PARAMS = format_cml_params(
     'BINNING',
@@ -42,8 +40,7 @@ CML_PARAMS = format_cml_params(
     'merge_file', 'binning_outpath'],
     [])
     
-config['mem'] = 20
-config['time'] = 1
+MEM=50
 
 rule binning_all:
     input: REPORT
@@ -102,8 +99,7 @@ rule binning:
         reads = config['fasta'],
         fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
-        time=lambda wildcards, attempt: attempt * config['time']
+        mem_mb=lambda wildcards, attempt: attempt * MEM
     params:
         call=BINS['binner'],
         args=CML_PARAMS
@@ -124,8 +120,7 @@ rule collapse:
     input:
         INDEX_OUT
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
-        time=lambda wildcards, attempt: attempt * config['time']
+        mem_mb=lambda wildcards, attempt: attempt * MEM
     message:
         "Merging binning output files into {output}."
     log:

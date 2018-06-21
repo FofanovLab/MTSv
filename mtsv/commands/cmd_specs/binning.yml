@@ -7,26 +7,23 @@ binning_mode:
     Set recommended parameters for SEED_SIZE, MIN_SEEDS, SEED_GAP for 
     fast (more misses, fast runtime), efficient (med misses, med runtime)
     or sensitive (few misses, slow) runs. 
-    fast=17,5,2, efficient=14,4,2, sensitive=11,3,1. Passing any of these
-    parameters (SEED_SIZE, MIN_SEEDS, SEED_GAP) will override these settings.
+    fast=17,5,2, efficient=14,4,2, sensitive=11,3,1. Passing values for the
+    SEED_SIZE, MIN_SEEDS or SEED_GAP parameters will override these settings.
   type: str
 fasta:
   default: ./QueryFastas/queries.fasta
   help: Path to FASTA query file.
   type: file_type
-fm_index_paths:
-  help: >
-    List of paths to index files, absolute or relative to working dir. 
-    Wildcards are allowed.
-  nargs: +
-  action: Glob
+database_config:
+  help: Path to sequence database configuration json.
+  type: file_type
 binning_outpath:
   default: ./Binning/
   help: Path to write binning files to.
   type: outpath_type
 merge_file:
   default: ./Binning/merged.clp
-  help: Merged binning output file
+  help: Merged binning output file.
   type: outfile_type
 edits:
   default: 3

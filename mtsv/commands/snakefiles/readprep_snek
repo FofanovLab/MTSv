@@ -16,8 +16,7 @@ CML_PARAMS = format_cml_params(
     else ['--{}'.format(config['trim_mode'])]
 )
 
-config['mem'] = 20
-config['time'] = 1
+MEM=30
 
 def get_unique_counts(counts):
     return np.array(np.array(counts, dtype=bool), dtype=int)
@@ -79,6 +78,7 @@ rule readprep_report:
             record_counts,
             unique_counts)]
         data = "\n".join(data)
+        config['kmer'] = query_size
         track_file_params('readprep', config['fasta'], config)
         report("""
         Readprep Report
@@ -111,8 +111,7 @@ rule readprep:
     output: config['fasta']
     input: config['fastq']
     resources: 
-        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
-        time=lambda wildcards, attempt: attempt * config['time']
+        mem_mb=lambda wildcards, attempt: attempt * MEM
     params:
         call=BIN,
         args=CML_PARAMS

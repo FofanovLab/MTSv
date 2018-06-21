@@ -27,7 +27,6 @@ from mtsv.parsing import (
 from mtsv.utils import(
     error,
     warn,
-    config_logging,
     set_log_file
 )
 
@@ -54,7 +53,7 @@ def add_cfg_to_args(argv, parser):
     for k, v in config_args.items():
         fmt_k = "--{}".format(k)
         if fmt_k not in argv and v != None:
-            argv += [fmt_k, v]
+            argv += [fmt_k] + v.split(" ")
     missing = get_missing_sections(config)
     args, snake_args = parser.parse_known_args(argv[1:])
     return args, snake_args, missing
@@ -72,7 +71,6 @@ def get_config_from_argv(argv):
             index = argv.index(opt)
     if index != -1:
         return argv[index + 1]
-        
 
 
 def change_wkdir(argv):
@@ -100,7 +98,6 @@ def setup_and_run(argv, parser):
             args.log_file,
             args.cmd_class.__name__,
             args.timestamp)
-        config_logging(args.log_file, args.log)
     else:
         args, snake_args = parser.parse_args(), []
 
@@ -153,7 +150,7 @@ def main(argv=None):
     # Return help if no command is passed
     if len(argv) == 1:
         parser.print_help(sys.stdout)
-        sys.exit(1)
+        sys.exit(0)
     try:
         setup_and_run(argv, parser)
     except KeyboardInterrupt:

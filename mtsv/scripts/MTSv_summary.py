@@ -131,9 +131,7 @@ def all_reduce(iterator):
 
 
 
-def get_summary(all_file, sig_file, outfile, threads, log):
-    logger = logging.getLogger(__name__)
-    config_logging(log, 'INFO')
+def get_summary(all_file, sig_file, outfile, threads):
     logger.info("Parsing Signature Hits")
     p = Pool(threads)
     get_lines = line_generator(sig_file, 5000)
@@ -187,12 +185,15 @@ def get_summary(all_file, sig_file, outfile, threads, log):
 
 
 if __name__ == "__main__":
-      NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
-      get_summary(
+    NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+    config_logging(snakemake.log[0], "INFO")      
+    logger = logging.getLogger(__name__)
+
+    
+    get_summary(
           snakemake.input[1],
           snakemake.input[0],
           snakemake.output[0],
-          snakemake.threads,
-          snakemake.log[0])        
+          snakemake.threads)        
 
     
