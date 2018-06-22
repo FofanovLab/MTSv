@@ -107,6 +107,7 @@ def mapper(x):
 def partition(args):
     partition_list = []
     for db in args.customdb:
+        db = db.strip().replace(" ","_")
         arguments = parse_json(os.path.join(args.path, "artifacts/{0}.json".format(db)))
         for prt in args.partitions:
             try:
