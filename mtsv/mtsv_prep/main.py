@@ -148,7 +148,7 @@ def partition(args):
 def chunk(file_list):
     dir_set = set()
     for fp in file_list:
-        subprocess.run("{2} --input {0} --output {1}".format(fp, os.path.dirname(fp)).split(), bin_path('mtsv-chunk'))
+        subprocess.run("{2} --input {0} --output {1}".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')))
         dir_set.add(os.path.dirname(fp))
     return list(dir_set)
 
@@ -392,5 +392,4 @@ def main(argv=None):
     #     oneclickfmbuild(args, args.partitions == default_parts)
 
 if __name__ == "__main__":
-    freeze_support()
     main()
