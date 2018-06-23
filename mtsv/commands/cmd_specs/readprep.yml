@@ -5,6 +5,7 @@ fastq:
   help: >
     Path(s) to FASTQ files to QC and collapse,
     absolute path or relative to working dir [REQUIRED].
+  required: True
   positional: True
   action: Glob
 fasta:

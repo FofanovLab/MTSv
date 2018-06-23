@@ -7,7 +7,7 @@ def get_sample_count(n_cols):
     return n_cols//4
 
 def get_candidate_taxa(summary_file, outfile, signature_cutoff):
-    df = pd.read_csv('summary_file')
+    df = pd.read_csv(summary_file)
     n_samples = get_sample_count(df.shape[1])
     taxa_set = set()
     for sample in range(n_samples):
@@ -20,7 +20,7 @@ def get_candidate_taxa(summary_file, outfile, signature_cutoff):
     np.savetxt(outfile, taxa, fmt="%d")
 
 if __name__ == "__main__":
-    NCBI = NCBITaxa(snakemake.params[1])
+    NCBI = NCBITaxa(taxdump_file=snakemake.params[1])
     get_candidate_taxa(
         snakemake.input[0],
         snakemake.output[0],

@@ -14,6 +14,7 @@ BINS = {
         'binner','collapse']}
 
 REPORT = "binning_report.html"
+print(config)
 config['fm_index_paths'] = [file_type(f) for f in get_database_params(
     config['database_config'], 'fm-index-paths')]
 INDEX_PATH = os.path.dirname(config['fm_index_paths'][0])
@@ -24,19 +25,22 @@ INDEX_OUT = [
 LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
         for indx in INDEX]    
 
-MODE_DICT = {'fast': {'seed-size': 17, 'min-seeds': 5, 'seed-gap': 2},
-             'efficient': {'seed-size': 14, 'min-seeds': 4, 'seed-gap': 2},
-             'sensitive': {'seed-size': 11, 'min-seeds': 3, 'seed-gap': 1}}
+MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
+             'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
+             'sensitive': {'seed_size': 11, 'min_seeds': 3, 'seed_gap': 1}}
 
 BIN_MODE = MODE_DICT[config['binning_mode']]
 for key, value in BIN_MODE.items():
     if key not in config:
         config[key] = value
+    config[key.replace("_", "-")] = config[key]
+    del config[key]
+        
 
 CML_PARAMS = format_cml_params(
     'BINNING',
     config,
-    ['binning_mode', 'fm_index_paths', 'fasta',
+    ['binning_mode', 'fm_index_paths', 'fasta', 'database_config',
     'merge_file', 'binning_outpath'],
     [])
     

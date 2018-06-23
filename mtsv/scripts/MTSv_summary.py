@@ -75,8 +75,6 @@ def get_lineage_in_signature(taxon, signature_taxa):
         if line in signature_taxa:
             return line
     return False
-        
-
 
 
 def merge_dicts(sig_dict, all_dict):
@@ -120,12 +118,13 @@ def parse_all_hits(lines, sig_taxa, sig_reads, descendants):
 def all_reduce(iterator):
     data_dict = {}
     for dic in iterator:
-        for taxon, counts in dic.items():
+        for taxon, samples in dic.items():
             if taxon in data_dict:
-                data_dict[taxon] = np.add(
-                    data_dict[taxon], counts)
+                for sample, counts in samples.items():
+                    data_dict[taxon][sample] = np.add(
+                    data_dict[taxon][sample], counts)
             else:
-                data_dict[taxon] = counts
+                data_dict[taxon] = samples
     return data_dict
         
 
@@ -185,7 +184,8 @@ def get_summary(all_file, sig_file, outfile, threads):
 
 
 if __name__ == "__main__":
-    NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+    #NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+    NCBI = NCBITaxa()
     config_logging(snakemake.log[0], "INFO")      
     logger = logging.getLogger(__name__)
 
