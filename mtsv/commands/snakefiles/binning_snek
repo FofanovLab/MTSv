@@ -24,14 +24,17 @@ INDEX_OUT = [
 LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
         for indx in INDEX]    
 
-MODE_DICT = {'fast': {'seed-size': 17, 'min-seeds': 5, 'seed-gap': 2},
-             'efficient': {'seed-size': 14, 'min-seeds': 4, 'seed-gap': 2},
-             'sensitive': {'seed-size': 11, 'min-seeds': 3, 'seed-gap': 1}}
+MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
+             'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
+             'sensitive': {'seed_size': 11, 'min_seeds': 3, 'seed_gap': 1}}
 
 BIN_MODE = MODE_DICT[config['binning_mode']]
 for key, value in BIN_MODE.items():
     if key not in config:
-        config[key] = value
+        # snakemake config does not allow dashes
+        # but dashes are required for these mtsv params 
+        config[key.replace("_", "-")] = value
+        del config[key]
 
 CML_PARAMS = format_cml_params(
     'BINNING',

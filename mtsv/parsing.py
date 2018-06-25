@@ -218,7 +218,8 @@ def file_type(input_file):
 
     input_file = os.path.abspath(input_file)
     if not os.path.isfile(input_file):
-        raise argparse.ArgumentTypeError("Not a valid file path")
+        raise argparse.ArgumentTypeError(
+            "Not a valid file path: {}".format(input_file))
     return input_file
 
 
