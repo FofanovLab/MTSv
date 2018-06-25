@@ -14,6 +14,7 @@ BINS = {
         'binner','collapse']}
 
 REPORT = "binning_report.html"
+print(config)
 config['fm_index_paths'] = [file_type(f) for f in get_database_params(
     config['database_config'], 'fm-index-paths')]
 INDEX_PATH = os.path.dirname(config['fm_index_paths'][0])
@@ -36,10 +37,11 @@ for key, value in BIN_MODE.items():
         config[key.replace("_", "-")] = value
         del config[key]
 
+
 CML_PARAMS = format_cml_params(
     'BINNING',
     config,
-    ['binning_mode', 'fm_index_paths', 'fasta',
+    ['binning_mode', 'fm_index_paths', 'fasta', 'database_config',
     'merge_file', 'binning_outpath'],
     [])
     

@@ -1,11 +1,10 @@
 include: "readprep_snek"
 include: "binning_snek"
 include: "summary_snek"
-include: "analyze_snek"
+
 
 rule all:
     input:
-        "analyze_report.html",
         "summary_report.html",
         "readprep_report.html",
         "binning_report.html"

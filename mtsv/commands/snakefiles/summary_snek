@@ -98,8 +98,7 @@ rule summary:
         sig=config['signature_file'],
         clp=config['merge_file']
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
-        time=lambda wildcards, attempt: attempt * config['time']
+        mem_mb=lambda wildcards, attempt: attempt * MEM
     params:
         taxdump=config['taxdump_path']
     threads:

@@ -29,12 +29,12 @@ edits:
   default: 3
   help: Edit distance to tolerate in matched reference sites
   type: nonneg_int
-seed-size:
+seed_size:
   help:  Exact match query size. Overrides binning mode setting.
   type: positive_int
-min-seeds:
+min_seeds:
   help: Minimum number of seeds to perform alignment of a candidate site. Overrides binning mode setting.
   type: positive_int
-seed-gap:
+seed_gap:
   help: Gap between seeds used for initial exact match. Overrides binning mode setting.
   type: nonneg_int
