@@ -57,7 +57,6 @@ rule extract_report:
         path=config['extract_path']
     run:
         from snakemake.utils import report
-        print("INPUT", input)
         total_queries = [len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input]
         _files = [os.path.basename(out) for out in OUTPUT]
         data = "\n".join(["{0:<23} {1:<11}".format(f, q) for f, q in zip(_files, total_queries)])

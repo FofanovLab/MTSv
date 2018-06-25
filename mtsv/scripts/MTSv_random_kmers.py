@@ -56,7 +56,6 @@ def valid_kmer(kmer, kmer_size):
 
 def get_kmers_from_taxon(fasta, kmer_size, n_kmers):
     len_of_file = get_eof(fasta)
-    print(len_of_file)
     if len_of_file < kmer_size:
         logger.warn("No kmers found for taxid {0}".format(fasta))
         return set()
@@ -73,7 +72,6 @@ def get_kmers_from_taxon(fasta, kmer_size, n_kmers):
                 if not valid_kmer(kmer, kmer_size):
                     continue
                 good_kmers.add(kmer)
-            print(len(good_kmers), n_tries)
             n_tries += 1
         mm.close()
     good_kmers = list(good_kmers) if len(
