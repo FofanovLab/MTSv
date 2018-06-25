@@ -31,10 +31,11 @@ MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
 BIN_MODE = MODE_DICT[config['binning_mode']]
 for key, value in BIN_MODE.items():
     if key not in config:
-        config[key] = value
-    config[key.replace("_", "-")] = config[key]
-    del config[key]
-        
+        # snakemake config does not allow dashes
+        # but dashes are required for these mtsv params 
+        config[key.replace("_", "-")] = value
+        del config[key]
+
 
 CML_PARAMS = format_cml_params(
     'BINNING',
