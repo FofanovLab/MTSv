@@ -50,8 +50,8 @@ rule binning_all:
 
 rule binning_report:
     input:
-        clps = expand("{merge}", merge=config['merge_file']),
-        fasta = expand("{fasta}", fasta=config['fasta'])
+        clps = config['merge_file'],
+        fasta = config['fasta']
     output:
         rep=REPORT,
         unaligned = os.path.join(
@@ -63,15 +63,15 @@ rule binning_report:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
             SeqIO.parse(input[1], "fasta"))
-        hits = np.loadtxt(
-            input['clps'], delimiter=":", dtype=str, usecols=0)
+        hits = np.genfromtxt(
+            input[0], delimiter=":", dtype=str, usecols=0)
         n_hits = len(hits)
         total_queries = len(queries)
-        print(list(queries.keys(), hits))
         no_hits = np.setdiff1d(
             list(queries.keys()),
             hits,
             assume_unique=True)
+        print(no_hits, list(queries.keys()), hits)
         n_misses = len(no_hits)
         n_total_misses = "\t".join(np.array(np.sum(
             np.array(
