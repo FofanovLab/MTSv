@@ -20,8 +20,8 @@ tax_level:
     (Takes priority over LCA search when family or genus exist for a taxonomic ID.)
   type: str
   choices: [family, genus, species]
-lca:
-  default: 0
-  help: Height at which the search will attempt to find a common ancestor among the hits for a read.
-  type: int
-  choices: [0, 1, 2, 3]
+# lca:
+#   default: 0
+#   help: Height at which the search will attempt to find a common ancestor among the hits for a read.
+#   type: int
+#   choices: [0, 1, 2, 3]

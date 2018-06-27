@@ -3,7 +3,7 @@ from mtsv.utils import bin_path, track_file_params
 from mtsv.parsing import parse_query_id, format_cml_params
 from Bio import SeqIO
 import numpy as np
-
+from operator import add
 
 
 shell.prefix("set -euo pipefail;")
@@ -16,25 +16,23 @@ CML_PARAMS = format_cml_params(
     else ['--{}'.format(config['trim_mode'])]
 )
 
-
 def get_unique_counts(counts):
     return np.array(np.array(counts, dtype=bool), dtype=int)
 
 BIN = bin_path('mtsv-readprep')
-print(config)
+
 rule readprep_all:
     input:
         REPORT
 
 rule readprep_report:
-    input:
-        fasta=config['fasta'],
-        fastq=config['fastq']
+    input: config['fasta']
     output:
         REPORT
+    params: config['fastq']
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * (
-            max([os.path.getsize(i) for i in {input.fasta}])//1000000)
+        mem_mb=lambda wildcards, attempt: attempt * (
+            sum([os.path.getsize(i) for i in config['fastq']])//1000000) * 2 
     run:
         from snakemake.utils import report
         record_counts = []
@@ -49,15 +47,15 @@ rule readprep_report:
                 if i == 0:
                     query_size = len(record.seq)
                     record_counts = parse_query_id(record.id)
-                    counts.append(sum(record_counts))
+                    counts.append(np.sum(record_counts))
                     unique_counts = get_unique_counts(record_counts)
                 else:
                     count_list = parse_query_id(record.id)
-                    record_counts += count_list
-                    unique_counts += get_unique_counts(count_list)
-                    counts.append(sum(count_list))
-
-        file_string = "\n".join([input[1]])
+                    record_counts = record_counts + count_list
+                    unique_counts = unique_counts + count_list
+                    counts.append(np.sum(count_list))
+        print(record_counts, unique_counts)
+        file_string = "\n".join(params[0])
         if len(counts):
             mean_counts = np.mean(counts)
             median_counts = np.median(counts)
@@ -75,7 +73,7 @@ rule readprep_report:
             max_counts
         )
         data = ["{0:<21}{1:<11}{2:<15}{3:<18}".format(i,j,k,l) for i,j,k,l in zip(
-            [os.path.basename(p) for p in input.fastq],
+            [os.path.basename(p) for p in params[0]],
             range(1, len(record_counts) + 1),
             record_counts,
             unique_counts)]
@@ -91,7 +89,7 @@ rule readprep_report:
         This resulted in **{total_queries}** unique query sequences
         of size **{query_size}**.\n
         **Written to:**\n
-        {input.fasta}\n
+        {input}\n
         Statistics for the number of copies per unique query:\n
         ============   ============   ============   ============
         Min            Mean            Median        Max
@@ -111,7 +109,7 @@ rule readprep_report:
 rule readprep:
     """Read fragment quality control and deduplication (FASTQ -> FASTA)"""
     output: config['fasta']
-    input: config['fastq']
+    input: expand("{fastq}", fastq=config['fastq'])
     resources: 
         mem_mb=lambda wildcards, attempt, input: attempt * (
             sum([os.path.getsize(i) for i in input])//1000000 * 2)

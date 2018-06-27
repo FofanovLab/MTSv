@@ -50,25 +50,24 @@ rule binning_all:
 
 rule binning_report:
     input:
-        clps = config['merge_file'],
-        fasta = config['fasta']
+        clps = expand("{merge}", merge=config['merge_file']),
+        fasta = expand("{fasta}", fasta=config['fasta'])
     output:
         rep=REPORT,
         unaligned = os.path.join(
             config['binning_outpath'],
             'unaligned_queries.fasta')
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * (
-            (os.path.getsize(input.clps) + 
-            os.path.getsize(input.fasta) * 2)//1000000)
+        mem_mb=lambda wildcards, attempt: attempt * 500
     run:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
-            SeqIO.parse(input['fasta'], "fasta"))
+            SeqIO.parse(input[1], "fasta"))
         hits = np.loadtxt(
             input['clps'], delimiter=":", dtype=str, usecols=0)
         n_hits = len(hits)
         total_queries = len(queries)
+        print(list(queries.keys(), hits))
         no_hits = np.setdiff1d(
             list(queries.keys()),
             hits,
@@ -106,9 +105,7 @@ rule binning:
         reads = config['fasta'],
         fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * ((
-            os.path.getsize(input.fm_index) + 
-            os.path.getsize(input.reads))//1000000)*2
+        mem_mb=lambda wildcards, attempt, input: attempt * 1000
     params:
         call=BINS['binner'],
         args=CML_PARAMS
