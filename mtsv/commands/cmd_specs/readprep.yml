@@ -1,9 +1,9 @@
 _meta_readprep:
-  help: Read fragment quality control and deduplication (FASTQ -> FASTA)
+  help: Read fragment deduplication (FASTQ -> FASTA), quality control comming soon.
 fastq:
   nargs: +
   help: >
-    Path(s) to FASTQ files to QC and collapse,
+    Path(s) to FASTQ files to deduplicate,
     absolute path or relative to working dir [REQUIRED].
   required: True
   positional: True
@@ -29,7 +29,6 @@ trim_mode:
   help: >
     --lcd takes first N bases of each read, where N = shortest read length in FASTQ
     --segment takes subsequent N length sequences of each read (set N with --kmer)
-    # --lcdqual takes highest quality N bases of each read, where N = shortest read length
   type: str
   choices: [lcd, segment]
 kmer:

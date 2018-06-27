@@ -37,14 +37,13 @@ for key, value in BIN_MODE.items():
     config[key.replace("_", "-")] = value
     del config[key]
 
-
 CML_PARAMS = format_cml_params(
     'BINNING',
     config,
     ['binning_mode', 'fm_index_paths', 'fasta', 'database_config',
     'merge_file', 'binning_outpath'],
     [])
-    
+
 
 rule binning_all:
     input: REPORT
@@ -60,8 +59,8 @@ rule binning_report:
             'unaligned_queries.fasta')
     resources:
         mem_mb=lambda wildcards, attempt, input: attempt * (
-            (os.path.getsize(input[0]) + 
-            os.path.getsize(input[1] * 2))//1000000)
+            (os.path.getsize(input.clps) + 
+            os.path.getsize(input.fasta) * 2)//1000000)
     run:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
@@ -107,9 +106,9 @@ rule binning:
         reads = config['fasta'],
         fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * (
-            (os.path.getsize(input[0]) +
-            os.path.getsize(input[1] * 2))//1000000)
+        mem_mb=lambda wildcards, attempt, input: attempt * ((
+            os.path.getsize(input.fm_index) + 
+            os.path.getsize(input.reads))//1000000)*2
     params:
         call=BINS['binner'],
         args=CML_PARAMS
@@ -130,8 +129,7 @@ rule collapse:
     input:
         INDEX_OUT
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * (
-            os.path.getsize(input[0])//1000000)
+        mem_mb=lambda wildcards, attempt, input: attempt * 1000
     message:
         "Merging binning output files into {output}."
     log:
