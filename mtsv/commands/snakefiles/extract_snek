@@ -8,17 +8,23 @@ from Bio import SeqIO
 SCRIPT = script_path('MTSv_extract.py')
 REPORT = "extract_report.html"
 
-MEM=30
 
-
-if "database_config" not in config:
-    config['database_config'] = json.loads(open(os.path.join(
+merge_prior_params = json.loads(open(os.path.join(
         os.path.basename(config['merge_file']),
         ".params"),
-        'r').read())['merge_file'][config['merge_file']]['database_config']
+        'r').read())['merge_file'][config['merge_file']]
+
+if "database_config" not in config:
+    config['database_config'] = merge_prior_params['database_config']
 
 config['taxdump_path'] = file_type(get_database_params(
     config['database_config'], 'taxdump-path'))
+
+
+reads = json.loads(open(os.path.join(
+    os.path.basename(merge_prior_params['fasta']),
+    ".params"),
+    'r').read())['read_prep'][merge_prior_params['fasta']]['fastq']
 
 if config['by_sample']:
     # get number of samples
@@ -26,7 +32,7 @@ if config['by_sample']:
         n_samples = len(
             parse_output_row(
                 infile.readline()).counts)
-    OUTPUT = [os.path.join(
+    FASTA_OUTPUT = [os.path.join(
         config['extract_path'],
         "{0}_{1}.fasta".format(tax, n))
               for tax, n in it.product(
@@ -34,10 +40,10 @@ if config['by_sample']:
                   range(1, n_samples + 1))]
 
 else:
-    OUTPUT = [os.path.join(config['extract_path'], str(tax) + ".fasta") 
+    FASTA_OUTPUT = [os.path.join(config['extract_path'], str(tax) + ".fasta") 
     for tax in config['taxids']]
 
-
+FASTQ_OUTPUT = [os.path.splittext(fasta)[0] + ".fastq" for fasta in FASTA_OUTPUT]
 FASTA = file_type(json.loads(
     open(os.path.join(
         os.path.dirname(
@@ -50,23 +56,33 @@ rule all:
         REPORT
 
 rule extract_report:
-    input: OUTPUT
+    input:
+        fasta=FASTA_OUTPUT,
+        fastq=FASTQ_OUTPUT
     output:
         REPORT
     params:
         path=config['extract_path']
     run:
         from snakemake.utils import report
-        total_queries = [len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input]
-        _files = [os.path.basename(out) for out in OUTPUT]
-        data = "\n".join(["{0:<23} {1:<11}".format(f, q) for f, q in zip(_files, total_queries)])
+        total_fasta_queries = [
+            len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input[0]]
+        total_fastq_queries = [
+            len(list(SeqIO.parse(fastq, "fastq"))) for fastq in input[1]]
+        fasta_files = [os.path.basename(out) for out in input[0]]
+        fastq_files = [os.path.basename(out) for out in input[1]]
+        _files = fasta_files + fastq_files
+        total_queries = total_fasta_queries + total_fastq_queries
+
+        data = "\n".join(["{0:<23} {1:<11}".format(f, q) for f, q in zip(
+            _files, total_queries)])
         report(
             """ 
             Extract Report
             ============================
-            **Extracted taxa fasta files are reported in:**\n
+            **Extracted taxa fasta and fastq files are reported in:**\n
             {params.path}\n
-            Number of unique queries per file:\n
+            Number of queries per file:\n
             =========================  ============
             File                       No. Queries
             =========================  ============
@@ -79,12 +95,16 @@ rule extract_report:
 
 rule extract:
     """Get query sequences associated with a given taxid"""
-    output: OUTPUT           
+    output: 
+        fasta_out = FASTA_OUTPUT,
+        fastq_out = FASTQ_OUTPUT
     input: 
         fasta=FASTA,
         clp=config['merge_file']
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            (os.path.getsize(input[0]) + 
+            os.path.getsize(input[1] * 2))//1000000)
     params:
         taxdump=config['taxdump_path'],
         taxids=config['taxids'],

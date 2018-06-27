@@ -33,8 +33,9 @@ for key, value in BIN_MODE.items():
     if key not in config:
         # snakemake config does not allow dashes
         # but dashes are required for these mtsv params 
-        config[key.replace("_", "-")] = value
-        del config[key]
+        config[key] = value
+    config[key.replace("_", "-")] = value
+    del config[key]
 
 
 CML_PARAMS = format_cml_params(
@@ -44,7 +45,6 @@ CML_PARAMS = format_cml_params(
     'merge_file', 'binning_outpath'],
     [])
     
-MEM=50
 
 rule binning_all:
     input: REPORT
@@ -58,6 +58,10 @@ rule binning_report:
         unaligned = os.path.join(
             config['binning_outpath'],
             'unaligned_queries.fasta')
+    resources:
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            (os.path.getsize(input[0]) + 
+            os.path.getsize(input[1] * 2))//1000000)
     run:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
@@ -103,7 +107,9 @@ rule binning:
         reads = config['fasta'],
         fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            (os.path.getsize(input[0]) +
+            os.path.getsize(input[1] * 2))//1000000)
     params:
         call=BINS['binner'],
         args=CML_PARAMS
@@ -124,7 +130,8 @@ rule collapse:
     input:
         INDEX_OUT
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            os.path.getsize(input[0])//1000000)
     message:
         "Merging binning output files into {output}."
     log:

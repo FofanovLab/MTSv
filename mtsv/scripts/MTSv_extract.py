@@ -8,6 +8,8 @@ from multiprocessing import Pool
 from functools import partial
 from mtsv.utils import line_generator, config_logging 
 from mtsv.parsing import parse_output_row
+import gzip
+import shutil
 
 
 def get_decendants(taxids, des_flag):
@@ -85,39 +87,57 @@ def mtsv_extract(
     
 
 def write_sequences_by_sample(
-    targets_dict, query_fastas, outpath, n_samples):                                                                                           
-    if not len(targets_dict[1]):
+    targets, query_fastas, outpath, n_samples):                                                                                           
+    if not len(targets[1]):
         logger.info(
             "There were no sequences for taxid: {}".format(
-                targets_dict[0]))
+                targets[0]))
     sample_dict = {i:[] for i in range(n_samples)}
-    for query in targets_dict[1]:
+    for query in targets[1]:
         samples = np.where(
-            np.array(s.split("_")[1:], dtype=int))[0]
+            np.array(query.split("_")[1:], dtype=int))[0]
         for sample in samples:
             sample_dict[sample].append(query)
     for sample, queries in sample_dict.items():
-        file_name = os.path.join(
+        fasta_file = os.path.join(
             outpath,
-            "{0}_{1}.fasta".format(targets_dict[0], sample + 1))
-        with open(file_name, 'w') as handle:
+            "{0}_{1}.fasta".format(targets[0], sample + 1))
+        fastq_file = os.path.splitext(fasta_file)[0] + ".fastq"
+        with open(fastq_file, 'w') as qhandle, open(fasta_file, 'w') as ahandle:
             records = [query_fastas[query] for query in queries]
-            SeqIO.write(records, handle, "fasta")               
-
-        
+            SeqIO.write(records, ahandle, "fasta")
+            for query, record in zip(queries, records):
+                record.letter_annotations[
+                    "phred_quality"] = [40] * len(record)
+                # repeat for the number of times the query appeared
+                # in the sample
+                name = record.id
+                for rep in range(int(query.split("_")[1:][sample])):
+                    record.id = "{0}_{1}".format(name, rep)
+                    SeqIO.write(record, qhandle, "fastq")
+                    
 
 def write_sequences(
-    targets_dict, query_fastas, outpath):
-    file_name = os.path.join(
-        outpath, str(targets_dict[0]) + ".fasta")
-    with open(file_name, 'w') as handle:
-        if not len(targets_dict[1]):
+    targets, query_fastas, outpath):
+    fasta_file = os.path.join(
+        outpath, str(targets[0]) + ".fasta")
+    fastq_file = os.path.splitext(fasta_file)[0] + ".fastq"
+    with open(fasta_file, 'w') as fhandle, open(fastq_file, 'w') as qhandle:
+        if not len(targets[1]):
             logger.info(
                 "There were no sequences for taxid: {}".format(
-                    targets_dict[0]))
+                    targets[0]))
         else:
-            records = [query_fastas[target] for target in targets_dict[1]]
-            SeqIO.write(records, handle, "fasta")
+            records = [query_fastas[target] for target in targets[1]]
+            SeqIO.write(records, fhandle, "fasta")
+            for query, record in zip(targets[1], records):
+                record.letter_annotations[
+                    "phred_quality"] = 40 * len(record)
+                name = record.id
+                for rep in range(
+                    np.sum(np.array(query.split("_")[1:], dtype=int))):
+                    record.id = "{0}_{1}".format(name, rep)
+                    SeqIO.write(record, qhandle, 'fastq')
 
 
 if __name__ == "__main__":

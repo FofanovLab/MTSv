@@ -12,7 +12,7 @@ binning_mode:
   type: str
 fasta:
   default: ./QueryFastas/queries.fasta
-  help: Path to FASTA query file.
+  help: Path to FASTA query file produced by readprep.
   type: file_type
 database_config:
   help: Path to sequence database configuration json.

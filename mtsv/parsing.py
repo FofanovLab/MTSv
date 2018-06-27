@@ -15,7 +15,7 @@ from mtsv.argutils import (read, export)
 from mtsv import (DEFAULT_LOG_FNAME, DEFAULT_CFG_FNAME)
 
 logger = logging.getLogger(__name__)
-SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
+SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT", "WGFAST"]
 
 split = str.split
 strip = str.strip
@@ -40,7 +40,6 @@ def make_sub_parser(subparser, cmd, cmd_class):
         arg = "--{}".format(arg)
         if 'positional' in desc:
             del desc['positional']
-
         p.add_argument(
             arg, **desc
         )

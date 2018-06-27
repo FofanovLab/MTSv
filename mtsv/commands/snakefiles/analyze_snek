@@ -59,7 +59,7 @@ rule candidate_taxa:
         taxdump = config['taxdump_path']
     script: SCRIPTS['candidate_taxa']
 
-
+MEM = config['kmer'] * config['n_kmers'] * config['threads']
 rule random_kmers:
     input: CANDIDATE_TAXA
     output:
@@ -72,6 +72,8 @@ rule random_kmers:
     message:
         """Generating random kmers from candidate taxa.
         Writing to {output}"""
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * (MEM//1000000)
     params:
         kmer_size=config['kmer'],
         n_kmers=config['n_kmers'],

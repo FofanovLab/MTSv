@@ -16,7 +16,6 @@ CML_PARAMS = format_cml_params(
     else ['--{}'.format(config['trim_mode'])]
 )
 
-MEM=30
 
 def get_unique_counts(counts):
     return np.array(np.array(counts, dtype=bool), dtype=int)
@@ -33,6 +32,9 @@ rule readprep_report:
         fastq=config['fastq']
     output:
         REPORT
+    resources:
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            (os.path.getsize(input[0]) * 2)//1000000)
     run:
         from snakemake.utils import report
         record_counts = []
@@ -111,7 +113,8 @@ rule readprep:
     output: config['fasta']
     input: config['fastq']
     resources: 
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            os.path.getsize(input[0] * 2)//1000000)
     params:
         call=BIN,
         args=CML_PARAMS

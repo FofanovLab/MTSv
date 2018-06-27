@@ -3,9 +3,11 @@ _meta_wgfast:
 reference_directory:
   help: Path to reference file directory
   type: path_type
-taxa:
-  help: Extract reads for these taxa
-  nargs: +
+  required: True
+wgfast_output:
+  help: Path to place wgfast output
+  type: outpath_type
+  default: ./WGFast/
 coverage:
   help: minimum SNP coverage required to be called a SNP
   default: 3
@@ -32,7 +34,8 @@ doc:
   default: True
 temp:
   help: Temporary directory for GATK analysis
-  outpath_type: ./tmp
+  default: ./tmp
+  type: outpath_type
 method:
   help: method to insert unknown genomes
   choices: [MP, ML]

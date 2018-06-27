@@ -82,11 +82,12 @@ rule signature:
         call = BIN,
         args = CML_PARAMS
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            (os.path.getsize(input[0]) + 
+            os.path.getsize(input[1] * 1.5))//1000000)
     log:
         config['log_file']
-    threads:
-        config['threads']
+    threads: 4 # max at 4 until threading issue is figured out
     message: """Finding signature reads from {input}. Writing to {output}"""
     shell:
         """{params.call} --index {input.index} --input {input.infile} --output {output} {params.args} >> {log} 2>&1"""
@@ -98,7 +99,9 @@ rule summary:
         sig=config['signature_file'],
         clp=config['merge_file']
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * (
+            (os.path.getsize(input[0]) + 
+            os.path.getsize(input[1] * 2))//1000000)
     params:
         taxdump=config['taxdump_path']
     threads:

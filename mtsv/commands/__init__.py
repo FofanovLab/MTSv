@@ -54,12 +54,10 @@ class Command:
             cmd += self.snake_params
             try:
                 p = sp.run(cmd,
-                        # stdout = sp.PIPE,
-                        # stderr=sp.PIPE,
                         check=True)
                 self._params.write_parameters()
             except sp.CalledProcessError as e:
-                print(e)
+                error(e)
             
 
 class Init(Command):
@@ -147,18 +145,7 @@ class Readprep(Command):
 
     def __init__(self, params):
         super().__init__(params)
-        self.modify_params()
         self.rules = [SNAKEFILES['readprep']]
-
-    def modify_params(self):
-        # don't allow invalid combination of adapter params
-        if 'adapters' in self.params and 'adapter-tolerance' not in self.params:
-            raise argparse.ArgumentError(
-                '--adapters requires --adapter-tolerance')
-        if 'adapter-tolerance' in self.params and 'adapters' not in self.params:
-            raise argparse.ArgumentError(
-                '--adapter-tolerance requires --adapters') 
-           
 
 class Summary(Command):
     config_section=["SUMMARY"]
@@ -177,6 +164,7 @@ class Pipeline(Command):
         self.rules = [SNAKEFILES['pipeline']]
 
 class WGFast(Command):
+    config_section=["EXTRACT", "WGFAST"]
     def __init__(self, params):
         super().__init__(params)
         self.rules = [SNAKEFILES['wgfast']]

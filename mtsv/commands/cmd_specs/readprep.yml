@@ -10,28 +10,28 @@ fastq:
   action: Glob
 fasta:
   default: ./QueryFastas/queries.fasta
-  help: Path to FASTA query file.
+  help: Path to FASTA query file produced by readprep.
   type: outfile_type
-adapters:
-  help: Path to file containing adapters, one per line, must also provide value for ADAPTER-TOLERANCE.
-  type: file_type
-adapter-tolerance:
-  help: Number of adapter characters to tolerate at start of reads. Must also provide ADAPTORS path.
-  type: positive_int
-quality_min:
-  help: Minimum FASTQ quality to tolerate per base.
-  type: positive_int
-quality_threshold:
-  help: Maximum number of bases below minimum quality to tolerate per read.
-  type: nonneg_int
+# adapters:
+#   help: Path to file containing adapters, one per line, must also provide value for ADAPTER-TOLERANCE.
+#   type: file_type
+# adapter-tolerance:
+#   help: Number of adapter characters to tolerate at start of reads. Must also provide ADAPTORS path.
+#   type: positive_int
+# quality_min:
+#   help: Minimum FASTQ quality to tolerate per base.
+#   type: positive_int
+# quality_threshold:
+#   help: Maximum number of bases below minimum quality to tolerate per read.
+#   type: nonneg_int
 trim_mode:
   default: segment
   help: >
     --lcd takes first N bases of each read, where N = shortest read length in FASTQ
-    --lcdqual takes highest quality N bases of each read, where N = shortest read length
     --segment takes subsequent N length sequences of each read (set N with --kmer)
+    # --lcdqual takes highest quality N bases of each read, where N = shortest read length
   type: str
-  choices: [lcd, lcdqual, segment]
+  choices: [lcd, segment]
 kmer:
   default: 50
   help: Set size of each read segment for segment trim mode.

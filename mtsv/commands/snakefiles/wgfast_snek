@@ -1,0 +1,35 @@
+import os
+
+include: "extract_snek"
+
+shell.prefix("set -euo pipefail;")
+
+REPORT = "wgfast_report.html"
+
+rule all:
+    input:
+        REPORT
+
+
+rule wgfast_report:
+    output: REPORT
+
+
+rule wgfast:
+    input:
+        reads=FASTQ_OUTPUT # ouput from extract see extract_snek
+    output:
+        tree = os.path.join(
+            config['wgfast_output'], "transformed.tree"),
+        nasp = os.path.join(
+            config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
+        cov = os.path.join(
+            config['wgfast_output'], "coverage_out.txt"),
+        pat = os.path.join(
+            config['wgfast_output'], "all_patristic_distances.txt")
+    params:
+        wd = config['wgfast_output'],
+        reads_dir = config['extract_path']
+    
+    shell:
+        '''cd {params.wd}; gzip {input.reads}; wgfast -d {params.reads_dir}
