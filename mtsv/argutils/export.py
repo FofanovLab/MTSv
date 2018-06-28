@@ -55,7 +55,13 @@ def to_config(cmd_name, argsdict, desc=None):
         if EXCLUDE_FLAG in argvals:
             continue
 
-        description = format_comment(argvals.get(DESC_KEY, ""))
+        d = argvals.get(DESC_KEY, "")
+        if 'choices' in argvals:
+            d += " Choices {0}".format(argvals['choices'])
+        if 'required' in argvals:
+            d += " [REQUIRED]"
+        description = format_comment(d)
+
         default = argvals.get("default", "")
         line = CFG_LINE_STR.format(key=argname, value=default)
         out += description + line

@@ -71,7 +71,6 @@ rule binning_report:
             list(queries.keys()),
             hits,
             assume_unique=True)
-        print(no_hits, list(queries.keys()), hits)
         n_misses = len(no_hits)
         n_total_misses = "\t".join(np.array(np.sum(
             np.array(

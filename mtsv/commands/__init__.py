@@ -101,7 +101,7 @@ class Analyze(Command):
             bin_params['database_config'])
         self.params['summary_file_in'] = self.params['summary_file']
         self.params['tax_level'] = summary_params['tax_level']
-        self.params['lca'] = summary_params['lca']
+        # self.params['lca'] = summary_params['lca']
         # move all normal output into analysis subdirectory
         self.params['binning_outpath'] = self.modify_helper("Binning")
         self.params['fasta'] = self.modify_helper("analysis_queries.fasta")
@@ -168,5 +168,6 @@ class WGFast(Command):
     def __init__(self, params):
         super().__init__(params)
         self.rules = [SNAKEFILES['wgfast']]
+        print("PARAMS", self.params)
 
 

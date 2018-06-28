@@ -10,7 +10,7 @@ REPORT = "extract_report.html"
 
 
 merge_prior_params = json.loads(open(os.path.join(
-        os.path.basename(config['merge_file']),
+        os.path.dirname(config['merge_file']),
         ".params"),
         'r').read())['merge_file'][config['merge_file']]
 
@@ -22,9 +22,9 @@ config['taxdump_path'] = file_type(get_database_params(
 
 
 reads = json.loads(open(os.path.join(
-    os.path.basename(merge_prior_params['fasta']),
+    os.path.dirname(merge_prior_params['fasta']),
     ".params"),
-    'r').read())['read_prep'][merge_prior_params['fasta']]['fastq']
+    'r').read())['readprep'][merge_prior_params['fasta']]['fastq']
 
 if config['by_sample']:
     # get number of samples
@@ -43,15 +43,16 @@ else:
     FASTA_OUTPUT = [os.path.join(config['extract_path'], str(tax) + ".fasta") 
     for tax in config['taxids']]
 
-FASTQ_OUTPUT = [os.path.splittext(fasta)[0] + ".fastq" for fasta in FASTA_OUTPUT]
+FASTQ_OUTPUT = [os.path.splitext(fasta)[0] + ".fastq" for fasta in FASTA_OUTPUT]
 FASTA = file_type(json.loads(
     open(os.path.join(
         os.path.dirname(
             config['merge_file']),
         ".params"), 'r').read())['merge_file'][config['merge_file']]['fasta'])   
 
+print(FASTQ_OUTPUT, FASTA_OUTPUT)
 
-rule all:
+rule extract_all:
     input:
         REPORT
 
@@ -66,15 +67,15 @@ rule extract_report:
     run:
         from snakemake.utils import report
         total_fasta_queries = [
-            len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input[0]]
+            len(list(SeqIO.parse(fasta, "fasta"))) for fasta in input.fasta]
         total_fastq_queries = [
-            len(list(SeqIO.parse(fastq, "fastq"))) for fastq in input[1]]
-        fasta_files = [os.path.basename(out) for out in input[0]]
-        fastq_files = [os.path.basename(out) for out in input[1]]
+            len(list(SeqIO.parse(fastq, "fastq"))) for fastq in input.fastq]
+        fasta_files = [os.path.basename(out) for out in input.fasta]
+        fastq_files = [os.path.basename(out) for out in input.fastq]
         _files = fasta_files + fastq_files
         total_queries = total_fasta_queries + total_fastq_queries
 
-        data = "\n".join(["{0:<23} {1:<11}".format(f, q) for f, q in zip(
+        data = "\n".join(["{0:<26} {1:<11}".format(f, q) for f, q in zip(
             _files, total_queries)])
         report(
             """ 
@@ -102,9 +103,7 @@ rule extract:
         fasta=FASTA,
         clp=config['merge_file']
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * (
-            (os.path.getsize(input[0]) + 
-            os.path.getsize(input[1] * 2))//1000000)
+        mem_mb=lambda wildcards, attempt, input: attempt * 500
     params:
         taxdump=config['taxdump_path'],
         taxids=config['taxids'],

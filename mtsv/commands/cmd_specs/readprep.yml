@@ -4,7 +4,7 @@ fastq:
   nargs: +
   help: >
     Path(s) to FASTQ files to deduplicate,
-    absolute path or relative to working dir [REQUIRED].
+    absolute path or relative to working dir.
   required: True
   positional: True
   action: Glob

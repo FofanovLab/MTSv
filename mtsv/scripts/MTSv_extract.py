@@ -50,6 +50,7 @@ def reduce_targets(taxids, targets):
 def mtsv_extract(
     taxids, clps_file, query_fasta,
     descendants, by_sample, outpath, threads):
+    taxids = [int(tax) for tax in taxids]
     # for higher level taxids, include all descendants in output
     parents, descendants = get_decendants(taxids, descendants)
     targets_partial = partial(
@@ -68,7 +69,6 @@ def mtsv_extract(
     if sum([len(t) for t in targets.values()]):
         query_fasta_dict = SeqIO.to_dict(
             SeqIO.parse(query_fasta, "fasta"))
-
     if by_sample:
         with open(clps_file, 'r') as infile:
             n_samples = len(
@@ -132,7 +132,7 @@ def write_sequences(
             SeqIO.write(records, fhandle, "fasta")
             for query, record in zip(targets[1], records):
                 record.letter_annotations[
-                    "phred_quality"] = 40 * len(record)
+                    "phred_quality"] = [40] * len(record)
                 name = record.id
                 for rep in range(
                     np.sum(np.array(query.split("_")[1:], dtype=int))):
@@ -144,7 +144,8 @@ if __name__ == "__main__":
     config_logging(snakemake.log[0], "INFO")
     logger = logging.getLogger(__name__)    
 
-    NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+    # NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+    NCBI = NCBITaxa()
 
     mtsv_extract(
          snakemake.params[1],
