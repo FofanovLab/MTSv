@@ -14,9 +14,4 @@ includedb:
   default: ["genbank","Complete Genome","Chromosome","Scaffold"]
   nargs: +
   help: Subsets of defaults can be specified for download or partitioning
-overwrite:
-  default: False
-  action: 'store_true'
-  help: Force current database to be overwritten/removed.
-
 
