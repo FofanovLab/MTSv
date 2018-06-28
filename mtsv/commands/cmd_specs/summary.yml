@@ -10,7 +10,10 @@ signature_file:
   type: outfile_type
 summary_file:
   default: ./Summary/summary.csv
-  help: File to place summary table.
+  help: >
+    File to place summary table. WARNING avoid moving output files from original
+    directory, downstream processes rely on metadata (.params file) stored
+    in directory.
   type: outfile_type
 tax_level:
   default: species
@@ -18,6 +21,7 @@ tax_level:
     Roll up read hits to a common genus or family level when searching for 
     signature hits. 
     (Takes priority over LCA search when family or genus exist for a taxonomic ID.)
+    More roll up options comming soon.
   type: str
   choices: [family, genus, species]
 # lca:

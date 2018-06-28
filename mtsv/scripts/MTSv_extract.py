@@ -2,6 +2,7 @@ from Bio import SeqIO
 from ete3 import NCBITaxa
 import logging
 import os
+import argparse
 import numpy as np
 from collections import defaultdict
 from multiprocessing import Pool
@@ -89,7 +90,7 @@ def mtsv_extract(
 def write_sequences_by_sample(
     targets, query_fastas, outpath, n_samples):                                                                                           
     if not len(targets[1]):
-        logger.info(
+        LOGGER.info(
             "There were no sequences for taxid: {}".format(
                 targets[0]))
     sample_dict = {i:[] for i in range(n_samples)}
@@ -124,7 +125,7 @@ def write_sequences(
     fastq_file = os.path.splitext(fasta_file)[0] + ".fastq"
     with open(fasta_file, 'w') as fhandle, open(fastq_file, 'w') as qhandle:
         if not len(targets[1]):
-            logger.info(
+            LOGGER.info(
                 "There were no sequences for taxid: {}".format(
                     targets[0]))
         else:
@@ -141,17 +142,20 @@ def write_sequences(
 
 
 if __name__ == "__main__":
-    config_logging(snakemake.log[0], "INFO")
-    logger = logging.getLogger(__name__)    
+    try:
+        config_logging(snakemake.log[0], "INFO")
+        LOGGER = logging.getLogger(__name__)    
 
-    # NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
-    NCBI = NCBITaxa()
+        NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
 
-    mtsv_extract(
-         snakemake.params[1],
-         snakemake.input[1],
-         snakemake.input[0],
-         snakemake.params[3],
-         snakemake.params[4],
-         snakemake.params[2],
-         snakemake.threads)
+        mtsv_extract(
+            snakemake.params[1],
+            snakemake.input[1],
+            snakemake.input[0],
+            snakemake.params[3],
+            snakemake.params[4],
+            snakemake.params[2],
+            snakemake.threads)
+    except NameError:
+        
+

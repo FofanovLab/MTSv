@@ -133,7 +133,14 @@ def track_file_params(
         out.write(record)
 
 def get_database_params(filepath, value):
-    return json.loads(open(filepath, 'r').read())[value]
+    try:
+        return json.loads(open(filepath, 'r').read())[value]
+    except IOError:
+        error("{} file is not present. Avoid moving datafiles because "
+              "the directory includes required metadata".format(filepath))
+    except ValueError:
+        error("Cound not parse json: {}".format(filepath))
+    
 
 
 

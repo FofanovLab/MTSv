@@ -56,7 +56,7 @@ class Command:
                 p = sp.run(cmd,
                         check=True)
                 self._params.write_parameters()
-            except sp.CalledProcessError as e:
+            except ( KeyboardInterrupt, sp.CalledProcessError) as e:
                 warn("Unlocking directory after failed snakemake")
                 sp.run(cmd + ["--unlock"] )
                 error(e)

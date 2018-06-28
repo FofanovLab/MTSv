@@ -116,10 +116,10 @@ def add_default_arguments(parser):
     )
     parser.add_argument(
         '-lf', "--log_file", type=outfile_type,
-        default=os.path.abspath(os.path.join("logs", DEFAULT_LOG_FNAME)),
+        default=os.path.join("./Logs", DEFAULT_LOG_FNAME),
         help="Set log file path, "
              "absolute or relative to working dir. "
-             "(default: ./logs/{})".format(DEFAULT_LOG_FNAME)
+             "(default: ./Logs/{})".format(DEFAULT_LOG_FNAME)
     )
     parser.add_argument(
         '-t', "--threads", type=positive_int,

@@ -1,13 +1,13 @@
 import os
 from mtsv.utils import bin_path, track_file_params
-from mtsv.parsing import parse_query_id, format_cml_params
+from mtsv.parsing import parse_query_id, format_cml_params, outfile_type
 from Bio import SeqIO
 import numpy as np
 from operator import add
 
 
 shell.prefix("set -euo pipefail;")
-REPORT = "readprep_report.html"
+REPORT = outfile_type(os.path.join("Reports", "readprep_report.html"))
 
 CML_PARAMS = format_cml_params(
     'READPREP', config,

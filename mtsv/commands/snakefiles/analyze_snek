@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 from mtsv.utils import script_path
-from mtsv.parsing import format_cml_params
+from mtsv.parsing import format_cml_params, outfile_type
 
 include: "binning_snek"
 include: "summary_snek"
@@ -15,7 +15,7 @@ SCRIPTS = {
     'analyze': script_path("MTSv_analyze.py")
 }
 
-REPORT = "analyze_report.html"
+REPORT = outfile_type(os.path.join("Reports", "analyze_report.html"))
 
 
 CANDIDATE_TAXA = os.path.join(
