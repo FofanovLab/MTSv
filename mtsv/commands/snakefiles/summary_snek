@@ -65,13 +65,10 @@ rule summary_report:
             {input.sig}\n
             **Summary table:** \n
             {input.summary}\n
-            Summary_\n
             There were **{n_sig_unique}** unique signature hits.\n
             Total number of reads assocated with signature hits:\n
             **{n_total_sig}**
-            
-            
-            """, output[0], Summary=input['summary'])
+            """, output[0])
 
 rule signature:
     """Find signature hits"""
@@ -90,7 +87,7 @@ rule signature:
     threads: 1 # max at 1 until threading issue is figured out
     message: """Finding signature reads from {input}. Writing to {output}"""
     shell:
-        """{params.call} --index {input.index} --input {input.infile} --output {output} {params.args} >> {log} 2>&1"""
+        """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
 
 rule summary:
     """Summarize number of total and signature hits for each taxa"""

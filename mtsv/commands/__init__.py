@@ -3,7 +3,7 @@ import json
 import subprocess as sp
 import argparse
 from mtsv.parsing import create_config_file, file_type
-from mtsv.utils import snake_path, get_database_params, error
+from mtsv.utils import snake_path, get_database_params, error, warn
 
 SNAKEFILES = {
     cmd:snake_path("{}_snek").format(cmd)
@@ -57,6 +57,8 @@ class Command:
                         check=True)
                 self._params.write_parameters()
             except sp.CalledProcessError as e:
+                warn("Unlocking directory after failed snakemake")
+                sp.run(cmd + ["--unlock"] )
                 error(e)
             
 

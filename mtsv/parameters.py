@@ -1,3 +1,5 @@
+from parsing import outfile_type
+
 class Parameters:
     def __init__(self, params, snake_params):
         self._params = vars(params)
@@ -16,9 +18,10 @@ class Parameters:
         return self._snake_params
 
     def write_parameters(self):
-        file_name = "{cmd}_{timestamp}_params.txt".format(
+        file_name = outfile_type(os.path.join("Parameters",
+        "{cmd}_{timestamp}_params.txt".format(
             cmd=self.params['cmd_class'].__name__,
-            timestamp=self.params['timestamp'])
+            timestamp=self.params['timestamp'])))
         with open(file_name, 'w') as out:
             for k, v in self.params.items():
                 if hasattr(v, 'name'):

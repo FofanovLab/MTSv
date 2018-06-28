@@ -44,7 +44,7 @@ rule analyze_report:
         **{params[0]}** 
         unique signature hits. \n
         {taxa}\n    
-        """, output[0], Analysis=input)
+        """, output[0])
 
 # Get list of taxa to analyze
 rule candidate_taxa:
