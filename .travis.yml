@@ -21,6 +21,6 @@ before_install:
 install:
   - conda install -q python=3.6 pip requests conda-build jinja2 anaconda-client 
   - conda build . -c bioconda -c etetoolkit -c conda-forge
-  - conda install mtsv --use-local -c bioconda -c etetoolkit -c conda-forge -y
+  - conda install mtsv --use-local -c tara_furstenau -c bioconda -c etetoolkit -c conda-forge
 script:
   - mtsv --help
