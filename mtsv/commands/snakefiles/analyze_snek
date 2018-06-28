@@ -18,9 +18,9 @@ SCRIPTS = {
 REPORT = outfile_type(os.path.join("Reports", "analyze_report.html"))
 
 
-CANDIDATE_TAXA = os.path.join(
+CANDIDATE_TAXA = outfile_type(os.path.join(
                     config['analyze_outpath'],
-                    "candidate_taxa.txt")
+                    "candidate_taxa.txt"))
 
 
 rule analyze_all:
@@ -60,15 +60,11 @@ rule candidate_taxa:
     script: SCRIPTS['candidate_taxa']
 
 MEM = config['kmer'] * config['n_kmers'] * config['threads']
+
 rule random_kmers:
     input: CANDIDATE_TAXA
     output:
-        fasta=config['fasta'],
-        seq_files=temp(
-            [os.path.join(
-                os.path.dirname(config['fasta']),
-                candidate) for candidate in np.array(np.genfromtxt(
-                    CANDIDATE_TAXA, dtype=str), ndmin=1)])
+        fasta=config['fasta']
     message:
         """Generating random kmers from candidate taxa.
         Writing to {output}"""

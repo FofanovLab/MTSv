@@ -92,7 +92,7 @@ rule binning_report:
         There were **{n_hits}** unique hits out 
         of **{total_queries}** unique queries.\n
         There were **{n_misses}** queries with no hits.\n
-        These missed sequences are reported in {output['unaligned']}.\n
+        These missed sequences are reported in {output.unaligned}.\n
         Total number of reads associated with misses by sample:\n
         **{n_total_misses}**
         """, output['rep'])

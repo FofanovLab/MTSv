@@ -142,20 +142,19 @@ def write_sequences(
 
 
 if __name__ == "__main__":
-    try:
-        config_logging(snakemake.log[0], "INFO")
-        LOGGER = logging.getLogger(__name__)    
 
-        NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+    config_logging(snakemake.log[0], "INFO")
+    LOGGER = logging.getLogger(__name__)    
 
-        mtsv_extract(
-            snakemake.params[1],
-            snakemake.input[1],
-            snakemake.input[0],
-            snakemake.params[3],
-            snakemake.params[4],
-            snakemake.params[2],
-            snakemake.threads)
-    except NameError:
+    NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+
+    mtsv_extract(
+        snakemake.params[1],
+        snakemake.input[1],
+        snakemake.input[0],
+        snakemake.params[3],
+        snakemake.params[4],
+        snakemake.params[2],
+        snakemake.threads)
         
 
