@@ -9,6 +9,7 @@ import gzip
 import tarfile
 from multiprocessing import Pool, Queue, Process, Manager, RLock
 import pickle, json
+from mtsv.utils import bin_path
 
 lock = RLock()
 
@@ -17,11 +18,7 @@ def serialization(gi2tx,fasta_path, txdump_path):
     tx2gi = {}
     gi2ind = {}
     print("Parsing taxid to Unique ID")
-    # if len(gi2tx) == 1:
-    #     try:
-    #         with open(gi2tx[0],"r"):
-    #             pass
-    #     except:
+
     for i in gi2tx:
         try:
             with gzip.open(i) as file:
@@ -436,12 +433,17 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     command_one = "g++ -std=c++11 -pthread -static-libstdc++ taxidtool.cpp -o db_builder"
     command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
                                                                     source_out_fp, thread_count, gi_to_word)
+    command_three = command_two = "{6} {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
+                                                                    source_out_fp, thread_count, gi_to_word, bin_path('mtsv-db-build'))
     if not os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
-        try:
-            subprocess.run(command_two.split())
-        except:
-            subprocess.run(command_one.split())
-            subprocess.run(command_two.split())
+        if os.path.isfile(bin_path('mtsv-db-build')):
+            subprocess.run(command_three.split())
+        else:
+            try:
+                subprocess.run(command_two.split())
+            except:
+                subprocess.run(command_one.split())
+                subprocess.run(command_two.split())
 
     count = 0
     if os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
