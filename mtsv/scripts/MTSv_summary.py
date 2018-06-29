@@ -232,7 +232,7 @@ if __name__ == "__main__":
         )
 
         PARSER.add_argument(
-            "--log", type=file_type, default="./summary.log",
+            "--log", type=outfile_type, default="./summary.log",
             help="Path of log file."
         )
 
