@@ -1,7 +1,8 @@
 import os
 import json
-from mtsv.utils import script_path, get_database_params
-from mtsv.parsing import format_cml_params, file_type
+import numpy as np
+from mtsv.utils import script_path
+from mtsv.parsing import format_cml_params, outfile_type
 
 include: "binning_snek"
 include: "summary_snek"
@@ -14,59 +15,12 @@ SCRIPTS = {
     'analyze': script_path("MTSv_analyze.py")
 }
 
-REPORT = "analyze_report.html"
-config['analyze_outpath'] = os.path.dirname(config['analysis_file'])
+REPORT = outfile_type(os.path.join("Reports", "analyze_report.html"))
 
-CANDIDATE_TAXA = os.path.join(
+
+CANDIDATE_TAXA = outfile_type(os.path.join(
                     config['analyze_outpath'],
-                    "candidate_taxa.txt")
-
-
-
-def get_prior_params(config):
-    # trace back parameters from input files
-    summary_params = json.loads(open(os.path.join(
-        os.path.basename(config['summary_file']),
-        ".params"), 'r').read())['summary_file'][config['summary_file']]
-    merge_file = summary_params['merge_file']
-    bin_params = json.loads(open(os.path.join(
-        os.path.basename(merge_file),
-        ".params"), 'r').read())['merge_file'][merge_file]
-    kmer = json.loads(open(os.path.join(
-        os.path.basename(bin_params['fasta']),
-        ".params"), 'r').read())['readprep'][bin_params['fasta']]['kmer']
-    config['kmer'] = kmer
-    for key in ['seed-size', 'min-seeds',
-        'seed-gap', 'edits', 'fm_index_paths',
-        'binning_mode']:
-        config[key.replace("-", "_")] = bin_params[key]
-    config[key] = file_type(bin_params['database_config'])
-    config['summary_file_in'] = config['summary_file']
-    return config
-
-def add_new_params(config):
-    config['binning_outpath'] = config['analyze_outpath']
-    config['fasta'] = os.path.join(
-        config['analyze_outpath'],
-        "analysis_queries.fasta")
-    config['merge_file'] = os.path.join(
-        config['analyze_outpath'],
-        "merged.clp")
-    config['signature_file'] = os.path.join(
-        config['analyze_outpath'],
-        "signature.txt")
-    config['summary_file'] = os.path.join(
-        config['analyze_outpath'],
-        "summary.csv")
-    config['fasta_db'] = file_type(get_database_params(
-        config['database_config'], "fasta-path"))
-    config['serial_path'] = file_type(get_database_params(
-        config['database_config'], "serialization-path"))
-    return config
-
-
-config = get_prior_params(config)
-config = add_new_params(config)
+                    "candidate_taxa.txt"))
 
 
 rule analyze_all:
@@ -76,9 +30,21 @@ rule analyze_all:
 rule analyze_report:
     input: config['analysis_file']
     output: REPORT
+    params:
+        cutoff = config['signature_cutoff']
     run:
         from snakemake.utils import report
-        report(''' ''', output[0])
+        taxa = np.array(np.genfromtxt(CANDIDATE_TAXA, dtype=str), ndmin=1)
+        n_taxa = len(taxa)
+        taxa = "\n".join(taxa)
+        report("""
+        Analysis Report
+        ==================================
+        **{n_taxa}** candidate taxa with more than
+        **{params[0]}** 
+        unique signature hits. \n
+        {taxa}\n    
+        """, output[0])
 
 # Get list of taxa to analyze
 rule candidate_taxa:
@@ -93,20 +59,26 @@ rule candidate_taxa:
         taxdump = config['taxdump_path']
     script: SCRIPTS['candidate_taxa']
 
+MEM = config['kmer'] * config['n_kmers'] * config['threads']
 
 rule random_kmers:
     input: CANDIDATE_TAXA
-    output: config['fasta']
+    output:
+        fasta=config['fasta']
     message:
         """Generating random kmers from candidate taxa.
         Writing to {output}"""
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * (MEM//1000000)
     params:
-        kmer_size=params['kmer'],
+        kmer_size=config['kmer'],
         n_kmers=config['n_kmers'],
         fasta_path=config['fasta_db'],
         pickle_path=config['serial_path']
     threads:
         config['threads']
+    log:
+        config['log_file']
     script: SCRIPTS['random_kmers']
 
 

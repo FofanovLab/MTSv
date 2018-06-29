@@ -15,7 +15,7 @@ from mtsv.argutils import (read, export)
 from mtsv import (DEFAULT_LOG_FNAME, DEFAULT_CFG_FNAME)
 
 logger = logging.getLogger(__name__)
-SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT"]
+SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT", "WGFAST"]
 
 split = str.split
 strip = str.strip
@@ -32,15 +32,18 @@ def make_sub_parser(subparser, cmd, cmd_class):
             continue
         if 'type' in desc:
             desc['type'] = TYPES[desc['type']]
+        if 'choices' in desc and 'help' in desc:
+            desc['help'] += " Choices are {}".format(desc['choices'])
         if 'default' in desc and 'help' in desc:
             desc['help'] += " (default: {})".format(desc['default'])
+        if 'required' in desc and 'help' in desc:
+            desc['help'] += " [REQUIRED]"
         if 'action' in desc and desc['action'] in ACTIONS:
             desc['action'] = getattr(
                 sys.modules[__name__], desc['action'])
         arg = "--{}".format(arg)
         if 'positional' in desc:
             del desc['positional']
-
         p.add_argument(
             arg, **desc
         )
@@ -113,10 +116,10 @@ def add_default_arguments(parser):
     )
     parser.add_argument(
         '-lf', "--log_file", type=outfile_type,
-        default=DEFAULT_LOG_FNAME,
+        default=os.path.join("./Logs", DEFAULT_LOG_FNAME),
         help="Set log file path, "
              "absolute or relative to working dir. "
-             "(default: ./{})".format(DEFAULT_LOG_FNAME)
+             "(default: ./Logs/{})".format(DEFAULT_LOG_FNAME)
     )
     parser.add_argument(
         '-t', "--threads", type=positive_int,
@@ -155,6 +158,11 @@ def path_type(input_path):
         raise argparse.ArgumentTypeError("Not a valid path")
     return os.path.abspath(input_path)
 
+def flag_type(input_val):
+    if not set(input_val).intersection(set("TF")):
+        raise argparse.ArgumentTypeError(
+            "Invalid flag, must be either T or F")
+    return True if input_val == "T" else False
 
 def project_dir_type(input_path):
     '''Creates a project directory if one does not exist and
@@ -218,7 +226,8 @@ def file_type(input_file):
 
     input_file = os.path.abspath(input_file)
     if not os.path.isfile(input_file):
-        raise argparse.ArgumentTypeError("Not a valid file path")
+        raise argparse.ArgumentTypeError(
+            "Not a valid file path: {}".format(input_file))
     return input_file
 
 
@@ -249,17 +258,6 @@ def read_handle_type(input_file):
     return open(file_type(input_file), 'r') 
 
 
-def positive_int(input_val):
-    '''Make a positive int type for argparse'''
-    try:
-        input_val = int(input_val)
-        if input_val <= 0:
-            raise ValueError
-    except ValueError:
-        raise argparse.ArgumentTypeError("Not a positive integer")
-    return input_val
-
-
 def nonneg_int(input_val):
     ''' Make a non negative int type for argparse'''
     try:
@@ -279,7 +277,7 @@ def proportion(input_val):
             raise ValueError
     except ValueError:
         raise argparse.ArgumentTypeError("Not a proportion")
-    return input_value
+    return input_val
 
 
 def positive_int(input_val):
@@ -306,7 +304,7 @@ def parse_output_row(row):
 
 
 def parse_query_id(query_id):
-    return [int(q) for q in query_id.split("_")[1:]]
+    return np.array([int(q) for q in query_id.split("_")[1:]])
 
 
 TYPES = {
@@ -325,6 +323,7 @@ TYPES = {
     'project_dir_type': project_dir_type,
     'write_handle_type': write_handle_type,
     'read_handle_type': read_handle_type,
-    'path_list_type': path_list_type
+    'path_list_type': path_list_type,
+    'flag_type': flag_type
     }
 ACTIONS = {'Glob': Glob}

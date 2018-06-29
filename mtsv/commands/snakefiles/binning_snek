@@ -2,7 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 from Bio import SeqIO
-from mtsv.parsing import parse_query_id, format_cml_params, file_type
+from mtsv.parsing import (
+    parse_query_id, format_cml_params, file_type, outfile_type)
 from mtsv.utils import bin_path, track_file_params, get_database_params
 
 
@@ -13,7 +14,7 @@ BINS = {
     for name in [
         'binner','collapse']}
 
-REPORT = "binning_report.html"
+REPORT = outfile_type(os.path.join("Reports", "binning_report.html"))
 config['fm_index_paths'] = [file_type(f) for f in get_database_params(
     config['database_config'], 'fm-index-paths')]
 INDEX_PATH = os.path.dirname(config['fm_index_paths'][0])
@@ -24,23 +25,26 @@ INDEX_OUT = [
 LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
         for indx in INDEX]    
 
-MODE_DICT = {'fast': {'seed-size': 17, 'min-seeds': 5, 'seed-gap': 2},
-             'efficient': {'seed-size': 14, 'min-seeds': 4, 'seed-gap': 2},
-             'sensitive': {'seed-size': 11, 'min-seeds': 3, 'seed-gap': 1}}
+MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
+             'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
+             'sensitive': {'seed_size': 11, 'min_seeds': 3, 'seed_gap': 1}}
 
 BIN_MODE = MODE_DICT[config['binning_mode']]
 for key, value in BIN_MODE.items():
     if key not in config:
+        # snakemake config does not allow dashes
+        # but dashes are required for these mtsv params 
         config[key] = value
+    config[key.replace("_", "-")] = value
+    del config[key]
 
 CML_PARAMS = format_cml_params(
     'BINNING',
     config,
-    ['binning_mode', 'fm_index_paths', 'fasta',
+    ['binning_mode', 'fm_index_paths', 'fasta', 'database_config',
     'merge_file', 'binning_outpath'],
     [])
-    
-MEM=50
+
 
 rule binning_all:
     input: REPORT
@@ -54,12 +58,14 @@ rule binning_report:
         unaligned = os.path.join(
             config['binning_outpath'],
             'unaligned_queries.fasta')
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 500
     run:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
-            SeqIO.parse(input['fasta'], "fasta"))
-        hits = np.loadtxt(
-            input['clps'], delimiter=":", dtype=str, usecols=0)
+            SeqIO.parse(input[1], "fasta"))
+        hits = np.genfromtxt(
+            input[0], delimiter=":", dtype=str, usecols=0)
         n_hits = len(hits)
         total_queries = len(queries)
         no_hits = np.setdiff1d(
@@ -86,10 +92,10 @@ rule binning_report:
         There were **{n_hits}** unique hits out 
         of **{total_queries}** unique queries.\n
         There were **{n_misses}** queries with no hits.\n
-        These missed sequences are reported in Misses_.\n
+        These missed sequences are reported in {output.unaligned}.\n
         Total number of reads associated with misses by sample:\n
         **{n_total_misses}**
-        """, output['rep'], Misses=output['unaligned'])
+        """, output['rep'])
             
 rule binning:
     """Metagenomics binning"""
@@ -99,7 +105,7 @@ rule binning:
         reads = config['fasta'],
         fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * 1000
     params:
         call=BINS['binner'],
         args=CML_PARAMS
@@ -120,7 +126,7 @@ rule collapse:
     input:
         INDEX_OUT
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * 1000
     message:
         "Merging binning output files into {output}."
     log:

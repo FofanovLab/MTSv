@@ -46,18 +46,23 @@ def config_logging(file_name, level):
     Arguments:
         level (str): Logging level
     """
+
     logging.basicConfig(
         filename=file_name,
         datefmt='%m/%d/%Y %I:%M:%S %p',
         level=getattr(logging, level),
-        filemode='w',
+        filemode='a',
         format='%(asctime)s %(levelname)s: [%(name)s] %(message)s')
 
 
 def set_log_file(log_file, command_name, timestamp):
-    return log_file.format(
+    log_file = log_file.format(
         COMMAND=str(command_name).lower(),
         TIMESTAMP=timestamp)
+    # clear out previous log
+    if os.path.isfile(log_file):
+        open(log_file, 'w').close()
+    return log_file
 
 
 def specfile_read(name):
@@ -128,7 +133,14 @@ def track_file_params(
         out.write(record)
 
 def get_database_params(filepath, value):
-    return json.loads(open(filepath, 'r').read())[value]
+    try:
+        return json.loads(open(filepath, 'r').read())[value]
+    except IOError:
+        error("{} file is not present. Avoid moving datafiles because "
+              "the directory includes required metadata".format(filepath))
+    except ValueError:
+        error("Cound not parse json: {}".format(filepath))
+    
 
 
 

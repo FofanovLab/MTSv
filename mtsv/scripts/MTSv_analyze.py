@@ -88,7 +88,7 @@ def get_expected_db(exp_summary_file, taxa):
 
 def run_analysis(
     exp_summary_file, obs_summary_file, taxa, outfile):
-    taxa = np.genfromtxt(taxa, dtype=int)
+    taxa = np.array(np.genfromtxt(taxa, dtype=int), ndmin=1)
     exp_db = get_expected_db(exp_summary_file, taxa)
     obs_sum = pd.read_csv(obs_summary_file)
     # remove all rows with non-candidate taxa
