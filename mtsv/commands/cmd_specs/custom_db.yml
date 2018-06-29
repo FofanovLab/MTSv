@@ -12,6 +12,7 @@ rollup_rank:
   help: NCBI rank to set sequence headers.
 partitions:
   default: ["2,2157", "10239,12884", "28384", "2759-33090,4751,7742", "33090", "4751", "7742-9443,9397,9913,9615", "9443-9606", "9397", "9913", "9615", "9606"]
+  nargs: +
   help: list of '-' delimited tuples of comma seperated TaxIDs for inclusion and exclusion ex. 1386-1392,1396 would create a FM-index of the genus Bacillus without B. anthracis and B. cereus if no exclusion desire no '-' is needed
 customdb:
   default: ["genbank"]

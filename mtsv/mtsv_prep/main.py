@@ -149,7 +149,7 @@ def partition(args):
 def chunk(file_list):
     dir_set = set()
     for fp in file_list:
-        subprocess.run("{2} --input {0} --output {1}".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')))
+        subprocess.run("{2} --input {0} --output {1}".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')).split() )
         dir_set.add(os.path.dirname(fp))
     return list(dir_set)
 
@@ -202,7 +202,7 @@ def fm_build(dir_list):
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.fmi".format(os.path.basename(fp).split(".")[0]))
-            subprocess.run("{2} --fasta {0} --index {1}.fmi".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')))
+            subprocess.run("{2} --fasta {0} --index {1}.fmi".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
             fm_list.append(out_file)
     return fm_list
 
@@ -219,9 +219,9 @@ def oneclickfmbuild(args, is_default):
 
 def setup_and_run(parser):
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]
 
-    print(args)
+    # print(args)
     try:
 
         if args.cmd_class == Database:
@@ -240,7 +240,7 @@ def setup_and_run(parser):
                 oneclickbuild(args)
 
         elif args.cmd_class == CustomDB:
-            print("TODO Clipper")
+            # print("TODO Clipper")
             # snake(args)
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
 
