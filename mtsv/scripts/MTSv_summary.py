@@ -184,15 +184,17 @@ def get_summary(all_file, sig_file, outfile, threads):
 
 
 if __name__ == "__main__":
+    #NCBI = NCBITaxa()
     NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
     config_logging(snakemake.log[0], "INFO")      
     logger = logging.getLogger(__name__)
 
     
     get_summary(
-          snakemake.input[1],
-          snakemake.input[0],
-          snakemake.output[0],
-          snakemake.threads)        
+        snakemake.input[1],
+        snakemake.input[0],
+        snakemake.output[0],
+        snakemake.threads)
+
 
     

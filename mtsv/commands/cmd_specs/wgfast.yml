@@ -34,7 +34,7 @@ doc:
   default: T
 temp:
   help: Temporary directory for GATK analysis
-  default: ./tmp
+  default: ./WGFast/tmp
   type: outpath_type
 fudge_factor:
   help: How close does a subsample have to be from true placement?

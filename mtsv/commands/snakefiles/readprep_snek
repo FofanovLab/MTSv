@@ -1,10 +1,9 @@
 import os
 from mtsv.utils import bin_path, track_file_params
-from mtsv.parsing import parse_query_id, format_cml_params, outfile_type
+from mtsv.parsing import (parse_query_id, format_cml_params, outfile_type, make_table)
 from Bio import SeqIO
 import numpy as np
 from operator import add
-
 
 shell.prefix("set -euo pipefail;")
 REPORT = outfile_type(os.path.join("Reports", "readprep_report.html"))
@@ -54,10 +53,9 @@ rule readprep_report:
                     record_counts = record_counts + count_list
                     unique_counts = unique_counts + count_list
                     counts.append(np.sum(count_list))
-        print(record_counts, unique_counts)
         file_string = "\n".join(params[0])
         if len(counts):
-            mean_counts = np.mean(counts)
+            mean_counts = np.around(np.mean(counts), decimals=2)
             median_counts = np.median(counts)
             max_counts = np.max(counts)
             min_counts = np.min(counts)
@@ -66,18 +64,29 @@ rule readprep_report:
             median_counts = 0
             max_counts = 0
             min_counts = 0
-        stats = "{0:<15}{1:<15.2f}{2:<15}{3:<15}".format(
-            min_counts,
-            mean_counts,
-            median_counts,
-            max_counts
-        )
-        data = ["{0:<21}{1:<11}{2:<15}{3:<18}".format(i,j,k,l) for i,j,k,l in zip(
-            [os.path.basename(p) for p in params[0]],
+        # stats = "{0:<15}{1:<15.2f}{2:<15}{3:<15}".format(
+        #     min_counts,
+        #     mean_counts,
+        #     median_counts,
+        #     max_counts
+        # )
+
+        stats = [[min_counts], [mean_counts], [max_counts], [min_counts]]
+        stats = make_table(stats, ["Min", "Mean", "Median", "Max"])
+        data = [[os.path.basename(p) for p in params[0]],
             range(1, len(record_counts) + 1),
             record_counts,
-            unique_counts)]
-        data = "\n".join(data)
+            unique_counts]
+        data = make_table(data,
+            ["Sample File",
+            "Sample ID", "No. of Queries", "No. Unique Queries"])
+
+        # data = ["{0:<21}{1:<11}{2:<15}{3:<18}".format(i,j,k,l) for i,j,k,l in zip(
+        #     [os.path.basename(p) for p in params[0]],
+        #     range(1, len(record_counts) + 1),
+        #     record_counts,
+        #     unique_counts)]
+        # data = "\n".join(data)
         config['kmer'] = query_size
         track_file_params('readprep', config['fasta'], config)
         report("""
@@ -91,19 +100,10 @@ rule readprep_report:
         **Written to:**\n
         {input}\n
         Statistics for the number of copies per unique query:\n
-        ============   ============   ============   ============
-        Min            Mean            Median        Max
-        ============   ============   ============   ============
         {stats}
-        ============   ============   ============   ============
 
-        
         By Sample:\n
-        ==================== ========== ============== ==================
-        Sample File          Sample ID  No. of Queries No. Unique Queries
-        ==================== ========== ============== ==================
         {data}
-        ==================== ========== ============== ==================
         """, output[0])
 
 rule readprep:

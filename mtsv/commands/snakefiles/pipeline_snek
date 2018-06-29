@@ -1,10 +1,14 @@
+import os
+from mtsv.parsing import outfile_type
+
 include: "readprep_snek"
 include: "binning_snek"
 include: "summary_snek"
 
+REPORTS = [outfile_type(
+    os.path.join(
+        "Reports", "{}_report.html".format(snk)))
+        for snk in ['summary', 'readprep', 'binning']]
 
-rule all:
-    input:
-        "summary_report.html",
-        "readprep_report.html",
-        "binning_report.html"
+rule pipeline_all:
+    input: REPORTS

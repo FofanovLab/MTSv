@@ -95,12 +95,23 @@ def snake_path(rule_name):
 
 
 def line_generator(file_name, n_lines):
-    f = open(file_name, 'r')
-    f.seek(0, 2)
-    file_size = f.tell()
-    f.seek(0)
-    dat = ""
     go = True
+    with open(file_name, 'r') as infile:
+        while go:
+            lines = []
+            for _ in range(n_lines):
+                l = infile.readline()
+                if l == "":
+                    go = False
+                    break
+                lines.append(l)
+            yield lines
+        return 
+
+    
+        
+
+
     while go:
         while dat.count("\n") < n_lines:
             if f.tell() < file_size:
@@ -110,6 +121,7 @@ def line_generator(file_name, n_lines):
                 break
         lines = [l for l in dat.split("\n") if l != ""]
         dat = "\n".join(lines[n_lines:])
+        print("GEN", lines[:n_lines][-1])
         yield lines[:n_lines]
     return
 

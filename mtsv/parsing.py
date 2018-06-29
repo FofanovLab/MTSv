@@ -307,6 +307,28 @@ def parse_query_id(query_id):
     return np.array([int(q) for q in query_id.split("_")[1:]])
 
 
+def make_table(columns, headers):
+    if len(headers) != len(columns):
+        raise ValueError(
+            "Header does not match number of columns")
+    max_sizes = []
+    table = ""
+    for column, header in zip(columns, headers):
+        max_sizes.append( max([len(str(c)) for c in column] + [len(str(header))]) )
+    div = "  ".join(["=" * size for size in max_sizes]) + "\n"
+    table += div
+    fmt = []
+    for i, sz in zip(range(len(columns)), max_sizes):
+        fmt.append("{{{0}:<{1}}}".format(i, sz))
+    fmt = "  ".join(fmt) + "\n"
+    # add header
+    table += fmt.format(*headers)
+    table += div
+    for row in [*zip(*columns)]:
+        table += fmt.format(*row)
+    table += div
+    return table
+
 TYPES = {
     'int': int,
     'str': str,

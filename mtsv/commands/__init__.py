@@ -84,16 +84,21 @@ class Analyze(Command):
         # trace back params from input files
         self.params['analyze_outpath'] = os.path.dirname(
             self.params['analysis_file'])
-        summary_params = json.loads(open(os.path.join(
-            os.path.dirname(self.params['summary_file']),
-            ".params"), 'r').read())['summary_file'][self.params['summary_file']]
-        merge_file = summary_params['merge_file']
-        bin_params = json.loads(open(os.path.join(
-            os.path.dirname(merge_file),
-            ".params"), 'r').read())['merge_file'][merge_file]
-        kmer = json.loads(open(os.path.join(
-            os.path.dirname(bin_params['fasta']),
-            ".params"), 'r').read())['readprep'][bin_params['fasta']]['kmer']
+        try:
+            summary_params = json.loads(open(os.path.join(
+                os.path.dirname(self.params['summary_file']),
+                ".params"), 'r').read())['summary_file'][self.params['summary_file']]
+            merge_file = summary_params['merge_file']
+            bin_params = json.loads(open(os.path.join(
+                os.path.dirname(merge_file),
+                ".params"), 'r').read())['merge_file'][merge_file]
+            kmer = json.loads(open(os.path.join(
+                os.path.dirname(bin_params['fasta']),
+                ".params"), 'r').read())['readprep'][bin_params['fasta']]['kmer']
+        except (IOError, ValueError, KeyError) as e:
+            error("Problem with input file metadata. "
+                  "Avoid moving input files from their original directory "
+                  "because the directory contains required metadata" + e)
         self.params['kmer'] = kmer
         for key in ['seed-size', 'min-seeds',
                     'seed-gap', 'edits', 'fm_index_paths',
