@@ -86,7 +86,7 @@ rule signature:
     log:
         config['log_file']
     threads: 1 # max at 1 until threading issue is figured out
-    message: """Finding signature reads from {input}. Writing to {output}"""
+    message: """Finding signature reads from {input}. Writing to {output}. Using {resources.mem_mb} Mb of memory and {threads} threads"""
     shell:
         """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
 
@@ -106,5 +106,5 @@ rule summary:
         config['log_file']
     message:
         """Running summary on {input.sig} and {input.clp}.
-        Writing to {output}"""
+        Writing to {output}. Using {resources.mem_mb} Mb of memory and {threads} threads"""
     script: SCRIPT

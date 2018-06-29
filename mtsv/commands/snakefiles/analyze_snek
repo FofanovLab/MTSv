@@ -67,7 +67,7 @@ rule random_kmers:
         fasta=config['fasta']
     message:
         """Generating random kmers from candidate taxa.
-        Writing to {output}"""
+        Writing to {output}. Using {resources.mem_mb} Mb of memory and {threads} threads"""
     resources:
         mem_mb=lambda wildcards, attempt: attempt * (MEM//1000000)
     params:

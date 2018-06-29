@@ -8,7 +8,7 @@ import numpy as np
 from multiprocessing import Pool
 from functools import partial
 from mtsv.utils import config_logging, line_generator
-from mtsv.parsing import parse_output_row
+from mtsv.parsing import parse_output_row, file_type, outfile_type
 
 
 DIV_MAP = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
@@ -131,7 +131,7 @@ def all_reduce(iterator):
 
 
 def get_summary(all_file, sig_file, outfile, threads):
-    logger.info("Parsing Signature Hits")
+    LOGGER.info("Parsing Signature Hits")
     p = Pool(threads)
     get_lines = line_generator(sig_file, 5000)
     sig_results = p.imap(parse_signature_hits, get_lines)
@@ -139,7 +139,7 @@ def get_summary(all_file, sig_file, outfile, threads):
     p.join()
     sig_dict, read_set = sig_reduce(sig_results)
     descendants = get_descendants(sig_dict.keys())
-    logger.info("Parsing All Hits")
+    LOGGER.info("Parsing All Hits")
     p = Pool(threads)
     get_lines = line_generator(all_file, 5000)
     parse_all_partial = partial(
@@ -152,7 +152,7 @@ def get_summary(all_file, sig_file, outfile, threads):
     all_dict = all_reduce(all_results)
     data_dict = merge_dicts(sig_dict, all_dict)
     taxid2name = NCBI.get_taxid_translator(data_dict.keys())
-    logger.info("Writing to File: {}".format(outfile))
+    LOGGER.info("Writing to File: {}".format(outfile))
 
     data_list = []
     for taxa, samples in data_dict.items():
@@ -177,7 +177,7 @@ def get_summary(all_file, sig_file, outfile, threads):
     data_frame['total'] = data_frame[
         ["Unique Signature Hits (S{})".format(i)
         for i in range(1, n_samples + 1)]].sum(axis=1)
-    data_frame = data_frame.sort_values('total')
+    data_frame = data_frame.sort_values('total', ascending=False)
     data_frame = data_frame.drop('total', axis=1)
     data_frame.to_csv(
         outfile, index=False) 
@@ -185,16 +185,74 @@ def get_summary(all_file, sig_file, outfile, threads):
 
 if __name__ == "__main__":
     #NCBI = NCBITaxa()
-    NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
-    config_logging(snakemake.log[0], "INFO")      
-    logger = logging.getLogger(__name__)
+    try:
+        NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+        config_logging(snakemake.log[0], "INFO")      
+        LOGGER = logging.getLogger(__name__)
 
-    
-    get_summary(
-        snakemake.input[1],
-        snakemake.input[0],
-        snakemake.output[0],
-        snakemake.threads)
+        
+        get_summary(
+            snakemake.input[1],
+            snakemake.input[0],
+            snakemake.output[0],
+            snakemake.threads)
+    except NameError:
+        PARSER = argparse.ArgumentParser(
+        prog="MTSv Summary",
+        description="Summarize number of total and signature "
+                    "hits for each taxa.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
+
+        PARSER.add_argument(
+            "all", metavar="COLLAPSE_FILE", type=file_type,
+            help="Path to merge output file."
+        )
+
+        PARSER.add_argument(
+            "sig", metavar="SIGNATURE_FILE", type=file_type,
+            help="Path to signature output file."
+        )
+        
+        PARSER.add_argument(
+            "-o", "--output", type=outfile_type, default="./",
+            help="Summary output"
+        )
+
+        PARSER.add_argument(
+            "--taxdump", type=file_type, default=None,
+            help="Alternative path to taxdump. "
+                "Default is home directory where ete3 "
+                "automatically downloads the file."
+        )
+
+        PARSER.add_argument(
+            "--threads", type=int, default=1,
+            help="Number of threads for multiprocessing"
+        )
+
+        PARSER.add_argument(
+            "--log", type=file_type, default="./summary.log",
+            help="Path of log file."
+        )
+
+        ARGS = PARSER.parse_args()
+
+        NCBI = NCBITaxa(
+                taxdump_file=ARGS.taxdump)
+
+        config_logging(ARGS.log, "INFO")      
+        LOGGER = logging.getLogger(__name__)
+
+        get_summary(
+            ARGS.all,
+            ARGS.sig,
+            ARGS.output,
+            ARGS.threads)
 
 
-    
+        
+
+
+
+
