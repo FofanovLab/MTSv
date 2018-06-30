@@ -32,7 +32,8 @@ setup(name='mtsv',
                    'mtsv/ext/target/release/mtsv-collapse',
                    'mtsv/ext/target/release/mtsv-readprep',
                    'mtsv/ext/target/release/mtsv-signature',
-                   'mtsv/ext/target/release/mtsv-tree-build'])
+                   'mtsv/ext/target/release/mtsv-tree-build',
+                   'mtsv/ext/mtsv-db-build'])
       ],
       classifiers=[
           'Programming Language :: Python',
