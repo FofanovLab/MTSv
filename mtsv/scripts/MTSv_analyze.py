@@ -1,8 +1,10 @@
+import argparse
 import numpy as np
 import pandas as pd
 from collections import namedtuple
 from functools import partial
 from scipy.stats import binom_test
+from mtsv.parsing import file_type, outfile_type
 
 
 EXP = namedtuple('exp', ["total", "sig", "ratio"])
@@ -97,9 +99,43 @@ def run_analysis(
     obs_sum.to_csv(outfile, index=None)
 
 if __name__ == "__main__":
-    run_analysis(
-        snakemake.input[0],
-        snakemake.params[0],
-        snakemake.params[1],
-        snakemake.output[0]
-    )
+    try:
+        run_analysis(
+            snakemake.input[0],
+            snakemake.params[0],
+            snakemake.params[1],
+            snakemake.output[0]
+        )
+    except NameError:
+        PARSER = argparse.ArgumentParser(
+            prog="MTSv Random Kmers",
+            description="Get random kmers from taxids.",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )     
+        PARSER.add_argument(
+            "exp", metavar="EXP_SUMMARY", type=file_type,
+            help="Path to expected values summary."
+        )
+
+        PARSER.add_argument(
+            "obs", metavar="OBS_SUMMARY", type=file_type,
+            help="Path to observed values summary."
+        )
+
+        PARSER.add_argument(
+            "taxa", metavar="TAXA", type=file_type,
+            help="Path to list of candidate taxa"
+        )
+
+        PARSER.add_argument(
+            "outpath", metavar="OUTPATH", type=outfile_type,
+            help="Output file"
+        )
+
+        ARGS = PARSER.parse_args()
+        run_analysis(
+            ARGS.exp,
+            ARGS.obs,
+            ARGS.taxa,
+            ARGS.outpath)
+    

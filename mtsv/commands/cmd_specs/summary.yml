@@ -1,5 +1,5 @@
 _meta_summary:
-  help: Combine binning files, and find signature hits
+  help: Find signature hits and summarize findings
 merge_file:
   default: ./Binning/merged.clp
   help: Merged binning output file.
