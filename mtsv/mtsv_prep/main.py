@@ -218,7 +218,7 @@ def oneclickfmbuild(args, is_default):
     # for fp in to_link:
     #     os.symlink(fp, os.path.join(path,os.path.basename(fp)))
 
-def json_updater(args, new):
+def json_updater(args):
 
     for json_path in iglob(os.path.join(args.path, "artifacts/*.json")):
         base = os.path.basename(json_path)
@@ -362,6 +362,7 @@ def setup_and_run(parser):
         args.path = path
         oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
     try:
+        json_updater(args)
         make_json_rel(args)
     except:
         pass
