@@ -58,7 +58,6 @@ def oneclickdl(args):
     for db in ["genbank", "Complete_Genome", "Chromosome", "Scaffold"]:
         if os.path.isfile(os.path.join(args.path, "artifacts","{0}.fas")):
            fin.add(db)
-    # if not args.overwrite:
     dbs = set(args.includedb).difference(fin)
     args.includedb = list(dbs)
 
@@ -136,19 +135,10 @@ def partition(args):
                                          arguments["serialization-path"], args.debug  ) )
             except OSError:
                 print("Partion folder {0} exists please use --overwrite to repartition".format(path))
-            # except AttributeError as e:
-            #     print(e)
-            #     raise KeyboardInterrupt
 
-    # ret_list = []
-    # for i in partition_list:
-    #     ret_list.append(clip(*i))
     p = Pool(args.threads)
     ret_list = p.starmap(clip, partition_list)
-    # p.close()
-    # p.join()
 
-    print(ret_list)
     return ret_list
 
 def chunk(file_list):
@@ -214,15 +204,6 @@ def fm_build(dir_list):
 def oneclickfmbuild(args, is_default):
     to_link = fm_build(chunk(partition(args)))
 
-    #TODO
-
-    # if is_default:
-    #     path = os.path.join(args.path,"indices","default")
-    # else:
-    #     path = os.path.join(args.path, "indices", "custom")
-    # os.makedirs(path, exist_ok=True)
-    # for fp in to_link:
-    #     os.symlink(fp, os.path.join(path,os.path.basename(fp)))
 
 def json_updater(args):
 
@@ -327,19 +308,15 @@ def setup_and_run(parser):
 
     args = parser.parse_known_args()[0]
 
-    # print(args)
     try:
         make_json_abs(args)
     except:
         pass
-        # return
     try:
 
         if args.cmd_class == Database:
             if args.download_only:
-                # if not args.path:
                 args.path = os.path.abspath(oneclickdl(args))
-                # else:
 
             elif args.build_only:
                 if args.path and  os.path.isdir(args.path):
@@ -372,21 +349,6 @@ def setup_and_run(parser):
         make_json_rel(args)
     except:
         pass
-
-    os.remove()
-#   print(args.path)
-    #     oneclickbuild(args)
-    #     oneclickfmbuild(args, args.partitions == default_parts)
-    # if args.do
-    # elif args.oneclickdl:
-    #     print(os.path.abspath(oneclickdl(args)))
-    # elif args.oneclickbuild:
-    #     if os.path.isdir(args.path):
-    #         oneclickbuild(args)
-    #     else:
-    #         print("Path to parent of */flats_files/ needs to be specified or downloaded")
-    # elif args.oneclickpartition:
-    #     oneclickfmbuild(args, args.partitions == default_parts)
 
 
 
@@ -435,13 +397,7 @@ def main(argv=None):
             add_default_arguments(p)
         except argparse.ArgumentError:
             pass
-        # p.set_defaults(cmd_class=cmd_class)
 
-        # print(command, get_global_config(cmd_class.config_section))
-
-
-    # print(parser)
-    # print(subparsers)
     if len(argv)==1:
         parser.print_help(sys.stdout)
         sys.exit(1)
@@ -450,60 +406,6 @@ def main(argv=None):
     except KeyboardInterrupt:
         error("\n-- Stopped by user --", exception=False)
 
-
-
-    # group = parser.add_mutually_exclusive_group(required=True)
-    # group.add_argument("-oc", "--oneclick", "-oneclick",action='store_true')
-    # group.add_argument("-ocdl", "--oneclickdl", "-oneclickdl",action='store_true')
-    # group.add_argument("-ocbld", "--oneclickbuild", "-oneclickbuild",action='store_true')
-    # group.add_argument("-ocprt", "--oneclickpartition", "-oneclickpartition", action='store_true')
-
-    # group.add_argument("-c", "--custom", "-custom", action='store_true')
-
-
-    # group = parser.add_argument_group()
-    # group.add_argument("-p","--path","-path", default=datetime.datetime.now().strftime("%b-%d-%Y"),
-    #                    help="Path to dated folder containing artifacts")
-
-    # group.add_argument("-prt","--partitions","-partitions", nargs='*', default=default_parts,
-    #                    help="Space seperated list of '-' delimited tuples of comma seperated TaxIDs for inclusion and exclusion\n" \
-    #                         "ex. 1386-1392,1396 would create a FM-index of the genus Bacillus without B. anthracis and B. cereus\n" \
-    #                         "if no exlusion desire no '-' is needed")
-    # group.add_argument("-min","--minimum-length","-minimum-length", type=float,default=0,
-    #                    help="Integer for minimum length of sequences to include")
-    # group.add_argument("-max","--maximum-length","-maximum-length", type=float, default=float('inf'),
-    #                    help="Integer for maximum length of sequences to include")
-    # group.add_argument("-rur","--rollup-rank","-rollup-rank", default="species",
-    #                    help="NCBI rank to set sequence headers i.e. None, genus, family et cetera\n (default: species)")
-
-    # group.add_argument("-t", "--threads", "-threads", type=int, default=1,
-    #                    help="Specify total threads to spawn default:1")
-    # group.add_argument("-ow", "--overwrite", "-overwrite", help="Overwrite files if they exist",
-    #                    action='store_true')
-
-    # group.add_argument("-cdb", "--customdb", "-customdb", nargs='*', default=["genbank"],
-    #                    help="Space delimited list of the following NCBI source: Chromosome, Scaffold, genbank.\n" \
-    #                         "By default only genbank indices are built")
-
-    # group.add_argument("-idb", "--includedb", "-includedb", nargs='*', default=["genbank","Chromosome","Scaffold"],
-    #                    help=argparse.SUPPRESS)
-
-
-    # if args.oneclick:
-    #     args.path = os.path.abspath(oneclickdl(args))
-    #     print(args.path)
-    #     oneclickbuild(args)
-    #     oneclickfmbuild(args, args.partitions == default_parts)
-
-    # elif args.oneclickdl:
-    #     print(os.path.abspath(oneclickdl(args)))
-    # elif args.oneclickbuild:
-    #     if os.path.isdir(args.path):
-    #         oneclickbuild(args)
-    #     else:
-    #         print("Path to parent of */flats_files/ needs to be specified or downloaded")
-    # elif args.oneclickpartition:
-    #     oneclickfmbuild(args, args.partitions == default_parts)
 
 if __name__ == "__main__":
     main()
