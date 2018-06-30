@@ -54,6 +54,14 @@ COMMANDS = {
 FILE_LOCK = RLock()
 
 def oneclickdl(args):
+    fin = set()
+    for db in ["genbank", "Complete_Genome", "Chromosome", "Scaffold"]:
+        if os.path.isfile(os.path.join(args.path, "artifacts","{0}.fas")):
+           fin.add(db)
+    # if not args.overwrite:
+    dbs = set(args.includedb).difference(fin)
+    args.includedb = list(dbs)
+
     return pull(
         path=args.path,
         thread_count=args.threads,
@@ -75,13 +83,10 @@ def oneclickbuild(args):
     pool = Pool(args.threads)
     pool.starmap(decompression, [(os.path.abspath(x),
                                   args.path) for x in iglob(os.path.join(args.path,"flat_files/*.gz"))])
-    for fp in iglob(os.path.join(args.path,"artifacts/*_ff.txt")):
+    for fp in iglob(os.path.join(args.path,"artifacts/","*_ff.txt")):
         db = list(os.path.split(fp))
-        print(db)
         db[1] = db[1].strip().replace("_ff.txt",".fas")
-        print(db)
         db = os.path.abspath("{0}{1}{2}".format(db[0],os.sep,db[1]))
-        print(db)
         with open(os.path.abspath(fp), "r" ) as file:
             temp = file.readlines()
 
@@ -91,14 +96,15 @@ def oneclickbuild(args):
                     x= x.strip().rsplit(".",1)[0]
                 file.write("{0}\n".format(x))
 
-        # with open(os.devnull, "w") as null:
+        if os.path.isfile(db):
+            continue
         build_db(os.path.abspath(fp), db, os.devnull, os.devnull, args.threads, os.devnull)
 
     arguments = oneclickjson(args.path)
 
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
-    # shutil.rmtree(os.path.join(args.path, "flat_files" ))
+    shutil.rmtree(os.path.join(args.path, "flat_files" ))
 
 def mapper(x):
     return clip(*x)
@@ -366,10 +372,8 @@ def setup_and_run(parser):
         make_json_rel(args)
     except:
         pass
-            # args.path = os.path.abspath(oneclickdl(args))
-            # oneclickbuild(args)
-            # oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
 
+    os.remove()
 #   print(args.path)
     #     oneclickbuild(args)
     #     oneclickfmbuild(args, args.partitions == default_parts)
