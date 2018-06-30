@@ -649,6 +649,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
             for line in level2path[i]:
                 out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/",os.path.basename(line))))
     return string_date
+
 if __name__ =="__main__":
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
 

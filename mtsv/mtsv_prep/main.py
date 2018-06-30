@@ -14,7 +14,7 @@ from mtsv.commands import Command
 from mtsv.parsing import make_sub_parser, get_global_config, ACTIONS, TYPES, add_default_arguments
 from mtsv.mtsv_prep.MTSv_prune import *
 
-from mtsv.utils import error, bin_path
+from mtsv.utils import error, bin_path, specfile_path, specfile_read
 
 from snakemake.workflow import Workflow, Rules, expand
 import snakemake.workflow
@@ -54,8 +54,6 @@ COMMANDS = {
 FILE_LOCK = RLock()
 
 def oneclickdl(args):
-    print()
-    print(args)
     return pull(
         path=args.path,
         thread_count=args.threads,
@@ -101,6 +99,7 @@ def oneclickbuild(args):
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
     # shutil.rmtree(os.path.join(args.path, "flat_files" ))
+
 def mapper(x):
     return clip(*x)
 
@@ -149,7 +148,7 @@ def partition(args):
 def chunk(file_list):
     dir_set = set()
     for fp in file_list:
-        subprocess.run("{2} --input {0} --output {1}".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')).split() )
+        subprocess.run("{2} --input {0} --output {1} --gb 2".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')).split() )
         dir_set.add(os.path.dirname(fp))
     return list(dir_set)
 
@@ -202,19 +201,120 @@ def fm_build(dir_list):
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.fmi".format(os.path.basename(fp).split(".")[0]))
-            subprocess.run("{2} --fasta {0} --index {1}.fmi".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
+            subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
             fm_list.append(out_file)
     return fm_list
 
 def oneclickfmbuild(args, is_default):
     to_link = fm_build(chunk(partition(args)))
-    if is_default:
-        path = os.path.join(args.path,"indices","default")
-    else:
-        path = os.path.join(args.path, "indices", "custom")
-    os.makedirs(path, exist_ok=True)
-    for fp in to_link:
-        os.symlink(fp, os.path.join(path,os.path.basename(fp)))
+
+    #TODO
+
+    # if is_default:
+    #     path = os.path.join(args.path,"indices","default")
+    # else:
+    #     path = os.path.join(args.path, "indices", "custom")
+    # os.makedirs(path, exist_ok=True)
+    # for fp in to_link:
+    #     os.symlink(fp, os.path.join(path,os.path.basename(fp)))
+
+def json_updater(args, new):
+
+    for json_path in iglob(os.path.join(args.path, "artifacts/*.json")):
+        base = os.path.basename(json_path)
+        if base == "exclude.json":
+            continue
+        base = base.rsplit(".", 1)[0]
+
+        with open(json_path, "r") as file:
+            params = json.load(file)
+        params['fm-paths'] = {}
+        for path in glob.glob(os.path.join(sys.argv[1], "indices", base, "**/*.fmi")):
+            folder = os.path.basename(os.path.dirname(path))
+            try:
+                params['fm-paths'][folder].append(os.path.abspath(path))
+            except KeyError:
+                params['fm-paths'][folder] = [os.path.abspath(path)]
+
+        params['partition-path'] = {}
+        for path in glob.glob(os.path.join(sys.argv[1], "indices", base, "**/*.fas")):
+            folder = os.path.basename(os.path.dirname(path))
+            params['partition-path'][folder] = os.path.abspath(path)
+
+        with open(json_path, "w") as file:
+            json.dump(params, file, sort_keys=True, indent=4)
+
+def make_json_rel(args):
+    rm_path = os.path.abspath(args.path)
+    for name in ["genbank", "Complete_Genome","Chromosome","Scaffold"]:
+        try:
+            arguments = parse_json(os.path.join(args.path, "artifacts","{0}.json".format(name)))
+            try:
+                for i, abs_path in enumerate(arguments['acc-to-taxid-paths']):
+                    arguments['acc-to-taxid-paths'][i] = os.path.relpath(abs_path, rm_path)
+            except KeyError:
+                pass
+            try:
+                for j in arguments['fm-paths'].keys():
+                    for i, abs_path in enumerate(arguments['fm-paths'][j]):
+                        arguments['fm-paths'][j][i] = os.path.relpath(abs_path, rm_path)
+            except KeyError:
+                pass
+            try:
+                for j in arguments['partition-path'].keys():
+                    for abs_path in arguments['partition-path'][j]:
+                        arguments['partition-path'][j] = os.path.relpath(abs_path, rm_path)
+            except KeyError:
+                pass
+
+            for key in arguments.keys():
+                try:
+                    if rm_path in arguments[key]:
+                        arguments[key] = os.path.relpath(arguments[key], rm_path )
+                    # else:
+                except TypeError:
+                    continue
+        except FileNotFoundError:
+            continue
+        with open(os.path.join(args.path, "artifacts","{0}.json".format(name)), "w") as file:
+            json.dump(arguments, file, sort_keys=True, indent=4)
+
+
+
+def make_json_abs(args):
+    for name in ["genbank", "Complete_Genome","Chromosome","Scaffold"]:
+        try:
+            arguments = parse_json(os.path.join(args.path, "artifacts","{0}.json".format(name)))
+            try:
+                for i, abs_path in enumerate(arguments['acc-to-taxid-paths']):
+                    arguments['acc-to-taxid-paths'][i] = os.path.abspath(os.path.join(args.path,abs_path))
+            except KeyError:
+                pass
+            try:
+                # keys = list(arguments['fm-paths'].keys())
+                for j in arguments['fm-paths'].keys():
+                    for i, abs_path  in enumerate(arguments['fm-paths'][j]):
+                        arguments['fm-paths'][j][i] = os.path.abspath(os.path.join(args.path,abs_path))
+            except KeyError:
+                pass
+            try:
+                # keys = list()
+                for j in arguments['partition-path'].keys():
+                    for abs_path in arguments['partition-path'][j]:
+                        arguments['partition-path'][j] = os.path.abspath(os.path.join(args.path,abs_path))
+            except KeyError:
+                pass
+
+            for key in arguments.keys():
+                try:
+                    if os.path.isfile(os.path.abspath(os.path.join(args.path,arguments[key]))):
+                        arguments[key] = os.path.abspath(os.path.join(args.path, arguments[key]))
+                except TypeError:
+                    continue
+        except FileNotFoundError:
+            continue
+        with open(os.path.join(args.path, "artifacts","{0}.json".format(name)), "w") as file:
+            json.dump(arguments, file, sort_keys=True, indent=4)
 
 
 def setup_and_run(parser):
@@ -222,6 +322,11 @@ def setup_and_run(parser):
     args = parser.parse_known_args()[0]
 
     # print(args)
+    try:
+        make_json_abs(args)
+    except:
+        pass
+        # return
     try:
 
         if args.cmd_class == Database:
@@ -231,7 +336,7 @@ def setup_and_run(parser):
                 # else:
 
             elif args.build_only:
-                if os.path.isdir(args.path):
+                if args.path and  os.path.isdir(args.path):
                     oneclickbuild(args)
                 else:
                     print("A valid path was not specified")
@@ -240,12 +345,13 @@ def setup_and_run(parser):
                 oneclickbuild(args)
 
         elif args.cmd_class == CustomDB:
-            # print("TODO Clipper")
-            # snake(args)
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+        try:
+            make_json_rel(args)
+        except:
+            pass
 
     except AttributeError:
-        print("oneclick")
         sys.argv[1] = "database"
         args = parser.parse_known_args()[0]
         args.path = os.path.abspath(oneclickdl(args))
@@ -255,11 +361,13 @@ def setup_and_run(parser):
         args = parser.parse_known_args()[0]
         args.path = path
         oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
-
-
-        # args.path = os.path.abspath(oneclickdl(args))
-        # oneclickbuild(args)
-        # oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+    try:
+        make_json_rel(args)
+    except:
+        pass
+            # args.path = os.path.abspath(oneclickdl(args))
+            # oneclickbuild(args)
+            # oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
 
 #   print(args.path)
     #     oneclickbuild(args)
