@@ -56,9 +56,8 @@ FILE_LOCK = RLock()
 def oneclickdl(args):
     fin = set()
     for db in ["genbank", "Complete_Genome", "Chromosome", "Scaffold"]:
-        if os.path.isfile(os.path.join(args.path, "artifacts","{0}.fas")):
+        if args.path and os.path.isfile(os.path.join(args.path, "artifacts","{0}.fas")):
            fin.add(db)
-    # if not args.overwrite:
     dbs = set(args.includedb).difference(fin)
     args.includedb = list(dbs)
 
