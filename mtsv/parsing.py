@@ -112,7 +112,6 @@ def add_default_arguments(parser):
         help="Specify path to config file path, "
              "relative to working directory, "
              "not required if using default config. "
-             "(default: {})".format(DEFAULT_CFG_FNAME)
     )
     parser.add_argument(
         '-lf', "--log_file", type=outfile_type,

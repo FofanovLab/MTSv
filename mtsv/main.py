@@ -128,7 +128,7 @@ def main(argv=None):
         "-c", "--config", type=TYPES['write_handle_type'],
         default=DEFAULT_CFG_FNAME,
         help="Specify path to write config file, "
-        "not required if using default config"
+        "not required if using default config (Default: ./mtsv.cfg)"
     )
     parser_init.add_argument(
         '-wd', "--working_dir", type=str,
