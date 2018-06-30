@@ -278,21 +278,21 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
     regex alpha("[^a-zA-Z]");
     unsigned long  gi ;
     for(set<string>::iterator file = file_list.begin(); file != file_list.end(); ++file){
-            try{
-            buffer.clear();
-            command = "zcat ";
-            command += *file;
-            command += " | tr -d '\\r'";
-
-            in = popen(command.c_str() , "r");
-
-            while(fgets(in_buffer, sizeof(in_buffer), in) != NULL){
-                buffer += in_buffer;
-            }
-            pclose(in);
-            if (buffer.length() == 0) throw 1;
-        }
-        catch(...){
+//            try{
+//            buffer.clear();
+//            command = "zcat ";
+//            command += *file;
+//            command += " | tr -d '\\r'";
+//
+//            in = popen(command.c_str() , "r");
+//
+//            while(fgets(in_buffer, sizeof(in_buffer), in) != NULL){
+//                buffer += in_buffer;
+//            }
+//            pclose(in);
+//            if (buffer.length() == 0) throw 1;
+//        }
+//        catch(...){
             buffer.clear();
             command = "cat ";
             command += *file;
@@ -305,7 +305,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
             }
             pclose(in);
 
-        }
+//        }
         if (buffer.length() != 0){
             stringstream input(buffer);
             set<string> definitions, keywords;

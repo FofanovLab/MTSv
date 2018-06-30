@@ -9,6 +9,7 @@ import gzip
 import tarfile
 from multiprocessing import Pool, Queue, Process, Manager, RLock
 import pickle, json
+from mtsv.utils import bin_path
 
 lock = RLock()
 
@@ -17,11 +18,7 @@ def serialization(gi2tx,fasta_path, txdump_path):
     tx2gi = {}
     gi2ind = {}
     print("Parsing taxid to Unique ID")
-    # if len(gi2tx) == 1:
-    #     try:
-    #         with open(gi2tx[0],"r"):
-    #             pass
-    #     except:
+
     for i in gi2tx:
         try:
             with gzip.open(i) as file:
@@ -228,11 +225,14 @@ def roll_up(tx_id, rank, c2p, prev_roll=None):
 # Call function (uses depth first search) to get a set of all child of the taxid repeat for tax ids to exclude
 # use set difference to get desired leaf taxids
 # Opens fasta DB and out file reading sequence in from start of sequence header roll up occuring at runtime
-def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path):
+def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=False):
+    if debug:
+        return os.path.abspath(name)
+    # try:
     if len(in_tx) ==1:
         temp = []
         try:
-            with open(in_tx[0],"r") as file:
+            with open(in_tx[0], "r") as file:
                 for line in file:
                     temp.append(line.strip())
             in_tx = temp
@@ -247,7 +247,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path):
             ex_tx = temp
         except FileNotFoundError:
             pass
-
+    print(pickle_path)
     print("Getting Offsets and Tree")
     tx_ids, child2parent, positions = deserialization(pickle_path)
 
@@ -305,6 +305,8 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path):
                         line_count = 0
                         seq = bytearray()
     return os.path.abspath(name)
+# except:
+    #     return 0
 # writes a new or updates json config file
 def gen_json(configuration, args):
     if args.update and args.configuration_path:
@@ -431,12 +433,17 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     command_one = "g++ -std=c++11 -pthread -static-libstdc++ taxidtool.cpp -o db_builder"
     command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
                                                                     source_out_fp, thread_count, gi_to_word)
+    command_three = command_two = "{6} {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
+                                                                    source_out_fp, thread_count, gi_to_word, bin_path('mtsv-db-build'))
     if not os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
-        try:
-            subprocess.run(command_two.split())
-        except:
-            subprocess.run(command_one.split())
-            subprocess.run(command_two.split())
+        if os.path.isfile(bin_path('mtsv-db-build')):
+            subprocess.run(command_three.split())
+        else:
+            try:
+                subprocess.run(command_two.split())
+            except:
+                subprocess.run(command_one.split())
+                subprocess.run(command_two.split())
 
     count = 0
     if os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
@@ -642,6 +649,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
             for line in level2path[i]:
                 out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/",os.path.basename(line))))
     return string_date
+
 if __name__ =="__main__":
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
 
