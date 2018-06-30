@@ -2,10 +2,10 @@ _meta_extract:
   help: Get query sequences associated with a given taxid
 extract_path:
   default: ./Extracted_Reads/
-  help: Directory to place extracted read sets.
+  help: Directory to place extracted reads.
   type: outpath_type
 taxids:
-  help: List of species to extract. (Space separated) [REQUIRED]
+  help: List of species to extract. (Space separated).
   nargs: +
   required: True
 merge_file:
@@ -13,9 +13,9 @@ merge_file:
   type: file_type
   default: ./Binning/merged.clp
 by_sample:
-  help: Further breakdown extracted queries by sample
-  type: bool
-  default: False
+  help: Further breakdown extracted queries by sample.
+  default: F
+  type: flag_type
 descendants:
   help: >
     Include all descendant taxa in extracted queries. Queries are 
@@ -23,6 +23,6 @@ descendants:
     included in search if a higher level taxid is provided. If False,
     only exact matches to taxid will be returned and likely no matches 
     to higher level taxids will be found.
-  type: bool
-  default: True
+  default: T
+  type: flag_type
   

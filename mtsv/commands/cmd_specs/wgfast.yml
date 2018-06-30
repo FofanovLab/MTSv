@@ -3,9 +3,11 @@ _meta_wgfast:
 reference_directory:
   help: Path to reference file directory
   type: path_type
-taxa:
-  help: Extract reads for these taxa
-  nargs: +
+  required: True
+wgfast_output:
+  help: Path to place wgfast output
+  type: outpath_type
+  default: ./WGFast/
 coverage:
   help: minimum SNP coverage required to be called a SNP
   default: 3
@@ -16,42 +18,36 @@ proportion:
   type: proportion
 keep:
   help: Keep temp files?
-  type: bool
-  default: False
+  type: flag_type
+  default: F
 subsample:
   help: Run subsample routine?
-  type: bool
-  default: True
+  type: flag_type
+  default: T
 subnums:
   help: Number of subsamples to process
   type: positive_int
   default: 100
 doc:
   help: Run depth of coverage on all files?
-  type: bool
-  default: True
+  type: flag_type
+  default: T
 temp:
   help: Temporary directory for GATK analysis
-  outpath_type: ./tmp
-method:
-  help: method to insert unknown genomes
-  choices: [MP, ML]
-  default: ML
+  default: ./tmp
+  type: outpath_type
 fudge_factor:
   help: How close does a subsample have to be from true placement?
   type: float
   default: 0.1
 only_subs:
   help: Only run sub-sample routine and exit?
-  type: bool
-  default: False
+  type: flag_type
+  default: F
 model:
-  help: Which model to run with raxml.
+  help: Which model to run with raxml. 
   choices: [GTRGAMMA, ASC_GTRGAMMA, GTRCAT, ASC_GTRCAT]
-trim:
-  help: Trim sequences with trimmomatic?
-  type: bool
-  default: True
+  default: ASC_GTRGAMMA
 gatk_method:
   help: How to call GATK?
   choices: [EMIT_ALL_CONFIDENT_SITES, EMIT_ALL_SITES]

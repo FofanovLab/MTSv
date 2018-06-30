@@ -12,7 +12,7 @@ binning_mode:
   type: str
 fasta:
   default: ./QueryFastas/queries.fasta
-  help: Path to FASTA query file.
+  help: Path to FASTA query file produced by readprep.
   type: file_type
 database_config:
   help: Path to sequence database configuration json.
@@ -23,18 +23,21 @@ binning_outpath:
   type: outpath_type
 merge_file:
   default: ./Binning/merged.clp
-  help: Merged binning output file.
+  help: >
+    Merged binning output file. (WARNING avoid moving output files from their
+    original directory, downstream processes rely on meta data (.params file) 
+    in directory)
   type: outfile_type
 edits:
   default: 3
   help: Edit distance to tolerate in matched reference sites
   type: nonneg_int
-seed-size:
+seed_size:
   help:  Exact match query size. Overrides binning mode setting.
   type: positive_int
-min-seeds:
+min_seeds:
   help: Minimum number of seeds to perform alignment of a candidate site. Overrides binning mode setting.
   type: positive_int
-seed-gap:
+seed_gap:
   help: Gap between seeds used for initial exact match. Overrides binning mode setting.
   type: nonneg_int

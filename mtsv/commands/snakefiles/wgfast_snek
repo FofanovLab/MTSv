@@ -1,0 +1,74 @@
+import os
+from mtsv.parsing import format_cml_params
+
+include: "extract_snek"
+
+shell.prefix("set -euo pipefail;")
+
+REPORT = "wgfast_report.html"
+
+rule wgfast_all:
+    input:
+        REPORT
+
+CML = format_cml_params(
+    'WGFAST', config, ['wgfast_output'], [])
+
+
+def format_fastq_file(file):
+    path, filename = os.path.split(file)
+    filename = os.path.splitext(filename)[0]
+    components = filename.split("_")
+    if len(components) == 1:
+        filename = "S{0}_R1_001.fastq".format(components[0])
+    else:
+        filename = "S{0}_{1}_R1_001.fastq".format(
+            components[0], components[1])
+    return os.path.join(path, filename)
+
+FASTQ_GZ = [format_fastq_file(f) for f in FASTQ_OUTPUT]
+
+rule wgfast_report:
+    input: 
+        tree = os.path.join(
+            config['wgfast_output'], "transformed.tree"),
+        nasp = os.path.join(
+            config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
+        cov = os.path.join(
+            config['wgfast_output'], "coverage_out.txt"),
+        pat = os.path.join(
+            config['wgfast_output'], "all_patristic_distances.txt")
+    output: REPORT
+
+
+rule wgfast:
+    input:
+        reads=FASTQ_GZ 
+    output:
+        tree = os.path.join(
+            config['wgfast_output'], "transformed.tree"),
+        nasp = os.path.join(
+            config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
+        cov = os.path.join(
+            config['wgfast_output'], "coverage_out.txt"),
+        pat = os.path.join(
+            config['wgfast_output'], "all_patristic_distances.txt")
+    params:
+        wd = config['wgfast_output'],
+        reads_dir = config['extract_path'],
+        cml = CML
+    threads: config['threads']
+    message: """Running WGFAST on {input} using {threads} threads"""
+    shell:
+        """cd {params.wd}; gzip {input.reads}; wgfast -d {params.reads_dir} -p {threads} {params.cml}"""
+
+rule process_fastqs:
+    input: FASTQ_OUTPUT # ouput from extract see extract_snek
+    output: FASTQ_GZ
+    run:
+        for old, new in zip(input, output):
+            os.rename(old, new)
+            
+
+
+

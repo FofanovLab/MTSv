@@ -33,6 +33,7 @@ requirements:
     - pyyaml
     - click
     - zlib
+    - wgfast
 
 
 

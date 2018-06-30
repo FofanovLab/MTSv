@@ -1,11 +1,8 @@
 import argparse
-import logging
 import sys
 import datetime
 import os
-import configparser
 
-from mtsv.argutils import (read, export)
 from mtsv.parameters import Parameters
 from mtsv.commands import (
     Init,
@@ -47,18 +44,18 @@ def add_cfg_to_args(argv, parser):
     '''treat config arguments as command line
     arguments to catch argparse errors'''
     config = get_config_from_argv(argv)
+    cmd_cfg_section = get_command_from_argv(argv).config_section
     config_args = parse_config_sections(
         config,
-        get_command_from_argv(argv).config_section)
+        cmd_cfg_section)
     for k, v in config_args.items():
         fmt_k = "--{}".format(k)
         if fmt_k not in argv and v != None:
             argv += [fmt_k] + v.split(" ")
-    missing = get_missing_sections(config)
+    missing = set(cmd_cfg_section).intersection(
+        set(get_missing_sections(config)))
     args, snake_args = parser.parse_known_args(argv[1:])
     return args, snake_args, missing
-
-
 
 def get_command_from_argv(argv):
     return COMMANDS[argv[1]]
@@ -102,9 +99,7 @@ def setup_and_run(argv, parser):
         args, snake_args = parser.parse_args(), []
 
     params = Parameters(args, snake_args)
-
     cmd = args.cmd_class(params)
-
     cmd.run()
 
 

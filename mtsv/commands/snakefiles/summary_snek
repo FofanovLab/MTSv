@@ -5,16 +5,17 @@ from mtsv.utils import (
     bin_path, script_path,
     track_file_params,
     get_database_params)
-from mtsv.parsing import parse_query_id, format_cml_params, file_type
+from mtsv.parsing import (
+    parse_query_id, format_cml_params, file_type, outfile_type)
 shell.prefix("set -euo pipefail;")
 
 BIN = bin_path('mtsv-signature')
 SCRIPT = script_path('MTSv_summary.py')
-REPORT = "summary_report.html"
+REPORT = outfile_type(os.path.join("Reports", "summary_report.html"))
 
 if "database_config" not in config:
     config['database_config'] = json.loads(open(os.path.join(
-        os.path.basename(config['merge_file']),
+        os.path.dirname(config['merge_file']),
         ".params"),
         'r').read())['merge_file'][config['merge_file']]['database_config']
     
@@ -44,6 +45,8 @@ rule summary_report:
         summary=config['summary_file']
     output:
         REPORT
+    resources:
+        mem_mb=lambda wildcards, attempt, input: attempt * 500
     run:
         from snakemake.utils import report
         sig = np.genfromtxt(
@@ -63,13 +66,10 @@ rule summary_report:
             {input.sig}\n
             **Summary table:** \n
             {input.summary}\n
-            Summary_\n
             There were **{n_sig_unique}** unique signature hits.\n
             Total number of reads assocated with signature hits:\n
             **{n_total_sig}**
-            
-            
-            """, output[0], Summary=input['summary'])
+            """, output[0])
 
 rule signature:
     """Find signature hits"""
@@ -82,14 +82,13 @@ rule signature:
         call = BIN,
         args = CML_PARAMS
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * MEM
+        mem_mb=lambda wildcards, attempt, input: attempt * 500
     log:
         config['log_file']
-    threads:
-        config['threads']
+    threads: 1 # max at 1 until threading issue is figured out
     message: """Finding signature reads from {input}. Writing to {output}"""
     shell:
-        """{params.call} --index {input.index} --input {input.infile} --output {output} {params.args} >> {log} 2>&1"""
+        """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
 
 rule summary:
     """Summarize number of total and signature hits for each taxa"""
@@ -98,8 +97,7 @@ rule summary:
         sig=config['signature_file'],
         clp=config['merge_file']
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * config['mem'],
-        time=lambda wildcards, attempt: attempt * config['time']
+        mem_mb=lambda wildcards, attempt: attempt * 500
     params:
         taxdump=config['taxdump_path']
     threads:
