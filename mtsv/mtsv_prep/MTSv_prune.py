@@ -228,85 +228,85 @@ def roll_up(tx_id, rank, c2p, prev_roll=None):
 def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=False):
     if debug:
         return os.path.abspath(name)
-    try:
-        if len(in_tx) ==1:
-            temp = []
-            try:
-                with open(in_tx[0], "r") as file:
-                    for line in file:
-                        temp.append(line.strip())
-                in_tx = temp
-            except FileNotFoundError:
-                pass
-        if ex_tx and len(ex_tx) ==1:
-            temp = []
-            try:
-                with open(ex_tx[0],"r") as file:
-                    for line in file:
-                        temp.append(line.strip())
-                ex_tx = temp
-            except FileNotFoundError:
-                pass
+    # try:
+    if len(in_tx) ==1:
+        temp = []
+        try:
+            with open(in_tx[0], "r") as file:
+                for line in file:
+                    temp.append(line.strip())
+            in_tx = temp
+        except FileNotFoundError:
+            pass
+    if ex_tx and len(ex_tx) ==1:
+        temp = []
+        try:
+            with open(ex_tx[0],"r") as file:
+                for line in file:
+                    temp.append(line.strip())
+            ex_tx = temp
+        except FileNotFoundError:
+            pass
+    print(pickle_path)
+    print("Getting Offsets and Tree")
+    tx_ids, child2parent, positions = deserialization(pickle_path)
 
-        print("Getting Offsets and Tree")
-        tx_ids, child2parent, positions = deserialization(pickle_path)
+    taxons = set()
+    print("Getting TaxIds")
+    for i in in_tx:
+        taxons = taxons.union(get_tree(tx_ids, i, positions))
 
-        taxons = set()
-        print("Getting TaxIds")
-        for i in in_tx:
-            taxons = taxons.union(get_tree(tx_ids, i, positions))
+    if ex_tx:
+        print("\tPruning")
+        for i in ex_tx:
+           taxons = taxons.difference(get_tree(tx_ids, i, positions))
 
+    if not name:
+        name = "_".join(in_tx)
         if ex_tx:
-            print("\tPruning")
-            for i in ex_tx:
-               taxons = taxons.difference(get_tree(tx_ids, i, positions))
+            name += "_not_{0}".format("_".join(ex_tx))
+        name += "_seqs.fasta"
+    if ru_rank:
+        ru_rank = ru_rank.encode()
 
-        if not name:
-            name = "_".join(in_tx)
-            if ex_tx:
-                name += "_not_{0}".format("_".join(ex_tx))
-            name += "_seqs.fasta"
-        if ru_rank:
-            ru_rank = ru_rank.encode()
-
-        seq = bytearray()
-        line_count = 0
-        print("Writing")
-        with open(fasta_path, "rb") as fasta:
-            with open(name, "wb") as out:
-                for tx in sorted(taxons):
-                    if tx:
-                        tx = tx.encode().strip()
-                        try:
-                            positions[tx].sort()
-                        except KeyError:
-                            continue
-                        if ru_rank:
-                            rr_tx = roll_up(tx, ru_rank, child2parent)
-                        else:
-                            rr_tx = tx
-                        if not rr_tx:
-                            continue
-                        # print()
+    seq = bytearray()
+    line_count = 0
+    print("Writing")
+    with open(fasta_path, "rb") as fasta:
+        with open(name, "wb") as out:
+            for tx in sorted(taxons):
+                if tx:
+                    tx = tx.encode().strip()
+                    try:
                         positions[tx].sort()
-                        for off in positions[tx]:
-                            fasta.seek(off)
-                            header = fasta.readline()
+                    except KeyError:
+                        continue
+                    if ru_rank:
+                        rr_tx = roll_up(tx, ru_rank, child2parent)
+                    else:
+                        rr_tx = tx
+                    if not rr_tx:
+                        continue
+                    # print()
+                    positions[tx].sort()
+                    for off in positions[tx]:
+                        fasta.seek(off)
+                        header = fasta.readline()
+                        line = fasta.readline()
+                        while line and chr(line[0]) != ">":
+                            seq += line
+                            line_count += 1
                             line = fasta.readline()
-                            while line and chr(line[0]) != ">":
-                                seq += line
-                                line_count += 1
-                                line = fasta.readline()
-                            if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
-                                gi = header.split(b' ',2)[1].split(b':')[1]
-                                # gi = header.split(b' ',1)[0].strip(b'>')
-                                out.write(b'>'+gi+b'-'+rr_tx+b'\n')
-                                out.write(seq)
-                            line_count = 0
-                            seq = bytearray()
-        return os.path.abspath(name)
-    except:
-        return 0
+                        if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
+                            gi = header.split(b' ',2)[1].split(b':')[1]
+                            # gi = header.split(b' ',1)[0].strip(b'>')
+                            out.write(b'>'+gi+b'-'+rr_tx+b'\n')
+                            out.write(seq)
+                        line_count = 0
+                        seq = bytearray()
+    return os.path.abspath(name)
+# except:
+    #     return 0
 # writes a new or updates json config file
 def gen_json(configuration, args):
     if args.update and args.configuration_path:
@@ -649,6 +649,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
             for line in level2path[i]:
                 out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/",os.path.basename(line))))
     return string_date
+
 if __name__ =="__main__":
     parser = argparse.ArgumentParser(description="TaxClipper is intended to be used to parse sequences based on NCBI taxid")
 
