@@ -10,7 +10,9 @@ fastq:
   action: Glob
 fasta:
   default: ./QueryFastas/queries.fasta
-  help: Path to FASTA query file produced by readprep.
+  help: >
+    Path to FASTA query file produced by readprep. Avoid moving or renaming
+    this file after it is made, required metadata is stored with this file.
   type: outfile_type
 # adapters:
 #   help: Path to file containing adapters, one per line, must also provide value for ADAPTER-TOLERANCE.

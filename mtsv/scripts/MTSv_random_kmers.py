@@ -23,7 +23,6 @@ def get_eof(file_name):
 
 def get_random_positions(ranges, n_samples):
     lens = [r.stop - r.start for r in ranges]
-    print(lens)
     total = sum(lens)
     if n_samples*2 >= total:
         pos = np.array([])
@@ -31,12 +30,22 @@ def get_random_positions(ranges, n_samples):
             pos = np.append(pos, np.arange(r.start, r.stop))
         return pos
     p = [l/total for l in lens]
-    print(p)
     ns = np.random.multinomial(n_samples*2, p, size=1)[0]
     pos = np.array([], dtype=int)
     for n, _range in zip(ns, ranges):
         pos = np.append(pos, np.random.choice(np.arange(_range.start, _range.stop), replace=True, size=n))
     return np.unique(pos)
+
+
+def get_outstring(kmers, sample, total_samples):
+    count_arr = np.array(np.zeros(total_samples, dtype=int), dtype=bytes)
+    count_arr[sample] = b"1"
+    count_arr = b"_".join(count_arr)
+    s = b""
+    for kmer in kmers:
+        s += b">R" + next(ID) + b"_" + count_arr + b"\n" + kmer + b"\n"
+    return s
+    
 
 def get_kmers_from_taxon(
     taxon, fasta, tax_ids, positions, kmer_size, n_kmers):
@@ -67,7 +76,7 @@ def get_kmers_from_taxon(
                 ranges.append(POS_RANGE(r1,r2))
         if not ranges:
             LOGGER.info("No kmers found for taxid {}".format(taxon))
-            return kmers
+            return ""
         rand_positions = get_random_positions(ranges, n_kmers)
         for pos in rand_positions:
             fasta_handle.seek(pos)
@@ -76,10 +85,13 @@ def get_kmers_from_taxon(
                         b"\n", b"")[:kmer_size]
             if valid_kmer(kmer, kmer_size):
                 kmers.append(kmer)
-        kmers = np.unique(kmers)[:n_kmers]
+        kmers = np.unique(kmers)
+        np.random.shuffle(kmers)
+        kmers = kmers[:n_kmers]
         LOGGER.info(
-            "Found {0} kmers for taxon {1}".format(len(kmers), taxon))
-        return np.unique(kmers)[:n_kmers]
+            "Found {0} kmers for taxon {1}".format(
+                len(kmers), taxon))
+        return kmers
 
 
 def valid_kmer(kmer, kmer_size):
@@ -128,6 +140,7 @@ def get_sample_kmers(
     taxa, kmer_size, n_kmers,
     outpath, fasta_path, pickle_path, threads):
     taxa = np.array(np.genfromtxt(taxa, dtype=str), ndmin=1)
+    total_samples = len(taxa)
     LOGGER.info(
         "Generating random kmers for candidate taxa:\n {}".format(
             "\n".join(taxa)))
@@ -153,7 +166,9 @@ def get_sample_kmers(
         positions=positions,
         tax_ids=tx_ids,
         fasta=fasta_path
-    )
+        )
+
+    
     p = Pool(threads)
     LOGGER.info(
         "Starting {0} threads to generate {1} "
@@ -164,10 +179,14 @@ def get_sample_kmers(
     LOGGER.info("Writing to file: {}".format(outpath))
 
     with open(outpath, 'wb') as handle:
-        for sample, kmers in enumerate(p.imap(
-            get_kmer_partial, taxa, chunksize=int(len(taxa)/threads))):
-            write_samples_to_file(handle, kmers, sample, len(taxa))
-            LOGGER.info("Done writing kmers for sample {}".format(sample))
+        for sample, kmer in enumerate(p.imap(
+            get_kmer_partial, taxa, chunksize=1)):
+            LOGGER.info("Writing sample {} to file".format(sample))
+            handle.write(
+                get_outstring(
+                    kmer, sample, total_samples))
+            LOGGER.info("Done writing sample {} to file".format(sample))
+
 
     p.close()
     p.join()
@@ -182,14 +201,6 @@ def id_generator():
 
 ID = id_generator()
 
-def write_samples_to_file(handle, kmers, sample, total_samples):
-    count_arr = np.array(np.zeros(total_samples, dtype=int), dtype=bytes)
-    count_arr[sample] = b"1"
-    count_arr = b"_".join(count_arr)
-    s = b""
-    for kmer in kmers:
-        s += b">R" + next(ID) + b"_" + count_arr + b"\n" + kmer + b"\n"
-    handle.write(s)
 
 
 if __name__ == "__main__":
