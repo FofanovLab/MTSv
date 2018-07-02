@@ -31,7 +31,7 @@ $ source activate [ENV_NAME]
 ```
 #### Install MTSv
 ```
-$ conda install mtsv -c tara_furstenau -c bioconda -c etetoolkit -c conda-forge
+$ conda install mtsv -c fofanov -c bioconda -c etetoolkit -c conda-forge
 ```
 #### Deactivate Conda Environment
 ```
