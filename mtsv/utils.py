@@ -112,18 +112,18 @@ def line_generator(file_name, n_lines):
         
 
 
-    while go:
-        while dat.count("\n") < n_lines:
-            if f.tell() < file_size:
-                dat += f.read(n_lines*500)
-            else:
-                go = False
-                break
-        lines = [l for l in dat.split("\n") if l != ""]
-        dat = "\n".join(lines[n_lines:])
-        print("GEN", lines[:n_lines][-1])
-        yield lines[:n_lines]
-    return
+#    while go:
+#        while dat.count("\n") < n_lines:
+#            if f.tell() < file_size:
+#                dat += f.read(n_lines*500)
+#            else:
+#                go = False
+#                break
+#        lines = [l for l in dat.split("\n") if l != ""]
+#        dat = "\n".join(lines[n_lines:])
+#        print("GEN", lines[:n_lines][-1])
+#        yield lines[:n_lines]
+#    return
 
 def track_file_params(
     file_type, file_path, params):
