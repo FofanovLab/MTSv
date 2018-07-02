@@ -196,7 +196,7 @@ def fm_build(dir_list):
     fm_list = []
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
-            out_file = os.path.join(directory, "{0}.fmi".format(os.path.basename(fp).split(".")[0]))
+            out_file = os.path.join(directory, "{0}.index".format(os.path.basename(fp).split(".")[0]))
             subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
             fm_list.append(out_file)
     return fm_list
@@ -305,50 +305,53 @@ def make_json_abs(args):
 
 
 def setup_and_run(parser):
-
-    args = parser.parse_known_args()[0]
-
-    try:
-        make_json_abs(args)
-    except:
+    if sys.argv[1] == "json_update":
         pass
-    try:
 
-        if args.cmd_class == Database:
-            if args.download_only:
-                args.path = os.path.abspath(oneclickdl(args))
+    else:
+        args = parser.parse_known_args()[0]
 
-            elif args.build_only:
-                if args.path and  os.path.isdir(args.path):
-                    oneclickbuild(args)
+        try:
+            make_json_abs(args)
+        except:
+            pass
+        try:
+
+            if args.cmd_class == Database:
+                if args.download_only:
+                    args.path = os.path.abspath(oneclickdl(args))
+
+                elif args.build_only:
+                    if args.path and  os.path.isdir(args.path):
+                        oneclickbuild(args)
+                    else:
+                        print("A valid path was not specified")
                 else:
-                    print("A valid path was not specified")
-            else:
-                args.path = os.path.abspath(oneclickdl(args))
-                oneclickbuild(args)
+                    args.path = os.path.abspath(oneclickdl(args))
+                    oneclickbuild(args)
 
-        elif args.cmd_class == CustomDB:
+            elif args.cmd_class == CustomDB:
+                oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+            try:
+                make_json_rel(args)
+            except:
+                pass
+
+        except AttributeError:
+            sys.argv[1] = "database"
+            args = parser.parse_known_args()[0]
+            args.path = os.path.abspath(oneclickdl(args))
+            oneclickbuild(args)
+            path = args.path
+            sys.argv[1] = "custom_db"
+            args = parser.parse_known_args()[0]
+            args.path = path
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
         try:
+            json_updater(args)
             make_json_rel(args)
         except:
             pass
-
-    except AttributeError:
-        sys.argv[1] = "database"
-        args = parser.parse_known_args()[0]
-        args.path = os.path.abspath(oneclickdl(args))
-        oneclickbuild(args)
-        path = args.path
-        sys.argv[1] = "custom_db"
-        args = parser.parse_known_args()[0]
-        args.path = path
-        oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
-    try:
-        json_updater(args)
-        make_json_rel(args)
-    except:
-        pass
 
 
 
