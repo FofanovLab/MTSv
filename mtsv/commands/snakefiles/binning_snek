@@ -59,7 +59,7 @@ rule binning_report:
             config['binning_outpath'],
             'unaligned_queries.fasta')
     message: """Running binning report and finding unaligned reads.
-                Writing to {output.rep} and {input.unaligned}. Using
+                Writing to {output.rep} and {output.unaligned}. Using
                 {resources.mem_mb} Mb of memory."""
     resources:
         mem_mb=lambda wildcards, attempt: attempt * 1000
