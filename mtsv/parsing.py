@@ -158,10 +158,13 @@ def path_type(input_path):
     return os.path.abspath(input_path)
 
 def flag_type(input_val):
-    if not set(input_val).intersection(set("TF")):
+    if input_val != "T" and input_val != "F":
         raise argparse.ArgumentTypeError(
             "Invalid flag, must be either T or F")
-    return True if input_val == "T" else False
+    if input_val == "T":
+        return True
+    if input_val == "F":
+        return False
 
 def project_dir_type(input_path):
     '''Creates a project directory if one does not exist and

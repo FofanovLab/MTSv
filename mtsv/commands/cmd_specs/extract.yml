@@ -8,21 +8,22 @@ taxids:
   help: List of species to extract. (Space separated).
   nargs: +
   required: True
-merge_file:
-  help: Merged binning output file.
-  type: file_type
-  default: ./Binning/merged.clp
+input_hits:
+  help: >
+    Path to either merged binning output or signature hits file. 
+    The merged file should be passed if all query hits should be
+    extracted and the signature hits file should be passed if 
+    only signature queries are desired. 
 by_sample:
-  help: Further breakdown extracted queries by sample.
-  default: F
+  help: Breakdown extracted queries by sample.
+  default: T
   type: flag_type
 descendants:
   help: >
-    Include all descendant taxa in extracted queries. Queries are 
+    Include all descendant taxa in extracted queries. Queries may be 
     extracted before roll up, so by default, descendant taxa will be
-    included in search if a higher level taxid is provided. If False,
-    only exact matches to taxid will be returned and likely no matches 
-    to higher level taxids will be found.
+    included in search if a higher level taxid is provided. If False (F),
+    only exact matches to taxid will be returned.
   default: T
   type: flag_type
   

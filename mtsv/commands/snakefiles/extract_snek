@@ -10,10 +10,24 @@ SCRIPT = script_path('MTSv_extract.py')
 REPORT = outfile_type(os.path.join("Reports", "extract_report.html"))
 
 
-merge_prior_params = json.loads(open(os.path.join(
-        os.path.dirname(config['merge_file']),
+try:
+    for k, v in json.loads(open(os.path.join(
+        os.path.dirname(config['input_hits']),
         ".params"),
-        'r').read())['merge_file'][config['merge_file']]
+        'r').read())['summary_file'].items():
+        if v['signature_file'] == config['input_hits']:
+            sig_prior_params = v
+
+    merge_prior_params = json.loads(open(os.path.join(
+        os.path.dirname(sig_prior_params['merge_file']),
+        ".params"),
+        'r').read())['merge_file'][sig_prior_params['merge_file']]
+
+except KeyError:
+    merge_prior_params = json.loads(open(os.path.join(
+            os.path.dirname(config['input_hits']),
+            ".params"),
+            'r').read())['merge_file'][config['input_hits']]
 
 if "database_config" not in config:
     config['database_config'] = merge_prior_params['database_config']
@@ -29,7 +43,7 @@ reads = json.loads(open(os.path.join(
 
 if config['by_sample']:
     # get number of samples
-    with open(config['merge_file'], 'r') as infile:
+    with open(config['input_hits'], 'r') as infile:
         n_samples = len(
             parse_output_row(
                 infile.readline()).counts)
@@ -45,13 +59,7 @@ else:
     for tax in config['taxids']]
 
 FASTQ_OUTPUT = [os.path.splitext(fasta)[0] + ".fastq" for fasta in FASTA_OUTPUT]
-FASTA = file_type(json.loads(
-    open(os.path.join(
-        os.path.dirname(
-            config['merge_file']),
-        ".params"), 'r').read())['merge_file'][config['merge_file']]['fasta'])   
-
-print(FASTQ_OUTPUT, FASTA_OUTPUT)
+FASTA = file_type(merge_prior_params['fasta'])
 
 rule extract_all:
     input:
@@ -99,7 +107,7 @@ rule extract:
         fastq_out = FASTQ_OUTPUT
     input: 
         fasta=FASTA,
-        clp=config['merge_file']
+        clp=config['input_hits']
     resources:
         mem_mb=lambda wildcards, attempt, input: attempt * 500
     params:
