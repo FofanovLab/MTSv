@@ -22,7 +22,6 @@ CANDIDATE_TAXA = outfile_type(os.path.join(
                     config['analyze_outpath'],
                     "candidate_taxa.txt"))
 
-
 rule analyze_all:
     input:
         REPORT
