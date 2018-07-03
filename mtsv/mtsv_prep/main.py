@@ -103,34 +103,35 @@ def oneclickbuild(args):
 
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
-    shutil.rmtree(os.path.join(args.path, "flat_files" ))
+
+    # shutil.rmtree(os.path.join(args.path, "flat_files" ))
 
 def mapper(x):
     return clip(*x)
 
 def partition(args):
-    partition_list = []
+    partition_list = set()
     for db in args.customdb:
-        db = db.strip().replace(" ","_")
+        db = db.strip().lower().replace(" ","_")
+
         arguments = parse_json(os.path.join(args.path, "artifacts/{0}.json".format(db)))
         for prt in args.partitions:
             try:
-                if args.debug:
-                    path = os.path.join(args.path, "indices", db, prt.replace(",", "_"))
-                    temp = prt.split("-")
-
-                else:
-                    path = os.path.join(args.path, "indices", db, prt.replace(",", "_"))
-                    os.makedirs(path, exist_ok=args.overwrite)
-                    temp = prt.split("-")
+                temp = prt.split("-")
                 if len(temp) == 2:
                     inc = set(temp[0].split(","))
                     exc = set(temp[1].split(","))
+                    path = os.path.join(args.path, "indices", db, "{0}-{1}".format("_".join(sorted(inc)), "_".join(sorted(exc)) ))
+                    os.makedirs(path, exist_ok=True)
+                    prt = "{0}-{1}".format("_".join(sorted(inc)), "_".join(sorted(exc)))
                 else:
                     inc = set(temp[0].split(","))
                     exc = set()
-                partition_list.append( ( list(inc), args.rollup_rank, list(exc), os.path.join(path,
-                                        "{0}.fas".format(prt.replace(",","_"))),arguments['minimum-length'],
+                    path = os.path.join(args.path, "indices", db, "{0}".format("_".join(sorted(inc)) ))
+                    os.makedirs(path, exist_ok=True)
+                    prt = "{0}".format("_".join(sorted(inc)) )
+                partition_list.add( ( list(inc), args.rollup_rank, list(exc), os.path.join(path,
+                                        "{0}.fas".format(prt)),arguments['minimum-length'],
                                          arguments['maximum-length'], arguments["fasta-path"],
                                          arguments["serialization-path"], args.debug  ) )
             except OSError:
@@ -139,12 +140,13 @@ def partition(args):
     p = Pool(args.threads)
     ret_list = p.starmap(clip, partition_list)
 
-    return ret_list
+    return ret_list, args
 
-def chunk(file_list):
+def chunk(file_list, args):
     dir_set = set()
     for fp in file_list:
-        subprocess.run("{2} --input {0} --output {1} --gb 2".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')).split() )
+        if not os.path.isfile("_0.".join(fp.rsplit(".", 1))):
+            subprocess.run("{2} --input {0} --output {1} --gb 2".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')).split() )
         dir_set.add(os.path.dirname(fp))
     return list(dir_set)
 
@@ -215,19 +217,28 @@ def json_updater(args):
 
         with open(json_path, "r") as file:
             params = json.load(file)
+        fm_all = []
         params['fm-paths'] = {}
-        for path in glob.glob(os.path.join(sys.argv[1], "indices", base, "**/*.fmi")):
+        for path in iglob(os.path.join(args.path, "indices", base, "**/*.index")):
             folder = os.path.basename(os.path.dirname(path))
             try:
                 params['fm-paths'][folder].append(os.path.abspath(path))
             except KeyError:
                 params['fm-paths'][folder] = [os.path.abspath(path)]
+            fm_all.append(os.path.abspath(path))
+        params['fm-index-path'] = fm_all
+        params['partition-path'] = []
 
-        params['partition-path'] = {}
-        for path in glob.glob(os.path.join(sys.argv[1], "indices", base, "**/*.fas")):
-            folder = os.path.basename(os.path.dirname(path))
-            params['partition-path'][folder] = os.path.abspath(path)
+        for path in iglob(os.path.join(args.path, "fastas", base, "*.fas")):
+            # folder = os.path.basename(os.path.dirname(path))
+            # print(path)
+            # try:
+            #     params['partition-path'][folder]
+            # except KeyError:
+            #     params['partition-path'][folder] = []
+            params['partition-path'].append(os.path.abspath(path))
 
+        params['mtsv-tree'] = os.path.abspath(os.path.join(args.path, "artifacts","tree.index"))
         with open(json_path, "w") as file:
             json.dump(params, file, sort_keys=True, indent=4)
 
@@ -286,9 +297,9 @@ def make_json_abs(args):
                 pass
             try:
                 # keys = list()
-                for j in arguments['partition-path'].keys():
-                    for abs_path in arguments['partition-path'][j]:
-                        arguments['partition-path'][j] = os.path.abspath(os.path.join(args.path,abs_path))
+                for j, val in enumerate(arguments['partition-path']):
+                    # for abs_path in arguments['partition-path'][j]:
+                    arguments['partition-path'][j] = os.path.abspath(val)
             except KeyError:
                 pass
 
@@ -306,15 +317,13 @@ def make_json_abs(args):
 
 def setup_and_run(parser):
     if sys.argv[1] == "json_update":
-        pass
+        args = parser.parse_known_args()[0]
+        json_updater(args)
+        make_json_abs(args)
 
     else:
         args = parser.parse_known_args()[0]
 
-        try:
-            make_json_abs(args)
-        except:
-            pass
         try:
 
             if args.cmd_class == Database:
@@ -332,10 +341,12 @@ def setup_and_run(parser):
 
             elif args.cmd_class == CustomDB:
                 oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
-            try:
-                make_json_rel(args)
-            except:
-                pass
+                make_json_abs(args)
+
+            # try:
+            #     make_json_rel(args)
+            # except:
+            #     pass
 
         except AttributeError:
             sys.argv[1] = "database"
@@ -347,12 +358,6 @@ def setup_and_run(parser):
             args = parser.parse_known_args()[0]
             args.path = path
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
-        try:
-            json_updater(args)
-            make_json_rel(args)
-        except:
-            pass
-
 
 
 def main(argv=None):
@@ -374,7 +379,8 @@ def main(argv=None):
         make_sub_parser(
             subparsers, command, cmd_class
         )
-
+    p = subparsers.add_parser("json_update")
+    p.add_argument("--path")
     p = subparsers.add_parser("oneclick")
     for command, cmd_class in COMMANDS.items():
         for arg, desc in get_global_config(cmd_class.config_section).items():
