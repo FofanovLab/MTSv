@@ -110,7 +110,7 @@ def mapper(x):
     return clip(*x)
 
 def partition(args):
-    partition_list = set()
+    partition_list = []
     fin = set()
     for db in args.customdb:
         db = db.strip().lower().replace(" ","_")
@@ -137,11 +137,11 @@ def partition(args):
                     pass
                 if os.path.isfile(os.path.join(path, "{0}.fas".format(prt))) and not args.overwrite:
                     fin.add(os.path.abspath(os.path.join(path, "{0}.fas".format(prt))))
-
-                partition_list.add( ( list(inc), args.rollup_rank, list(exc), os.path.join(path,
-                                        "{0}.fas".format(prt)),arguments['minimum-length'],
-                                         arguments['maximum-length'], arguments["fasta-path"],
-                                         arguments["serialization-path"], args.debug  ) )
+                else:
+                    partition_list.append ( (list(inc), args.rollup_rank, list(exc), os.path.join(path,
+                                            "{0}.fas".format(prt)),arguments['minimum-length'],
+                                             arguments['maximum-length'], arguments["fasta-path"],
+                                             arguments["serialization-path"], args.debug)  )
             except OSError:
                 print("Partion folder {0} exists please use --overwrite to repartition".format(path))
 
@@ -153,9 +153,10 @@ def partition(args):
 def chunk(file_list, args):
     dir_set = set()
     for fp in file_list:
-        out_dir = os.path.abspath(os.path.join(args.path, "indices", os.path.basename(fp).rsplit(".",1)[0] ))
-        if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))):
-            subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, bin_path('mtsv-chunk')).split(), args.chunk_size )
+        db = os.path.basename(os.path.dirname(fp))
+        out_dir = os.path.abspath(os.path.join(args.path, "indices", db,os.path.basename(fp).rsplit(".",1)[0] ))
+        if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))+"ta" ) ):
+            subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, bin_path('mtsv-chunk'), args.chunk_size).split() )
         dir_set.add(out_dir)
     return list(dir_set)
 
@@ -216,7 +217,7 @@ def fm_build(dir_list):
     return fm_list
 
 def oneclickfmbuild(args, is_default):
-    to_link = fm_build(chunk(partition(args)))
+    to_link = fm_build(chunk(*partition(args)))
 
 
 def json_updater(args):
@@ -339,14 +340,20 @@ def setup_and_run(parser):
                 elif args.build_only:
                     if args.path and  os.path.isdir(args.path):
                         oneclickbuild(args)
+                        json_updater(args)
+                        make_json_abs(args)
+
                     else:
                         print("A valid path was not specified")
                 else:
                     args.path = os.path.abspath(oneclickdl(args))
                     oneclickbuild(args)
+                    json_updater(args)
+                    make_json_abs(args)
 
             elif args.cmd_class == CustomDB:
                 oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+                json_updater(args)
                 make_json_abs(args)
 
             # try:
@@ -364,6 +371,8 @@ def setup_and_run(parser):
             args = parser.parse_known_args()[0]
             args.path = path
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
+            json_updater(args)
+            make_json_abs(args)
 
 
 def main(argv=None):
