@@ -209,7 +209,9 @@ def fm_build(dir_list):
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.index".format(os.path.basename(fp).split(".")[0]))
             if not os.path.isfile(out_file):
-                subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
+                result = subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
+                if result.returncode == 0:
+                    os.remove(os.path.abspath(fp))
             fm_list.append(out_file)
     return fm_list
 
