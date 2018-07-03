@@ -22,7 +22,7 @@ descendants:
   help: >
     Include all descendant taxa in extracted queries. Queries may be 
     extracted before roll up, so by default, descendant taxa will be
-    included in search if a higher level taxid is provided. If False,
+    included in search if a higher level taxid is provided. If False (F),
     only exact matches to taxid will be returned.
   default: T
   type: flag_type
