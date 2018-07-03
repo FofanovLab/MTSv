@@ -247,17 +247,17 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=
             ex_tx = temp
         except FileNotFoundError:
             pass
-    print(pickle_path)
-    print("Getting Offsets and Tree")
+    # print(pickle_path)
+    # print("Getting Offsets and Tree")
     tx_ids, child2parent, positions = deserialization(pickle_path)
 
     taxons = set()
-    print("Getting TaxIds")
+    # print("Getting TaxIds")
     for i in in_tx:
         taxons = taxons.union(get_tree(tx_ids, i, positions))
 
     if ex_tx:
-        print("\tPruning")
+        # print("\tPruning")
         for i in ex_tx:
            taxons = taxons.difference(get_tree(tx_ids, i, positions))
 
@@ -271,7 +271,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=
 
     seq = bytearray()
     line_count = 0
-    print("Writing")
+    # print("Writing")
     with open(fasta_path, "rb") as fasta:
         with open(name, "wb") as out:
             for tx in sorted(taxons):
@@ -582,7 +582,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
                 continue
         except:
             pass
-        if line[11].strip().decode() in databases:
+        if line[11].strip().decode().lower().replace(" ", "_") in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -610,7 +610,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
         except:
             pass
 
-        if line[11].strip().decode() in databases:
+        if line[11].strip().decode().lower().replace(" ", "_") in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -719,8 +719,8 @@ if __name__ =="__main__":
 
     args = parser.parse_args()
     if args.oneclick:
-        databases = {"genbank", "Complete Genome", "Scaffold", "Contig", "Chromosome"}
-        exclude = {"Complete Genome", "Contig"}
+        databases = {"genbank", "complete_genome", "scaffold", "contig", "chromosome"}
+        exclude = {"complete_Genome", "contig"}
         if args.threads:
             threads = args.threads
         else:
