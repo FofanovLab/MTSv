@@ -1,7 +1,37 @@
 _meta_wgfast:
   help: Whole genome focused array SNP typing
+extract_path:
+  default: ./Extracted_Reads/
+  help: Directory to place extracted reads from MTSv pipeline.
+  type: outpath_type
+taxids:
+  help: Taxid to extract.
+  nargs: 1
+  required: True
+input_hits:
+  help: >
+    Path to either merged binning output or signature hits file. 
+    The merged file should be passed if all query hits should be
+    extracted and the signature hits file should be passed if 
+    only signature queries are desired. 
+  type: file_type
+  default: ./Binning/merged.clp
+by_sample:
+  help: Breakdown extracted queries by sample.
+  default: T
+  type: flag_type
+descendants:
+  help: >
+    Include all descendant taxa in extracted queries. Queries may be 
+    extracted before roll up, so by default, descendant taxa will be
+    included in search if a higher level taxid is provided. If False,
+    only exact matches to taxid will be returned. 
+  default: T
+  type: flag_type
 reference_directory:
-  help: Path to reference file directory
+  help: >
+    Path to reference file directory. Should be path to 
+    WGFast database the corresponds to extracted taxid.
   type: path_type
   required: True
 wgfast_output:

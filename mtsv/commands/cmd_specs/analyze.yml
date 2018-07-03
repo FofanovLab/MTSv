@@ -4,12 +4,6 @@ analysis_file:
   default: ./Analysis/analysis.csv
   type: outfile_type
   help: File to write output.
-signature_cutoff:
-  help: >
-    Run analysis only for taxa with unique signature
-    hits that are greater than SIGNATURE CUTOFF.
-  default: 20
-  type: nonneg_int
 summary_file:
   default: ./Summary/summary.csv
   help: Path to summary output
@@ -21,6 +15,14 @@ n_kmers:
     of the candidate taxa. These will be used to estimate
     expected values.
   type: positive_int
+signature_cutoff:
+  help: >
+    Run analysis only for taxa with unique signature
+    hits that are greater than SIGNATURE CUTOFF.
+  default: 20
+  type: nonneg_int
+
+  
 
 
 
