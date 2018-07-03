@@ -119,6 +119,7 @@ def write_sequences_by_sample(
         for sample in samples:
             sample_dict[sample].append(query)
     for sample, queries in sample_dict.items():
+        queries = set(queries)
         fasta_file = os.path.join(
             outpath,
             "{0}_{1}.fasta".format(targets[0], sample + 1))
@@ -141,19 +142,19 @@ def write_sequences_by_sample(
 def write_sequences(
     targets, query_fastas, outpath):
     LOGGER.info("Writing to file")
-
     fasta_file = os.path.join(
         outpath, str(targets[0]) + ".fasta")
     fastq_file = os.path.splitext(fasta_file)[0] + ".fastq"
+    tar = set(targets[1])
     with open(fasta_file, 'w') as fhandle, open(fastq_file, 'w') as qhandle:
-        if not len(targets[1]):
+        if not len(tar):
             LOGGER.info(
                 "There were no sequences for taxid: {}".format(
                     targets[0]))
         else:
             with open(query_fastas, 'r') as qfasta:
                 for record in SeqIO.parse(qfasta, 'fasta'):
-                    if record.id in targets[1]:
+                    if record.id in tar:
                         SeqIO.write(record, fhandle, "fasta")
                         record.letter_annotations[
                                 "phred_quality"] = [40] * len(record)
@@ -162,11 +163,7 @@ def write_sequences(
                             np.sum(np.array(name.split("_")[1:], dtype=int))):
                             record.id = "{0}_{1}".format(name, rep)
                             SeqIO.write(record, qhandle, 'fastq')
-                        
-    # query_fasta_dict = {}
-    # if sum([len(t) for t in targets.values()]):
-    #     query_fasta_dict = SeqIO.to_dict(
-    #         SeqIO.parse(query_fasta, "fasta"))
+
 
 if __name__ == "__main__":
     try:
@@ -245,5 +242,4 @@ if __name__ == "__main__":
             ARGS.taxids, ARGS.clp, ARGS.query_fasta,
             ARGS.descendants, ARGS.by_sample, ARGS.outpath, ARGS.threads)
 
-        
 
