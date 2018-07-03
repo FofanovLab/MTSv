@@ -247,17 +247,17 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=
             ex_tx = temp
         except FileNotFoundError:
             pass
-    print(pickle_path)
-    print("Getting Offsets and Tree")
+    # print(pickle_path)
+    # print("Getting Offsets and Tree")
     tx_ids, child2parent, positions = deserialization(pickle_path)
 
     taxons = set()
-    print("Getting TaxIds")
+    # print("Getting TaxIds")
     for i in in_tx:
         taxons = taxons.union(get_tree(tx_ids, i, positions))
 
     if ex_tx:
-        print("\tPruning")
+        # print("\tPruning")
         for i in ex_tx:
            taxons = taxons.difference(get_tree(tx_ids, i, positions))
 
@@ -271,7 +271,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=
 
     seq = bytearray()
     line_count = 0
-    print("Writing")
+    # print("Writing")
     with open(fasta_path, "rb") as fasta:
         with open(name, "wb") as out:
             for tx in sorted(taxons):

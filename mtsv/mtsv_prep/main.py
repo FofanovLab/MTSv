@@ -111,9 +111,9 @@ def mapper(x):
 
 def partition(args):
     partition_list = set()
+    fin = set()
     for db in args.customdb:
         db = db.strip().lower().replace(" ","_")
-
         arguments = parse_json(os.path.join(args.path, "artifacts/{0}.json".format(db)))
         for prt in args.partitions:
             try:
@@ -121,15 +121,23 @@ def partition(args):
                 if len(temp) == 2:
                     inc = set(temp[0].split(","))
                     exc = set(temp[1].split(","))
-                    path = os.path.join(args.path, "indices", db, "{0}-{1}".format("_".join(sorted(inc)), "_".join(sorted(exc)) ))
-                    os.makedirs(path, exist_ok=True)
+                    chunk_path = os.path.join(args.path, "indices", db, "{0}-{1}".format("_".join(sorted(inc)), "_".join(sorted(exc)) ))
+                    os.makedirs(chunk_path, exist_ok=True)
                     prt = "{0}-{1}".format("_".join(sorted(inc)), "_".join(sorted(exc)))
                 else:
                     inc = set(temp[0].split(","))
                     exc = set()
-                    path = os.path.join(args.path, "indices", db, "{0}".format("_".join(sorted(inc)) ))
-                    os.makedirs(path, exist_ok=True)
+                    chunk_path = os.path.join(args.path, "indices", db, "{0}".format("_".join(sorted(inc)) ))
+                    os.makedirs(chunk_path, exist_ok=True)
                     prt = "{0}".format("_".join(sorted(inc)) )
+                path = os.path.join(args.path, "fastas", db)
+                try:
+                    os.makedirs(path)
+                except:
+                    pass
+                if os.path.isfile(os.path.join(path, "{0}.fas".format(prt))) and not args.overwrite:
+                    fin.add(os.path.abspath(os.path.join(path, "{0}.fas".format(prt))))
+
                 partition_list.add( ( list(inc), args.rollup_rank, list(exc), os.path.join(path,
                                         "{0}.fas".format(prt)),arguments['minimum-length'],
                                          arguments['maximum-length'], arguments["fasta-path"],
@@ -140,14 +148,15 @@ def partition(args):
     p = Pool(args.threads)
     ret_list = p.starmap(clip, partition_list)
 
-    return ret_list, args
+    return ret_list + list(fin), args
 
 def chunk(file_list, args):
     dir_set = set()
     for fp in file_list:
-        if not os.path.isfile("_0.".join(fp.rsplit(".", 1))):
-            subprocess.run("{2} --input {0} --output {1} --gb 2".format(fp, os.path.dirname(fp), bin_path('mtsv-chunk')).split() )
-        dir_set.add(os.path.dirname(fp))
+        out_dir = os.path.abspath(os.path.join(args.path, "indices", os.path.basename(fp).rsplit(".",1)[0] ))
+        if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))):
+            subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, bin_path('mtsv-chunk')).split(), args.chunk_size )
+        dir_set.add(out_dir)
     return list(dir_set)
 
 def snake(args):
@@ -199,7 +208,8 @@ def fm_build(dir_list):
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.index".format(os.path.basename(fp).split(".")[0]))
-            subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
+            if not os.path.isfile(out_file):
+                subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
             fm_list.append(out_file)
     return fm_list
 
@@ -230,12 +240,6 @@ def json_updater(args):
         params['partition-path'] = []
 
         for path in iglob(os.path.join(args.path, "fastas", base, "*.fas")):
-            # folder = os.path.basename(os.path.dirname(path))
-            # print(path)
-            # try:
-            #     params['partition-path'][folder]
-            # except KeyError:
-            #     params['partition-path'][folder] = []
             params['partition-path'].append(os.path.abspath(path))
 
         params['mtsv-tree'] = os.path.abspath(os.path.join(args.path, "artifacts","tree.index"))
