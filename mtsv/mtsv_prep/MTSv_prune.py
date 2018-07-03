@@ -582,7 +582,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
                 continue
         except:
             pass
-        if line[11].strip().decode() in databases:
+        if line[11].strip().decode().lower().replace(" ", "_") in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -610,7 +610,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
         except:
             pass
 
-        if line[11].strip().decode() in databases:
+        if line[11].strip().decode().lower().replace(" ", "_") in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
@@ -719,8 +719,8 @@ if __name__ =="__main__":
 
     args = parser.parse_args()
     if args.oneclick:
-        databases = {"genbank", "Complete Genome", "Scaffold", "Contig", "Chromosome"}
-        exclude = {"Complete Genome", "Contig"}
+        databases = {"genbank", "complete_genome", "scaffold", "contig", "chromosome"}
+        exclude = {"complete_Genome", "contig"}
         if args.threads:
             threads = args.threads
         else:

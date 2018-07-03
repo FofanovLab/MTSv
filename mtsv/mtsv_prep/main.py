@@ -55,7 +55,7 @@ FILE_LOCK = RLock()
 
 def oneclickdl(args):
     fin = set()
-    for db in ["genbank", "Complete_Genome", "Chromosome", "Scaffold"]:
+    for db in ["genbank", "complete_genome", "chromosome", "scaffold"]:
         if args.path and os.path.isfile(os.path.join(args.path, "artifacts","{0}.fas")):
            fin.add(db)
     dbs = set(args.includedb).difference(fin)
@@ -286,7 +286,7 @@ def make_json_rel(args):
 
 
 def make_json_abs(args):
-    for name in ["genbank", "Complete_Genome","Chromosome","Scaffold"]:
+    for name in ["genbank", "complete_genome","chromosome","scaffold"]:
         try:
             arguments = parse_json(os.path.join(args.path, "artifacts","{0}.json".format(name)))
             try:
