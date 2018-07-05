@@ -13,7 +13,10 @@ rule wgfast_all:
         REPORT
 
 CML = format_cml_params(
-    'WGFAST', config, ['wgfast_output'], [])
+    'WGFAST', config, [
+        'wgfast_output', 'extract_path',
+        'input_hits', 'taxids', 'by_sample',
+        'descendants'], [])
 
 
 def format_fastq_file(file):
@@ -77,8 +80,6 @@ rule wgfast:
             config['wgfast_output'], "transformed.tree"),
         nasp = os.path.join(
             config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
-        cov = os.path.join(
-            config['wgfast_output'], "coverage_out.txt"),
         pat = os.path.join(
             config['wgfast_output'], "all_patristic_distances.txt")
     params:

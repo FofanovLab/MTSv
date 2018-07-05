@@ -58,7 +58,7 @@ rule candidate_taxa:
         taxdump = config['taxdump_path']
     script: SCRIPTS['candidate_taxa']
 
-MEM = config['kmer'] * config['n_kmers'] * config['threads']
+MEM = config['kmer'] * config['n_kmers'] * config['threads'] * 50
 
 rule random_kmers:
     input: CANDIDATE_TAXA

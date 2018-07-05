@@ -33,7 +33,8 @@ def get_random_positions(ranges, n_samples):
     ns = np.random.multinomial(n_samples*2, p, size=1)[0]
     pos = np.array([], dtype=int)
     for n, _range in zip(ns, ranges):
-        pos = np.append(pos, np.random.choice(np.arange(_range.start, _range.stop), replace=True, size=n))
+        pos = np.append(pos, np.random.choice(
+            np.arange(_range.start, _range.stop), replace=True, size=n))
     return np.unique(pos)
 
 
@@ -181,11 +182,11 @@ def get_sample_kmers(
     with open(outpath, 'wb') as handle:
         for sample, kmer in enumerate(p.imap(
             get_kmer_partial, taxa, chunksize=1)):
-            LOGGER.info("Writing sample {} to file".format(sample))
+            LOGGER.info("Writing sample {} to file".format(sample + 1))
             handle.write(
                 get_outstring(
                     kmer, sample, total_samples))
-            LOGGER.info("Done writing sample {} to file".format(sample))
+            LOGGER.info("Done writing sample {} to file".format(sample + 1))
 
 
     p.close()
@@ -278,7 +279,6 @@ if __name__ == "__main__":
 
 
         
-
 
 
 
