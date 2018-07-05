@@ -22,7 +22,7 @@ MTSv is written in Python but calls compiled rust binaries for most of the core 
 
 ### Create Conda environment with Python3.6.
 ```
-$ conda env create -n [ENV_NAME] python=3.6
+$ conda create -n [ENV_NAME] python=3.6
 ```
 
 #### Activate Conda Environment
