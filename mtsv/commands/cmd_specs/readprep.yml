@@ -1,5 +1,5 @@
 _meta_readprep:
-  help: Read fragment deduplication (FASTQ -> FASTA), quality control comming soon.
+  help: Read fragment deduplication (FASTQ -> FASTA), quality control coming soon.
 fastq:
   nargs: +
   help: >

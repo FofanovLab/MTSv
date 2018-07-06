@@ -1,18 +1,22 @@
 import os
+from shutil import copyfile
 from mtsv.parsing import format_cml_params
 
 include: "extract_snek"
 
 shell.prefix("set -euo pipefail;")
 
-REPORT = "wgfast_report.html"
+REPORT = "Reports/wgfast_report.html"
 
 rule wgfast_all:
     input:
         REPORT
 
 CML = format_cml_params(
-    'WGFAST', config, ['wgfast_output'], [])
+    'WGFAST', config, [
+        'wgfast_output', 'extract_path',
+        'input_hits', 'taxids', 'by_sample',
+        'descendants'], [])
 
 
 def format_fastq_file(file):
@@ -34,11 +38,38 @@ rule wgfast_report:
             config['wgfast_output'], "transformed.tree"),
         nasp = os.path.join(
             config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
-        cov = os.path.join(
-            config['wgfast_output'], "coverage_out.txt"),
         pat = os.path.join(
             config['wgfast_output'], "all_patristic_distances.txt")
     output: REPORT
+    run:
+        from snakemake.utils import report
+        cov = os.path.join(
+            config['wgfast_output'], "coverage_out.txt")
+        hits = config['input_hits']
+        taxids = config['taxids'][0]
+        report(
+            """
+            WGFAST Report
+            =============================
+            WGFAST was ran on queries extracted from **{hits}**
+            for taxid **{taxids}**. The output files are at the 
+            following paths:\n
+            This file is a nexus file of the starting tree with the unknowns placed. If
+            this file is opened with figtree, the unknown isolates are shown in red.\n
+            **Figtree** http://tree.bio.ed.ac.uk/software/figtree/ \n
+            **{input.tree}**\n
+            This file is a modification of the original NASP matrix with
+            the unknowns inserted, so the user can identify specific SNPs. 
+            Information is lost from this matrix, so it cannot be used with 
+            additional WG-FAST runs.\n
+            **{input.nasp}**\n
+            If you chose to have genome coverage information, the coverage across
+            the reference genome is provided in this file.\n
+            **{cov}**\n
+            This file contains the patristic distance, or tree path distance, 
+            between all pairwise comparisons in the analysis.\n
+            **{input.pat}**""", output[0]
+        )
 
 
 rule wgfast:
@@ -49,8 +80,6 @@ rule wgfast:
             config['wgfast_output'], "transformed.tree"),
         nasp = os.path.join(
             config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
-        cov = os.path.join(
-            config['wgfast_output'], "coverage_out.txt"),
         pat = os.path.join(
             config['wgfast_output'], "all_patristic_distances.txt")
     params:
@@ -59,15 +88,16 @@ rule wgfast:
         cml = CML
     threads: config['threads']
     message: """Running WGFAST on {input} using {threads} threads"""
+    log: config['log_file']
     shell:
-        """cd {params.wd}; gzip {input.reads}; wgfast -d {params.reads_dir} -p {threads} {params.cml}"""
+        """cd {params.wd}; gzip {input.reads}; wgfast -d {params.reads_dir} -p {threads} {params.cml} > {log}"""
 
 rule process_fastqs:
     input: FASTQ_OUTPUT # ouput from extract see extract_snek
     output: FASTQ_GZ
     run:
         for old, new in zip(input, output):
-            os.rename(old, new)
+            copyfile(old, new)
             
 
 

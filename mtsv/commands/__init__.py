@@ -58,7 +58,7 @@ class Command:
                 self._params.write_parameters()
             except ( KeyboardInterrupt, sp.CalledProcessError) as e:
                 warn("Unlocking directory after failed snakemake")
-                sp.run(cmd + ["--unlock"] )
+                sp.run(cmd + ["--unlock"], check=True )
                 error(e)
             
 
@@ -171,10 +171,9 @@ class Pipeline(Command):
         self.rules = [SNAKEFILES['pipeline']]
 
 class WGFast(Command):
-    config_section=["EXTRACT", "WGFAST"]
+    config_section=["WGFAST"]
     def __init__(self, params):
         super().__init__(params)
         self.rules = [SNAKEFILES['wgfast']]
-        print("PARAMS", self.params)
 
 

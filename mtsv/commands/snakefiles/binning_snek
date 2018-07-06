@@ -17,13 +17,16 @@ BINS = {
 REPORT = outfile_type(os.path.join("Reports", "binning_report.html"))
 config['fm_index_paths'] = [file_type(f) for f in get_database_params(
     config['database_config'], 'fm-index-paths')]
-INDEX_PATH = os.path.dirname(config['fm_index_paths'][0])
+
+
+INDEX_PATH = [os.path.dirname(i) for i in config['fm_index_paths']]
 INDEX = [os.path.basename(p).split(".")[0] for p in config['fm_index_paths']]
+INDEX_DICT = {i: p for i, p in zip(INDEX, config['fm_index_paths'])}
 INDEX_OUT = [
         os.path.join(
             config['binning_outpath'], "{}.bn".format(indx)) for indx in INDEX]
 LOG = [os.path.join(config['binning_outpath'], "{}.log".format(indx))
-        for indx in INDEX]    
+        for indx in INDEX]
 
 MODE_DICT = {'fast': {'seed_size': 17, 'min_seeds': 5, 'seed_gap': 2},
              'efficient': {'seed_size': 14, 'min_seeds': 4, 'seed_gap': 2},
@@ -102,11 +105,13 @@ rule binning_report:
             
 rule binning:
     """Metagenomics binning"""
-    output:
-        os.path.join(config['binning_outpath'], "{index}.bn")
+    output: os.path.join(config['binning_outpath'], "{index}.bn")
     input:
         reads = config['fasta'],
-        fm_index = os.path.join(INDEX_PATH, "{index}.index")
+        fm_index = lambda wildcard: INDEX_DICT[wildcard.index]
+        # fm_index = expand(
+        #     "{path}/{index}.index", zip, path=INDEX_PATH, index=INDEX )
+        # fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
         mem_mb=lambda wildcards, attempt, input: attempt * 1000
     params:

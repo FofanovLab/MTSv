@@ -71,7 +71,7 @@ rule readprep_report:
         #     max_counts
         # )
 
-        stats = [[min_counts], [mean_counts], [max_counts], [min_counts]]
+        stats = [[min_counts], [mean_counts], [median_counts], [max_counts]]
         stats = make_table(stats, ["Min", "Mean", "Median", "Max"])
         data = [[os.path.basename(p) for p in params[0]],
             range(1, len(record_counts) + 1),

@@ -232,20 +232,21 @@ def json_updater(args):
             params = json.load(file)
         fm_all = []
         params['fm-paths'] = {}
-        for path in iglob(os.path.join(args.path, "indices", base, "**/*.index")):
+        for path in iglob(os.path.join(args.path, "indices", base, "**","*.index")):
             folder = os.path.basename(os.path.dirname(path))
+            print(path)
             try:
                 params['fm-paths'][folder].append(os.path.abspath(path))
             except KeyError:
                 params['fm-paths'][folder] = [os.path.abspath(path)]
             fm_all.append(os.path.abspath(path))
-        params['fm-index-path'] = fm_all
+        params['fm-index-paths'] = fm_all
         params['partition-path'] = []
 
         for path in iglob(os.path.join(args.path, "fastas", base, "*.fas")):
             params['partition-path'].append(os.path.abspath(path))
 
-        params['mtsv-tree'] = os.path.abspath(os.path.join(args.path, "artifacts","tree.index"))
+        params['tree-index'] = os.path.abspath(os.path.join(args.path, "artifacts","tree.index"))
         with open(json_path, "w") as file:
             json.dump(params, file, sort_keys=True, indent=4)
 
@@ -307,6 +308,13 @@ def make_json_abs(args):
                 for j, val in enumerate(arguments['partition-path']):
                     # for abs_path in arguments['partition-path'][j]:
                     arguments['partition-path'][j] = os.path.abspath(val)
+            except KeyError:
+                pass
+            try:
+                # keys = list()
+                for j, val in enumerate(arguments['fm-index-paths']):
+                    # for abs_path in arguments['partition-path'][j]:
+                    arguments['fm-index-paths'][j] = os.path.abspath(val)
             except KeyError:
                 pass
 
