@@ -100,14 +100,18 @@ def oneclickbuild(args):
         build_db(os.path.abspath(fp), db, os.devnull, os.devnull, args.threads, os.devnull)
 
     arguments = oneclickjson(args.path)
-
+    for argument in arguments:
+        pool.apply_async(tree_make, (argument['tax-dump-path'], ))
+        break
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
 
+    pool.close()
     # shutil.rmtree(os.path.join(args.path, "flat_files" ))
 
-def mapper(x):
-    return clip(*x)
+def tree_make(in_path):
+    out_path = os.path.abspath(os.path.join(os.path.dirname(in_path), "tree-index"))
+    subprocess.run("{0} --index {1} --dump {2}".format(bin_path('mtsv-tree-build'), out_path, os.path.abspath(in_path) ).split())
 
 def partition(args):
     partition_list = []
