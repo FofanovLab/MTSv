@@ -346,7 +346,7 @@ def setup_and_run(parser):
         try:
             if args.cmd_class == Database:
                 for i, val in enumerate(args.includedb):
-                    args.incluedb[i] = val.strip().replace(" ","_").lower()
+                    args.includedb[i] = val.strip().replace(" ","_").lower()
                 if args.download_only:
                     args.path = os.path.abspath(oneclickdl(args))
                 elif args.build_only:
@@ -363,7 +363,7 @@ def setup_and_run(parser):
                     make_json_abs(args)
             elif args.cmd_class == CustomDB:
                 for i, val in enumerate(args.customdb):
-                    args.incluedb[i] = val.strip().replace(" ","_").lower()
+                    args.includedb[i] = val.strip().replace(" ","_").lower()
                 oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
                 json_updater(args)
                 make_json_abs(args)
@@ -373,7 +373,7 @@ def setup_and_run(parser):
             sys.argv[1] = "database"
             args = parser.parse_known_args()[0]
             for i, val in enumerate(args.includedb):
-                args.incluedb[i] = val.strip().replace(" ", "_").lower()
+                args.includedb[i] = val.strip().replace(" ", "_").lower()
             args.path = os.path.abspath(oneclickdl(args))
             oneclickbuild(args)
             path = args.path
