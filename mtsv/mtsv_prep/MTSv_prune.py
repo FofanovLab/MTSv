@@ -474,7 +474,10 @@ def ftp_dl(x):
     connection.login()
 
     while x:
-        fp_path = x.pop()
+        try:
+            fp_path = x.pop()
+        except IndexError:
+            break
         raw_path = fp_path[0]
         fp_path = fp_path[1]
         try:
