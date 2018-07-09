@@ -355,7 +355,7 @@ def setup_and_run(parser):
                         json_updater(args)
                         make_json_abs(args)
                     else:
-                        print("A valid path was not specified")
+                        print("A valid directory path was not specified")
                 else:
                     args.path = os.path.abspath(oneclickdl(args))
                     oneclickbuild(args)
@@ -377,6 +377,8 @@ def setup_and_run(parser):
             args.path = os.path.abspath(oneclickdl(args))
             oneclickbuild(args)
             path = args.path
+            json_updater(args)
+            make_json_abs(args)
             sys.argv[1] = "custom_db"
             args = parser.parse_known_args()[0]
             for i, val in enumerate(args.customdb):
