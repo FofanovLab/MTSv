@@ -8,7 +8,6 @@ import hashlib
 import pandas as pd
 from ete3 import NCBITaxa
 from pkg_resources import resource_stream, resource_filename
-from mtsv.parsing import outfile_type
 
 
 LOGGER = logging.getLogger(__name__)
@@ -108,16 +107,21 @@ def ete_database_data():
     return resource_filename('mtsv', fp)
 
 def get_ete_ncbi(taxdump):
+    #sqlite3.OperationalError
     ete_json = json.loads(open(ete_database_data(), 'r').read())
     mod_time = os.path.getmtime(taxdump)
     user = os.environ.get('HOME', '/')
-    if taxdump in ete_json[user]:
+    if user in ete_json and taxdump in ete_json[user]:
         entry = ete_json[user][taxdump]
         db_path = entry['db_path']
         if entry['modtime'] == mod_time:
-            LOGGER.info("Ete taxdump database already exists")
-            ncbi = NCBITaxa(dbfile=db_path)
-            return ncbi
+            if os.path.isfile(db_path):
+                LOGGER.info("Ete taxdump database already exists")
+                ncbi = NCBITaxa(dbfile=db_path)
+                return ncbi
+            else:
+                LOGGER.info(
+                    "Ete taxdump database has been deleted, rebuilding")
         else:
             LOGGER.info(
                 "Old version of ete taxdump database exists, updating")
@@ -125,9 +129,11 @@ def get_ete_ncbi(taxdump):
     else:
         new_name = "mtsv_{}_taxa.sqlite".format(
             hashlib.md5(bytes(taxdump, 'utf8')).hexdigest())
-        db_path = outfile_type(os.path.join(
-            user, '.etetoolkit', new_name))
-        ete_json[user][taxdump] = {'modtime': mod_time, 'db_path': db_path}
+        db_path = os.path.join(user, '.etetoolkit')
+        if not os.path.isdir(db_path):
+            os.makedirs(db_path)
+        db_path = os.path.join(db_path, new_name)
+        ete_json[user]= {taxdump: {'modtime': mod_time, 'db_path': db_path}}
         LOGGER.info(
                 "New ete taxdump database created for taxdump {}".format(
                     taxdump))
