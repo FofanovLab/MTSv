@@ -106,6 +106,7 @@ class Analyze(Command):
             self.params[key.replace("-", "_")] = bin_params[key]
         self.params['database_config'] = file_type(
             bin_params['database_config'])
+        self.params['header'] = []
         self.params['summary_file_in'] = self.params['summary_file']
         self.params['tax_level'] = summary_params['tax_level']
         # self.params['lca'] = summary_params['lca']

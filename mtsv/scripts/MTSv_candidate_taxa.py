@@ -4,7 +4,9 @@ import json
 import pandas as pd
 import numpy as np
 from ete3 import NCBITaxa
-from mtsv.utils import config_logging, warn, get_precalculated_df
+from mtsv.utils import (
+    config_logging, warn,
+    get_precalculated_df, get_ete_ncbi)
 from mtsv.parsing import file_type, outfile_type, positive_int
 
 def get_sample_count(n_cols):
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     try:
         config_logging(snakemake.log[0], "INFO")
         LOGGER = logging.getLogger(__name__)
-        NCBI = NCBITaxa(taxdump_file=snakemake.params['taxdump'])
+        NCBI = get_ete_ncbi(snakemake.params['taxdump'])
         if snakemake.params['can_taxa_list'] != None:
             LOGGER.info(
                 "Reading candidates from file {}".format(

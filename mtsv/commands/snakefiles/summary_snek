@@ -6,23 +6,39 @@ from mtsv.utils import (
     track_file_params,
     get_database_params)
 from mtsv.parsing import (
-    parse_query_id, format_cml_params, file_type, outfile_type)
+    parse_query_id, format_cml_params,
+    file_type, outfile_type, make_table)
 shell.prefix("set -euo pipefail;")
 
 BIN = bin_path('mtsv-signature')
 SCRIPT = script_path('MTSv_summary.py')
 REPORT = outfile_type(os.path.join("Reports", "summary_report.html"))
 
+
+
 if "database_config" not in config:
-    config['database_config'] = json.loads(open(os.path.join(
-        os.path.dirname(config['merge_file']),
-        ".params"),
-        'r').read())['merge_file'][config['merge_file']]['database_config']
+    prior_merge_params = json.loads(open(os.path.join(
+    os.path.dirname(config['merge_file']),
+    ".params"),
+    'r').read())['merge_file'][config['merge_file']]
+    config['database_config'] = prior_merge_params['database_config']
+
+if "header" not in config:
+    prior_merge_params = json.loads(open(os.path.join(
+    os.path.dirname(config['merge_file']),
+    ".params"),
+    'r').read())['merge_file'][config['merge_file']]
+    samples = json.loads(open(os.path.join(
+    os.path.dirname(prior_merge_params['fasta']),
+    ".params"),
+    'r').read())['readprep'][prior_merge_params['fasta']]['fastq']
+    config['header'] = [os.path.basename(s) for s in samples]
     
 config['taxdump_path'] = file_type(get_database_params(
     config['database_config'], 'taxdump-path'))
 config['tree_index'] = file_type(get_database_params(
     config['database_config'], 'tree-index'))
+
 
 CML_PARAMS = format_cml_params(
     'SUMMARY',
@@ -52,10 +68,13 @@ rule summary_report:
         sig = np.genfromtxt(
             input['sig'], delimiter=":", dtype=str, usecols=0)
         n_sig_unique = len(sig)
-        n_total_sig = "\t".join(np.array(np.sum(
+        n_total_sig = np.array(np.sum(
             np.array(
                 [parse_query_id(s) for s in sig],
-                dtype=int), axis=0), dtype=str))
+                dtype=int), axis=0), dtype=str)
+        print("HEADER", config['header'])
+        print([[i] for i in n_total_sig])
+        table = make_table([[i] for i in n_total_sig], config['header'])
         track_file_params(
             'summary_file', config['summary_file'], config)
         report(
@@ -68,7 +87,7 @@ rule summary_report:
             {input.summary}\n
             There were **{n_sig_unique}** unique signature hits.\n
             Total number of reads assocated with signature hits:\n
-            **{n_total_sig}**
+            {table}
             """, output[0])
 
 rule signature:
@@ -99,7 +118,8 @@ rule summary:
     resources:
         mem_mb=lambda wildcards, attempt: attempt * 500
     params:
-        taxdump=config['taxdump_path']
+        taxdump=config['taxdump_path'],
+        header=config['header']
     threads:
         config['threads']
     log:

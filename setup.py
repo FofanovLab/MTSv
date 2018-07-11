@@ -24,7 +24,7 @@ setup(name='mtsv',
           'commands/cmd_specs/*.yml',
           'scripts/*.py',
           'commands/snakefiles/*snek',
-          'data/expected.data']
+          'data/*']
       },
       data_files=[
           ('mtsv/ext', ['mtsv/ext/target/release/mtsv-binner',

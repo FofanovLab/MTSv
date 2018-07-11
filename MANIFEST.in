@@ -3,4 +3,4 @@ include LICENSE
 include mtsv/commands/cmd_specs/*.yml
 include mtsv/commands/snakefiles/*snek
 include mtsv/scripts/*.py
-include mtsv/data/expected.data
+include mtsv/data/*

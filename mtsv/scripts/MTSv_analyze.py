@@ -121,13 +121,21 @@ def run_analysis(
         new_db = exp_db
         exp_db = {**exp_db, **precalc_db}
         taxa = np.append(taxa, list(precalc_db.keys()))
-    obs_sum = pd.read_csv(obs_summary_file)
+    obs_sum = pd.read_csv(obs_summary_file, comment="#")
     # remove all rows with non-candidate taxa
     obs_sum = obs_sum[obs_sum['TaxID'].isin(taxa)]
     obs_sum = process_stats(obs_sum, exp_db)
     LOGGER.info("Writing to file {}".format(outfile))
-    obs_sum.to_csv(outfile, index=None)
+    with open(outfile, 'w') as out:
+        out.write(get_header_str(obs_summary_file))
+    obs_sum.to_csv(outfile, mode='a', index=None)
     return new_db
+
+def get_header_str(file_name):
+    with open(file_name, 'r') as infile:
+        return infile.readline().replace(
+            ",,,,", ",,,,,,,").replace(
+                "#,,,", "#,,,,")
 
 def return_non_nan(row):
     x, y = row

@@ -7,8 +7,10 @@ import numpy as np
 from collections import defaultdict
 from multiprocessing import Pool
 from functools import partial
-from mtsv.utils import config_logging 
-from mtsv.parsing import parse_output_row, file_type, outfile_type, outpath_type
+from mtsv.utils import config_logging, get_ete_ncbi 
+from mtsv.parsing import (
+    parse_output_row, file_type,
+    outfile_type, outpath_type)
 import gzip
 import shutil
 
@@ -170,7 +172,7 @@ if __name__ == "__main__":
         config_logging(snakemake.log[0], "INFO")
         LOGGER = logging.getLogger(__name__)    
 
-        NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+        NCBI = get_ete_ncbi(snakemake.params[0])
 
         mtsv_extract(
             snakemake.params[1],

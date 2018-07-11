@@ -15,7 +15,6 @@ SCRIPTS = {
     'analyze': script_path("MTSv_analyze.py")
 }
 
-
 REPORT = outfile_type(os.path.join("Reports", "analyze_report.html"))
 
 
@@ -64,8 +63,12 @@ rule candidate_taxa:
     output: CANDIDATE_TAXA, CANDIDATE_TAXA_REQ
     message:
         """Getting candidate taxa from {input} that
-        have more than {params.cutoff} unique signture hits.
-        Writing to {output}"""
+        have more than {params.cutoff} unique signture hits or from candidate
+        taxa file {params.can_taxa_list}. 
+        Writing to {output} and 
+        Log {log}"""
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 1
     params:
         cutoff = config['signature_cutoff'],
         taxdump = config['taxdump_path'],
