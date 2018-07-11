@@ -18,9 +18,23 @@ n_kmers:
 signature_cutoff:
   help: >
     Run analysis only for taxa with unique signature
-    hits that are greater than SIGNATURE CUTOFF.
+    hits that are greater than SIGNATURE_CUTOFF.
   default: 20
   type: nonneg_int
+can_taxa_list:
+  help: >
+    Provide a custom list of candidate taxa instead of calculating
+    candidates based SIGNATURE_CUTOFF of unique signature hits. Should
+    be a file with taxids listed in a single column. 
+  type: file_type
+use_database:
+  help: >
+    If (T)rue, use previously calculated expected values where available.
+    If (F)alse, all expected values will be recalculated and used to update
+    the database.
+  default: T
+  type: flag_type
+
 
   
 

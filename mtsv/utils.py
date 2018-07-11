@@ -4,6 +4,7 @@ import click
 import logging
 import os
 import json
+import pandas as pd
 from pkg_resources import resource_stream, resource_filename
 
 
@@ -93,6 +94,29 @@ def snake_path(rule_name):
     fp = os.path.join('commands', 'snakefiles', rule_name)
     return resource_filename('mtsv', fp)
 
+def data_path():
+    """ Return expected values database path """
+    fp = os.path.join('data', "expected.data")
+    return resource_filename('mtsv', fp)
+
+def get_precalculated_df():
+    return pd.read_csv(
+        data_path,
+        dtype={
+            'Database': str,
+            'Kmer_Size': int,
+            'Edits': int,
+            'Seed_Size': int,
+            'Seed_Gap': int,
+            'Min_Seeds': int,
+            'Taxid': int,
+            'Total_Hits': int,
+            'Sig_Hits': int,
+            'Ratio': float
+        })
+
+def write_to_precalculated_db(df):
+    df.to_csv(data_path(), index=False)
 
 def line_generator(file_name, n_lines):
     go = True
@@ -108,7 +132,6 @@ def line_generator(file_name, n_lines):
             yield lines
         return 
 
-    
         
 
 
