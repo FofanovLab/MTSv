@@ -101,7 +101,7 @@ def data_path():
 
 def get_precalculated_df():
     return pd.read_csv(
-        data_path,
+        data_path(),
         dtype={
             'Database': str,
             'Kmer_Size': int,

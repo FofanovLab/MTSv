@@ -87,7 +87,7 @@ if __name__ == "__main__":
             LOGGER.info(
                 "Read the following {0} taxa from file:\n{1}".format(
                     len(CANTAXA),
-                    ",".join(CANTAXA)
+                    ",".join([str(c) for c in CANTAXA])
                 ))
         else:
             LOGGER.info(
@@ -97,7 +97,7 @@ if __name__ == "__main__":
             LOGGER.info(
                 "Including only taxa that have greater than {} "
                 "unique signature hits".format(
-                    snakemake.params['signature_cutoff']
+                    snakemake.params['cutoff']
                 ))
             CANTAXA = get_candidate_taxa(
                 snakemake.input[0],
@@ -105,7 +105,7 @@ if __name__ == "__main__":
             LOGGER.info(
                 "The following {0} taxa were retreived from file:\n{1}".format(
                     len(CANTAXA),
-                    ",".join(CANTAXA)
+                    ",".join([str(c) for c in CANTAXA])
                 ))
         PRECALC_CANTAXA = '{}'            
         if snakemake.params['use_data']:
@@ -115,7 +115,7 @@ if __name__ == "__main__":
             LOGGER.info(
                 "The following taxa still need expected "
                 "value estimates\n{}".format(
-                    ",".join(CANTAXA)
+                    ",".join([str(c) for c in CANTAXA])
                 ))
         write_to_file(CANTAXA, snakemake.output[1])
         with open(snakemake.output[0], 'w') as json_out:
