@@ -1,0 +1,37 @@
+from mtsv.utils import script_path
+shell.prefix("set -euo pipefail;")
+
+SCRIPTS = {
+    'candidate_taxa': script_path("MTSv_candidate_taxa.py")}
+
+EXP_DB_PARAMS = {
+    'db_path': config['database_config'],
+    'kmer': config['kmer'],
+    'edits': config['edits'],
+    'seed_size': config['seed_size'],
+    'seed_gap': config['seed_gap'],
+    'min_seeds': config['min_seeds']}
+
+include: "binning_snek"
+include: "summary_snek"
+# Get list of taxa to analyze
+rule candidate_taxa:
+    input: config['summary_file_in']
+    output: config['candidate_taxa'], config['candidate_taxa_req']
+    message:
+        """Getting candidate taxa from {input} that
+        have more than {params.cutoff} unique signture hits or from candidate
+        taxa file {params.can_taxa_list}. 
+        Writing to {output} and 
+        Log {log}"""
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 1
+    params:
+        cutoff = config['signature_cutoff'],
+        taxdump = config['taxdump_path'],
+        use_data = config['use_database'],
+        can_taxa_list = config['can_taxa_list'] if 'can_taxa_list' in config else None,
+        exp_db_params = EXP_DB_PARAMS
+    log: config['log_file']
+
+    script: SCRIPTS['candidate_taxa']

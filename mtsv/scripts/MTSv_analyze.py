@@ -112,13 +112,18 @@ def get_expected_db(exp_summary_files, taxa):
 
 def run_analysis(
     exp_summary_files, obs_summary_file, taxa, outfile, precalc_db=None):
-    if len(exp_summary_files) != len(taxa):
-        raise IOError(
-            "Number of expected summary files must equal number of taxa files")
-    exp_db, taxa = get_expected_db(exp_summary_files, taxa)
-    new_db = {}
-    if precalc_db:
+    if exp_summary_files:
+        if len(exp_summary_files) != len(taxa):
+            raise IOError(
+                "Number of expected summary files "
+                "must equal number of taxa files")
+        exp_db, taxa = get_expected_db(exp_summary_files, taxa)
         new_db = exp_db
+    else:
+        exp_db = {}
+        new_db = exp_db
+        taxa = np.array([], dtype=int)
+    if precalc_db:
         exp_db = {**exp_db, **precalc_db}
         taxa = np.append(taxa, list(precalc_db.keys()))
     obs_sum = pd.read_csv(obs_summary_file, comment="#")
@@ -148,10 +153,13 @@ def return_non_nan(row):
 
 
 def update_db(new_db, **params):
+    if not new_db:
+        LOGGER.info("No values to update in database")
+        return
     LOGGER.info("Updating expected value database")
     taxids = list(new_db.keys())
     total_hits, sig_hits, ratio = list(zip(*[
-        (v.total, v.sig, v.ratio) for v in new_db.values()]))    
+        (v.total, v.sig, v.ratio) for v in new_db.values()])) 
     new_df = pd.DataFrame({
         'Database': params['db_path'],
         'Kmer_Size': params['kmer'],
@@ -168,18 +176,7 @@ def update_db(new_db, **params):
             'Seed_Gap', 'Min_Seeds',
             'Taxid', 'Total_Hits',
             'Sig_Hits', 'Ratio'], 
-        dtype={
-            'Database': str,
-            'Kmer_Size': int,
-            'Edits': int,
-            'Seed_Size': int,
-            'Seed_Gap': int,
-            'Min_Seeds': int,
-            'Taxid': int,
-            'Total_Hits': int,
-            'Sig_Hits': int,
-            'Ratio': float
-        })
+        )
     old_df = get_precalculated_df()
     header = new_df.columns
     res = old_df.merge(
@@ -206,8 +203,13 @@ if __name__ == "__main__":
         LOGGER = logging.getLogger(__name__)
         PRECALC = get_precalculated_values(
             snakemake.params['taxa'])
+        try:
+            input_file = [snakemake.input[0]]
+        except IndexError:
+            input_file = []
+        
         new_db = run_analysis(
-            [snakemake.input[0]],
+            input_file,
             snakemake.params[0],
             [snakemake.params['req_taxa']],
             snakemake.output[0],
