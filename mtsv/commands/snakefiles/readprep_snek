@@ -34,9 +34,9 @@ rule readprep_report:
         Running readprep report. Writing to {output}.
         Snakemake sceduler assuming {threads} threads and 
         {resources.mem_mb} Mb of memory. """
-    resources:
-        mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
-            os.path.getsize(input[0]) * 0.0000005))
+    # resources:
+    #     mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
+    #         os.path.getsize(input[0]) * 0.0000005))
     run:
         from snakemake.utils import report
         record_counts = []
@@ -117,7 +117,7 @@ rule readprep:
     input: expand("{fastq}", fastq=config['fastq'])
     resources: 
         mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
-            sum([os.path.getsize(i) for i in input]) * 0.0000011))
+            sum([os.path.getsize(i) for i in input]) * 0.0000015))
     params:
         call=BIN,
         args=CML_PARAMS

@@ -23,15 +23,19 @@ if "database_config" not in config:
     config['database_config'] = prior_merge_params['database_config']
 
 if "header" not in config:
-    prior_merge_params = json.loads(open(os.path.join(
-    os.path.dirname(config['merge_file']),
-    ".params"),
-    'r').read())['merge_file'][config['merge_file']]
-    samples = json.loads(open(os.path.join(
-    os.path.dirname(prior_merge_params['fasta']),
-    ".params"),
-    'r').read())['readprep'][prior_merge_params['fasta']]['fastq']
-    config['header'] = [os.path.basename(s) for s in samples]
+    try:
+        prior_merge_params = json.loads(open(os.path.join(
+        os.path.dirname(config['merge_file']),
+        ".params"),
+        'r').read())['merge_file'][config['merge_file']]
+        samples = json.loads(open(os.path.join(
+        os.path.dirname(prior_merge_params['fasta']),
+        ".params"),
+        'r').read())['readprep'][prior_merge_params['fasta']]['fastq']
+        config['header'] = [os.path.basename(s) for s in samples]
+    except FileNotFoundError:
+        samples = config['fastq']
+        config['header'] = [os.path.basename(s) for s in samples]
     
 config['taxdump_path'] = file_type(get_database_params(
     config['database_config'], 'taxdump-path'))
@@ -64,11 +68,10 @@ rule summary_report:
         """
         Running summary report.
         Writing report to {output}
-        Snakemake sceduler assuming {threads} threads and 
-        {resources.mem_mb} Mb of memory. """
-    resources:
-        mem_mb=lambda wildcards, attempt, input: max(1,
-            attempt * int(os.path.getsize(input.sig) * 0.0000011))
+        Snakemake sceduler assuming {threads} threads""" 
+    # resources:
+    #     mem_mb=lambda wildcards, attempt, input: max(1,
+    #         attempt * int(os.path.getsize(input[0]) * 0.0000011))
     run:
         from snakemake.utils import report
         sig = np.genfromtxt(
@@ -115,11 +118,11 @@ rule signature:
     params:
         call = BIN,
         args = CML_PARAMS
-    resources:
-        mem_mb=lambda wildcards, attempt, input: max(1,
-            attempt * int(
-                os.path.getsize(input.index) * 0.000001 +
-                os.path.getsize(input.infile) * 0.0000002))
+    # resources:
+    #     mem_mb=lambda wildcards, attempt, input: max(1,
+    #         attempt * int(
+    #             os.path.getsize(input.index) * 0.000001 +
+    #             os.path.getsize(input.infile) * 0.0000002))
     log:
         config['log_file']
     threads: 1 # max at 1 until threading issue is figured out
@@ -128,8 +131,7 @@ rule signature:
         Finding signature hits from {input.infile}.
         Writing to {output} 
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
-        {resources.mem_mb} Mb of memory. """    
+        Snakemake sceduler assuming {threads} threads"""
     shell:
         """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
 
@@ -139,13 +141,13 @@ rule summary:
     input: 
         sig=config['signature_file'],
         clp=config['merge_file']
-    resources:
-        mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
-            os.path.getsize(input[0]) * 0.000001 +
-            os.path.getsize(input[1]) * 0.000001)) if attempt == 1
-            else ((2000 * attempt) + int(
-            os.path.getsize(input[0]) * 0.000001 +
-            os.path.getsize(input[1]) * 0.000001)))
+    # resources:
+    #     mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
+    #         os.path.getsize(input[0]) * 0.000001 +
+    #         os.path.getsize(input[1]) * 0.000001)) if attempt == 1
+    #         else ((2000 * attempt) + int(
+    #         os.path.getsize(input[0]) * 0.000001 +
+    #         os.path.getsize(input[1]) * 0.000001)))
     params:
         taxdump=config['taxdump_path'],
         header=config['header']
@@ -159,7 +161,6 @@ rule summary:
         and merge file {input.clp}
         Writing summary to {output} 
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
-        {resources.mem_mb} Mb of memory. """
+        Snakemake sceduler assuming {threads} threads"""
 
     script: SCRIPT

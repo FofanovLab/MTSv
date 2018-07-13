@@ -70,13 +70,12 @@ rule binning_report:
         Running binning report and finding unaligned queries.
         Writing report to {output.rep} 
         Writing unaligned queries to {output.unaligned}. 
-        Snakemake sceduler assuming {threads} threads and 
-        {resources.mem_mb} Mb of memory. """
-    resources:
-        mem_mb=lambda wildcards, input, attempt: max(1,
-            attempt * int(
-                os.path.getsize(input.clps) * 0.000001 + 
-                os.path.getsize(input.fasta) * 0.000002))
+        Snakemake sceduler assuming {threads} threads """ 
+    # resources:
+    #     mem_mb=lambda wildcards, input, attempt: max(1,
+    #         attempt * int(
+    #             os.path.getsize(input.clps) * 0.000001 + 
+    #             os.path.getsize(input.fasta) * 0.000002))
     run:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
@@ -144,11 +143,11 @@ rule binning:
         # fm_index = expand(
         #     "{path}/{index}.index", zip, path=INDEX_PATH, index=INDEX )
         # fm_index = os.path.join(INDEX_PATH, "{index}.index")
-    resources:
-        mem_mb=lambda wildcards, attempt, input: max(1,
-            int((os.path.getsize(input.reads) * 0.0000012 + 
-            os.path.getsize(input.fm_index) * 0.0000011)) * 
-            attempt)
+    # resources:
+    #     mem_mb=lambda wildcards, attempt, input: max(1,
+    #         int((os.path.getsize(input.reads) * 0.0000012 + 
+    #         os.path.getsize(input.fm_index) * 0.0000011)) * 
+    #         attempt)
     params:
         call=BINS['binner'],
         args=CML_PARAMS
@@ -158,8 +157,7 @@ rule binning:
         Using index {input.fm_index}
         Writing files to directory {output}
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
-        {resources.mem_mb} Mb of memory. """
+        Snakemake sceduler assuming {threads} threads""" 
     log:
         os.path.join(config['binning_outpath'], "{index}.log")
     threads:
@@ -174,16 +172,15 @@ rule collapse:
         config['merge_file']
     input:
         INDEX_OUT
-    resources:
-        mem_mb=lambda wildcards, attempt, input: max(1,
-            attempt * int(
-                sum([os.path.getsize(i) for i in input]) * 0.0000012))
+    # resources:
+    #     mem_mb=lambda wildcards, attempt, input: max(1,
+    #         attempt * int(
+    #             sum([os.path.getsize(i) for i in input]) * 0.0000012))
     message:
         """
         Merging binning output into {output}.
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
-        {resources.mem_mb} Mb of memory. """
+        Snakemake sceduler assuming {threads} threads"""
     log:
         config['log_file']
     params:
