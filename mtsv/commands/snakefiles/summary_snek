@@ -15,7 +15,6 @@ SCRIPT = script_path('MTSv_summary.py')
 REPORT = outfile_type(os.path.join("Reports", "summary_report.html"))
 
 
-
 if "database_config" not in config:
     prior_merge_params = json.loads(open(os.path.join(
     os.path.dirname(config['merge_file']),
@@ -61,20 +60,36 @@ rule summary_report:
         summary=config['summary_file']
     output:
         REPORT
+    message:
+        """
+        Running summary report.
+        Writing report to {output}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * 500
+        mem_mb=lambda wildcards, attempt, input: max(1,
+            attempt * int(os.path.getsize(input.sig) * 0.0000011))
     run:
         from snakemake.utils import report
         sig = np.genfromtxt(
             input['sig'], delimiter=":", dtype=str, usecols=0)
         n_sig_unique = len(sig)
-        n_total_sig = np.array(np.sum(
+        n_total_sig = np.sum(
             np.array(
                 [parse_query_id(s) for s in sig],
-                dtype=int), axis=0), dtype=str)
-        print("HEADER", config['header'])
-        print([[i] for i in n_total_sig])
-        table = make_table([[i] for i in n_total_sig], config['header'])
+                dtype=int), axis=0)
+        n_tot_sig = np.sum(n_total_sig)
+        n_total_sig = np.array(n_total_sig, dtype=str)
+        n_unique_sig = np.array(np.sum(
+            np.array(
+                [parse_query_id(s) for s in sig],
+                dtype=bool), axis=0), dtype=str)
+
+        table = make_table(
+            [config['header'], n_total_sig, n_unique_sig],
+            ["Sample",
+            "Total Queries with Signature Hits",
+            "Unique Queries with Signature Hits"] )
         track_file_params(
             'summary_file', config['summary_file'], config)
         report(
@@ -85,8 +100,8 @@ rule summary_report:
             {input.sig}\n
             **Summary table:** \n
             {input.summary}\n
-            There were **{n_sig_unique}** unique signature hits.\n
-            Total number of reads assocated with signature hits:\n
+            There were **{n_tot_sig}** total signature hits and 
+            **{n_sig_unique}** unique signature hits.\n
             {table}
             """, output[0])
 
@@ -101,11 +116,20 @@ rule signature:
         call = BIN,
         args = CML_PARAMS
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * 500
+        mem_mb=lambda wildcards, attempt, input: max(1,
+            attempt * int(
+                os.path.getsize(input.index) * 0.000001 +
+                os.path.getsize(input.infile) * 0.0000002))
     log:
         config['log_file']
     threads: 1 # max at 1 until threading issue is figured out
-    message: """Finding signature reads from {input}. Writing to {output}. Using {resources.mem_mb} Mb of memory and {threads} threads"""
+    message: 
+        """
+        Finding signature hits from {input.infile}.
+        Writing to {output} 
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """    
     shell:
         """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
 
@@ -116,7 +140,12 @@ rule summary:
         sig=config['signature_file'],
         clp=config['merge_file']
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * 500
+        mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
+            os.path.getsize(input[0]) * 0.000001 +
+            os.path.getsize(input[1]) * 0.000001)) if attempt == 1
+            else ((2000 * attempt) + int(
+            os.path.getsize(input[0]) * 0.000001 +
+            os.path.getsize(input[1]) * 0.000001)))
     params:
         taxdump=config['taxdump_path'],
         header=config['header']
@@ -125,6 +154,12 @@ rule summary:
     log:
         config['log_file']
     message:
-        """Running summary on {input.sig} and {input.clp}.
-        Writing to {output}. Using {resources.mem_mb} Mb of memory and {threads} threads"""
+        """
+        Running summary on signature file {input.sig}
+        and merge file {input.clp}
+        Writing summary to {output} 
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
+
     script: SCRIPT

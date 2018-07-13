@@ -1,6 +1,7 @@
 import os
 from mtsv.utils import bin_path, track_file_params
-from mtsv.parsing import (parse_query_id, format_cml_params, outfile_type, make_table)
+from mtsv.parsing import (
+    parse_query_id, format_cml_params, outfile_type, make_table)
 from Bio import SeqIO
 import numpy as np
 from operator import add
@@ -19,7 +20,6 @@ def get_unique_counts(counts):
     return np.array(np.array(counts, dtype=bool), dtype=int)
 
 BIN = bin_path('mtsv-readprep')
-
 rule readprep_all:
     input:
         REPORT
@@ -29,9 +29,14 @@ rule readprep_report:
     output:
         REPORT
     params: config['fastq']
+    message: 
+        """
+        Running readprep report. Writing to {output}.
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * (
-            sum([os.path.getsize(i) for i in config['fastq']])//1000000) * 2 
+        mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
+            os.path.getsize(input[0]) * 0.0000005))
     run:
         from snakemake.utils import report
         record_counts = []
@@ -111,13 +116,19 @@ rule readprep:
     output: config['fasta']
     input: expand("{fastq}", fastq=config['fastq'])
     resources: 
-        mem_mb=lambda wildcards, attempt, input: attempt * (
-            sum([os.path.getsize(i) for i in input])//1000000 * 2)
+        mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
+            sum([os.path.getsize(i) for i in input]) * 0.0000011))
     params:
         call=BIN,
         args=CML_PARAMS
     threads: config['threads']
     log: config['log_file']
-    message: "Running Readprep on {input}, using memory {resources.mem_mb}"
+    message: 
+        """
+        Running Readprep on {input}.
+        Writing to {output}
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     shell:
         '''{params.call} {input} -o {output} {params.args} >> {log} 2>&1'''

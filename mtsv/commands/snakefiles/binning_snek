@@ -59,16 +59,24 @@ rule binning_all:
 rule binning_report:
     input:
         clps = config['merge_file'],
+        fasta = config['fasta']
     output:
         rep=REPORT,
         unaligned = os.path.join(
             config['binning_outpath'],
             'unaligned_queries.fasta')
-    message: """Running binning report and finding unaligned reads.
-                Writing to {output.rep} and {output.unaligned}. Using
-                {resources.mem_mb} Mb of memory."""
+    message: 
+        """
+        Running binning report and finding unaligned queries.
+        Writing report to {output.rep} 
+        Writing unaligned queries to {output.unaligned}. 
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * 1000
+        mem_mb=lambda wildcards, input, attempt: max(1,
+            attempt * int(
+                os.path.getsize(input.clps) * 0.000001 + 
+                os.path.getsize(input.fasta) * 0.000002))
     run:
         from snakemake.utils import report
         queries = SeqIO.to_dict(
@@ -86,11 +94,28 @@ rule binning_report:
             np.array(
                 [parse_query_id(miss) for miss in no_hits],
                 dtype=int), axis=0), dtype=str)
+
+        n_total_hits = np.sum(
+            np.array(
+                [parse_query_id(hit) for hit in hits],
+                dtype=int), axis=0)
+        n_tot_hits = np.sum(n_total_hits)
+        n_total_hits = np.array(n_total_hits, dtype=str)
+        n_unique_hits = np.array(np.sum(
+            np.array(
+                [parse_query_id(hit) for hit in hits],
+                dtype=bool), axis=0), dtype=str)
+
+
         header = json.loads(open(os.path.join(
             os.path.dirname(config['fasta']),
             ".params"),
             'r').read())['readprep'][config['fasta']]['fastq']
-        table = make_table([[i] for i in n_total_misses], header)
+        header = [os.path.basename(h) for h in header]
+        table = make_table(
+            [header, n_total_misses, n_total_hits, n_unique_hits],
+            ["Sample", "Total Unique Misses",
+            "Total Hits", "Total Unique Hits"])
         no_hit_queries = [queries[query] for query in no_hits]
         with open(output['unaligned'], "w") as output_handle:
             SeqIO.write(no_hit_queries, output_handle, "fasta")
@@ -102,7 +127,7 @@ rule binning_report:
         ================================
         Hits are reported in:\n
         {input.clps}\n
-        There were **{n_hits}** unique hits out 
+        There were **{n_tot_hits}** total hits and **{n_hits}** unique hits out 
         of **{total_queries}** unique queries.\n
         There were **{n_misses}** queries with no hits.\n
         These missed sequences are reported in {output.unaligned}.\n
@@ -120,12 +145,21 @@ rule binning:
         #     "{path}/{index}.index", zip, path=INDEX_PATH, index=INDEX )
         # fm_index = os.path.join(INDEX_PATH, "{index}.index")
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * 1000
+        mem_mb=lambda wildcards, attempt, input: max(1,
+            int((os.path.getsize(input.reads) * 0.0000012 + 
+            os.path.getsize(input.fm_index) * 0.0000011)) * 
+            attempt)
     params:
         call=BINS['binner'],
         args=CML_PARAMS
     message:
-        "Executing Binner on the following files {input}. Using {resources.mem_mb} Mb of memory and {threads} threads"
+        """
+        Executing Binner on queries in {input.reads}.
+        Using index {input.fm_index}
+        Writing files to directory {output}
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     log:
         os.path.join(config['binning_outpath'], "{index}.log")
     threads:
@@ -141,9 +175,15 @@ rule collapse:
     input:
         INDEX_OUT
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * 1000
+        mem_mb=lambda wildcards, attempt, input: max(1,
+            attempt * int(
+                sum([os.path.getsize(i) for i in input]) * 0.0000012))
     message:
-        "Merging binning output files into {output}."
+        """
+        Merging binning output into {output}.
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     log:
         config['log_file']
     params:
