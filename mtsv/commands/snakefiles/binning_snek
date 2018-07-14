@@ -105,11 +105,13 @@ rule binning_report:
                 [parse_query_id(hit) for hit in hits],
                 dtype=bool), axis=0), dtype=str)
 
-
-        header = json.loads(open(os.path.join(
-            os.path.dirname(config['fasta']),
-            ".params"),
-            'r').read())['readprep'][config['fasta']]['fastq']
+        try:
+            header = json.loads(open(os.path.join(
+                os.path.dirname(config['fasta']),
+                ".params"),
+                'r').read())['readprep'][config['fasta']]['fastq']
+        except FileNotFoundError:
+            header = config['fastq']
         header = [os.path.basename(h) for h in header]
         table = make_table(
             [header, n_total_misses, n_total_hits, n_unique_hits],
