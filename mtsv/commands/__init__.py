@@ -2,14 +2,15 @@ import os
 import json
 import subprocess as sp
 import argparse
-from mtsv.parsing import create_config_file, file_type
+from mtsv.parsing import create_config_file, file_type, outfile_type
 from mtsv.utils import snake_path, get_database_params, error, warn
 
 SNAKEFILES = {
     cmd:snake_path("{}_snek").format(cmd)
     for cmd in [
         "binning", "readprep", "summary",
-        "analyze", "pipeline", "extract",
+        "analyze", "analyze_bypass", "analyze_setup",
+        "pipeline", "extract",
         "wgfast"]}
 
 class Command:
@@ -78,7 +79,16 @@ class Analyze(Command):
     def __init__(self, params):
         super().__init__(params)
         self.modify_params()
-        self.rules = [SNAKEFILES['analyze']]
+        self.rules = [SNAKEFILES['analyze_setup']]
+    
+    def run(self):
+        super().run()
+        if os.stat(self.params['candidate_taxa_req']).st_size == 0:
+            self.rules = [SNAKEFILES['analyze_bypass']]
+            super().run()
+        else:
+            self.rules = [SNAKEFILES['analyze']]
+            super().run()
     
     def modify_params(self):
         # trace back params from input files
@@ -106,6 +116,15 @@ class Analyze(Command):
             self.params[key.replace("-", "_")] = bin_params[key]
         self.params['database_config'] = file_type(
             bin_params['database_config'])
+        self.params['header'] = []
+        self.params['candidate_taxa'] = outfile_type(
+                    os.path.join(
+                    self.params['analyze_outpath'],
+                    "candidate_taxa.txt"))
+        self.params['candidate_taxa_req'] = outfile_type(
+                    os.path.join(
+                    self.params['analyze_outpath'],
+                    "candidate_taxa_required.txt"))
         self.params['summary_file_in'] = self.params['summary_file']
         self.params['tax_level'] = summary_params['tax_level']
         # self.params['lca'] = summary_params['lca']

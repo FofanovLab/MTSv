@@ -15,7 +15,7 @@ description = "Metagenomic binning and analysis"
 bincode = { version = "0.5", features = ["serde"] }
 bio = { version = "0.5", path = "vendor/rust-bio" }
 chrono = "0.2"
-cue = "0.1"
+cue = {path="vendor/cue", version = "0.1"}
 daggy = { version = "0.4", path = "vendor/daggy" }
 env_logger = "0.3"
 flate2 = "0.2"

@@ -22,12 +22,7 @@ CML = format_cml_params(
 def format_fastq_file(file):
     path, filename = os.path.split(file)
     filename = os.path.splitext(filename)[0]
-    components = filename.split("_")
-    if len(components) == 1:
-        filename = "S{0}_R1_001.fastq".format(components[0])
-    else:
-        filename = "S{0}_{1}_R1_001.fastq".format(
-            components[0], components[1])
+    filename = "S{0}_R1_001.fastq".format(filename)
     return os.path.join(path, filename)
 
 FASTQ_GZ = [format_fastq_file(f) for f in FASTQ_OUTPUT]
@@ -41,6 +36,10 @@ rule wgfast_report:
         pat = os.path.join(
             config['wgfast_output'], "all_patristic_distances.txt")
     output: REPORT
+    message:
+        """
+        Generating WGFAST report at {output}
+        """
     run:
         from snakemake.utils import report
         cov = os.path.join(
@@ -95,6 +94,12 @@ rule wgfast:
 rule process_fastqs:
     input: FASTQ_OUTPUT # ouput from extract see extract_snek
     output: FASTQ_GZ
+    message:
+        """
+        Reformatting fastq file names for WGFAST input
+        Copying {input}
+        to {output}
+        """
     run:
         for old, new in zip(input, output):
             copyfile(old, new)

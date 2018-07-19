@@ -1,0 +1,49 @@
+from mtsv.utils import script_path
+shell.prefix("set -euo pipefail;")
+
+SCRIPTS = {
+    'candidate_taxa': script_path("MTSv_candidate_taxa.py")}
+
+EXP_DB_PARAMS = {
+    'db_path': config['database_config'],
+    'kmer': config['kmer'],
+    'edits': config['edits'],
+    'seed_size': config['seed_size'],
+    'seed_gap': config['seed_gap'],
+    'min_seeds': config['min_seeds']}
+
+include: "binning_snek"
+include: "summary_snek"
+
+def get_message(config):
+    message = "\n\t"
+    if 'can_taxa_list' in config:
+        message += "Reading candidate taxa from {0}".format(
+            config['can_taxa_list'])
+    else:
+        message += "Getting candidate taxa from {0}\n".format(
+            config['summary_file_in'])
+        message += "\tthat have more than {0} unique signature hits".format(
+            config['signature_cutoff']
+        )
+    return message
+# Get list of taxa to analyze
+rule candidate_taxa:
+    input: config['summary_file_in']
+    output: config['candidate_taxa'], config['candidate_taxa_req']
+    message:
+        get_message(config) + 
+        """
+        Writing to {output}
+        Logging to {log}"""
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt
+    params:
+        cutoff = config['signature_cutoff'],
+        taxdump = config['taxdump_path'],
+        use_data = config['use_database'],
+        can_taxa_list = config['can_taxa_list'] if 'can_taxa_list' in config else None,
+        exp_db_params = EXP_DB_PARAMS
+    log: config['log_file']
+
+    script: SCRIPTS['candidate_taxa']

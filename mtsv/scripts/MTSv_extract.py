@@ -7,8 +7,10 @@ import numpy as np
 from collections import defaultdict
 from multiprocessing import Pool
 from functools import partial
-from mtsv.utils import config_logging 
-from mtsv.parsing import parse_output_row, file_type, outfile_type, outpath_type
+from mtsv.utils import config_logging, get_ete_ncbi 
+from mtsv.parsing import (
+    parse_output_row, file_type,
+    outfile_type, outpath_type)
 import gzip
 import shutil
 
@@ -66,7 +68,7 @@ def reduce_targets(taxids, targets):
 
 def mtsv_extract(
     taxids, clps_file, query_fasta,
-    descendants, by_sample, outpath, threads):
+    descendants, by_sample, sample_names, outpath, threads):
     taxids = [int(tax) for tax in taxids]
     # for higher level taxids, include all descendants in output
     parents, descendants = get_decendants(taxids, descendants)
@@ -91,7 +93,8 @@ def mtsv_extract(
                 write_sequences_by_sample,
                 query_fastas=query_fasta,
                 outpath=outpath,
-                n_samples=n_samples)
+                n_samples=n_samples,
+                sample_names=sample_names)
     else:
         write_partial = partial(write_sequences,
                                 query_fastas=query_fasta,
@@ -105,7 +108,7 @@ def mtsv_extract(
 
 
 def write_sequences_by_sample(
-    targets, query_fastas, outpath, n_samples):
+    targets, query_fastas, outpath, n_samples, sample_names):
     LOGGER.info("Writing to file by sample")
                                                                                        
     if not len(targets[1]):
@@ -120,9 +123,10 @@ def write_sequences_by_sample(
             sample_dict[sample].append(query)
     for sample, queries in sample_dict.items():
         queries = set(queries)
+        name = sample_names[sample] if sample_names else str(sample+1)
         fasta_file = os.path.join(
             outpath,
-            "{0}_{1}.fasta".format(targets[0], sample + 1))
+            "{0}_{1}.fasta".format(targets[0], name))
         fastq_file = os.path.splitext(fasta_file)[0] + ".fastq"
         with open(fastq_file, 'w') as qhandle, open(fasta_file, 'w') as ahandle:
             with open(query_fastas, 'r') as qfasta:
@@ -170,15 +174,16 @@ if __name__ == "__main__":
         config_logging(snakemake.log[0], "INFO")
         LOGGER = logging.getLogger(__name__)    
 
-        NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+        NCBI = get_ete_ncbi(snakemake.params['taxdump'])
 
         mtsv_extract(
-            snakemake.params[1],
-            snakemake.input[1],
-            snakemake.input[0],
-            snakemake.params[3],
-            snakemake.params[4],
-            snakemake.params[2],
+            snakemake.params['taxids'],
+            snakemake.input['clp'],
+            snakemake.input['fasta'],
+            snakemake.params['descendants'],
+            snakemake.params['by_sample'],
+            snakemake.params['sample_names'],
+            snakemake.params['outpath'],
             snakemake.threads)
     except NameError:
         
@@ -240,7 +245,8 @@ if __name__ == "__main__":
 
         mtsv_extract(
             ARGS.taxids, ARGS.clp, ARGS.query_fasta,
-            ARGS.descendants, ARGS.by_sample, ARGS.outpath, ARGS.threads)
+            ARGS.descendants, ARGS.by_sample, [],
+            ARGS.outpath, ARGS.threads)
 
 
 

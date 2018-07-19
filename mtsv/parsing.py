@@ -102,7 +102,7 @@ def format_cml_params(include_cmd, args, ignore, include):
 
 def add_default_arguments(parser):
     parser.add_argument(
-        '-wd', "--working_dir", type=str,
+        '--wd', '-wd', "--working_dir", type=str,
         default=os.getcwd(),
         help="Specify working directory to place output. "
              "(default: {})".format(os.getcwd())

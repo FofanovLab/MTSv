@@ -9,7 +9,7 @@ from Bio import SeqIO
 SCRIPT = script_path('MTSv_extract.py')
 REPORT = outfile_type(os.path.join("Reports", "extract_report.html"))
 
-
+# check if input file is merge file or sig file and get params for database
 try:
     for k, v in json.loads(open(os.path.join(
         os.path.dirname(config['input_hits']),
@@ -18,10 +18,10 @@ try:
         if v['signature_file'] == config['input_hits']:
             sig_prior_params = v
 
-    merge_prior_params = json.loads(open(os.path.join(
-        os.path.dirname(sig_prior_params['merge_file']),
-        ".params"),
-        'r').read())['merge_file'][sig_prior_params['merge_file']]
+        merge_prior_params = json.loads(open(os.path.join(
+            os.path.dirname(sig_prior_params['merge_file']),
+            ".params"),
+            'r').read())['merge_file'][sig_prior_params['merge_file']]
 
 except KeyError:
     merge_prior_params = json.loads(open(os.path.join(
@@ -36,23 +36,25 @@ config['taxdump_path'] = file_type(get_database_params(
     config['database_config'], 'taxdump-path'))
 
 
-reads = json.loads(open(os.path.join(
-    os.path.dirname(merge_prior_params['fasta']),
-    ".params"),
-    'r').read())['readprep'][merge_prior_params['fasta']]['fastq']
-
+SAMPLE_NAMES = []
 if config['by_sample']:
     # get number of samples
     with open(config['input_hits'], 'r') as infile:
         n_samples = len(
             parse_output_row(
                 infile.readline()).counts)
+    SAMPLE_NAMES = json.loads(open(os.path.join(
+    os.path.dirname(merge_prior_params['fasta']),
+    ".params"),
+    'r').read())['readprep'][merge_prior_params['fasta']]['fastq']
+    SAMPLE_NAMES= [os.path.splitext(os.path.basename(f))[0] for f in SAMPLE_NAMES]
     FASTA_OUTPUT = [os.path.join(
         config['extract_path'],
         "{0}_{1}.fasta".format(tax, n))
               for tax, n in it.product(
                   config['taxids'],
-                  range(1, n_samples + 1))]
+                  SAMPLE_NAMES)]
+    
 
 else:
     FASTA_OUTPUT = [os.path.join(config['extract_path'], str(tax) + ".fasta") 
@@ -71,8 +73,21 @@ rule extract_report:
         fastq=FASTQ_OUTPUT
     output:
         REPORT
+    resources:
+        mem_mb=lambda wildcards, input, attempt: max(1, attempt * int(
+            os.path.getsize(input[0]) * 0.000001 +
+            os.path.getsize(input[1]) * 0.000001))
+    message:
+        """
+        Generating extract report from {input.fasta} and {input.fastq}
+        Writing to {output}
+        Snakemake sceduler assuming {threads} threads and
+        {resources.mem_mb} Mb of memory. """
+
     params:
-        path=config['extract_path']
+        path=config['extract_path'],
+        source=config['input_hits'],
+        taxa=config['taxids']
     run:
         from snakemake.utils import report
         total_fasta_queries = [
@@ -91,8 +106,9 @@ rule extract_report:
             """ 
             Extract Report
             ============================
-            **Extracted taxa fasta and fastq files are reported in:**\n
-            {params.path}\n
+            Hits from **{params.source}** for taxids **{params.taxa}**
+            were extracted to fasta and fastq files at:\n
+            **{params.path}**\n
             Number of queries per file:\n
             {data}
 
@@ -109,18 +125,30 @@ rule extract:
         fasta=FASTA,
         clp=config['input_hits']
     resources:
-        mem_mb=lambda wildcards, attempt, input: attempt * 500
+        mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
+            os.path.getsize(input[0]) * 0.000001 +
+            os.path.getsize(input[1]) * 0.000001)) if attempt == 1
+            else ((2000 * attempt) + int(
+            os.path.getsize(input[0]) * 0.000001 +
+            os.path.getsize(input[1]) * 0.000001)))
     params:
         taxdump=config['taxdump_path'],
         taxids=config['taxids'],
         outpath=config['extract_path'],
         descendants=config['descendants'],
-        by_sample=config['by_sample']
+        by_sample=config['by_sample'],
+        sample_names=SAMPLE_NAMES
     threads:
         config['threads']
     log:
         config['log_file']
     message:
-        """Extracting query sequences from {input.fasta} for taxids: {params.taxids}
-        Writing to {output}"""
+        """
+        Extracting query sequences from {input.fasta}
+        for taxids: {params.taxids}
+        that were hits in {input.clp}
+        Writing to {output}
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory. """
     script: SCRIPT

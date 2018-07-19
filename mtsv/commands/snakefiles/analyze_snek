@@ -1,8 +1,4 @@
-import os
-import json
-import numpy as np
 from mtsv.utils import script_path
-from mtsv.parsing import format_cml_params, outfile_type
 
 include: "binning_snek"
 include: "summary_snek"
@@ -10,65 +6,44 @@ include: "summary_snek"
 shell.prefix("set -euo pipefail;")
 
 SCRIPTS = {
-    'candidate_taxa': script_path("MTSv_candidate_taxa.py"),
     'random_kmers': script_path("MTSv_random_kmers.py"),
     'analyze': script_path("MTSv_analyze.py")
 }
 
-REPORT = outfile_type(os.path.join("Reports", "analyze_report.html"))
 
-
-CANDIDATE_TAXA = outfile_type(os.path.join(
-                    config['analyze_outpath'],
-                    "candidate_taxa.txt"))
+EXP_DB_PARAMS = {
+    'db_path': config['database_config'],
+    'kmer': config['kmer'],
+    'edits': config['edits'],
+    'seed_size': config['seed-size'],
+    'seed_gap': config['seed-gap'],
+    'min_seeds': config['min-seeds']}
 
 rule analyze_all:
-    input:
-        REPORT
-
-rule analyze_report:
     input: config['analysis_file']
-    output: REPORT
-    params:
-        cutoff = config['signature_cutoff']
-    run:
-        from snakemake.utils import report
-        taxa = np.array(np.genfromtxt(CANDIDATE_TAXA, dtype=str), ndmin=1)
-        n_taxa = len(taxa)
-        taxa = "\n".join(taxa)
-        report("""
-        Analysis Report
-        ==================================
-        **{n_taxa}** candidate taxa with more than
-        **{params[0]}** 
-        unique signature hits. \n
-        {taxa}\n    
-        """, output[0])
 
-# Get list of taxa to analyze
-rule candidate_taxa:
-    input: config['summary_file_in']
-    output: CANDIDATE_TAXA
-    message:
-        """Getting candidate taxa from {input} that
-        have more than {params.cutoff} unique signture hits.
-        Writing to {output}"""
-    params:
-        cutoff = config['signature_cutoff'],
-        taxdump = config['taxdump_path']
-    script: SCRIPTS['candidate_taxa']
 
-MEM = config['kmer'] * config['n_kmers'] * config['threads'] * 50
+MEM = (config['kmer'] * 
+        config['n_kmers'] * 
+        config['threads'] * 
+        len(open(config['candidate_taxa_req']).read().split("\n")))
+
+
 
 rule random_kmers:
-    input: CANDIDATE_TAXA
+    input: config['candidate_taxa_req']
     output:
         fasta=config['fasta']
     message:
-        """Generating random kmers from candidate taxa.
-        Writing to {output}. Using {resources.mem_mb} Mb of memory and {threads} threads"""
+        """
+        Generating random kmers from taxa in {input}.
+        Writing to {output}.
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory."""
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * (MEM//1000000)
+        mem_mb=lambda wildcards, attempt: max(
+            1, attempt * int(MEM * 0.0000015))
     params:
         kmer_size=config['kmer'],
         n_kmers=config['n_kmers'],
@@ -84,10 +59,23 @@ rule random_kmers:
 rule analyze:
     input: config['summary_file']
     output: config['analysis_file']
-    message: """Analyzing statistics. Writing to {output}."""
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt
+    message: 
+        """
+        Analyzing statistics.
+        Reading from {input}
+        Writing to {output}.
+        Logging to {log}
+        Snakemake sceduler assuming {threads} threads and 
+        {resources.mem_mb} Mb of memory.
+        """
     params:
         obs_summary=config['summary_file_in'],
-        taxa=CANDIDATE_TAXA
+        taxa=config['candidate_taxa'],
+        req_taxa=config['candidate_taxa_req'],
+        exp_db_params=EXP_DB_PARAMS
+    log: config['log_file']
     script: SCRIPTS['analyze']    
 
     

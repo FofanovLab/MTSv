@@ -2,12 +2,12 @@ import logging
 import sys
 import os
 import argparse
-from ete3 import NCBITaxa
 import pandas as pd
 import numpy as np
+from ete3 import NCBITaxa
 from multiprocessing import Pool
 from functools import partial
-from mtsv.utils import config_logging, line_generator
+from mtsv.utils import config_logging, line_generator, get_ete_ncbi
 from mtsv.parsing import parse_output_row, file_type, outfile_type
 
 
@@ -130,7 +130,7 @@ def all_reduce(iterator):
 
 
 
-def get_summary(all_file, sig_file, outfile, threads):
+def get_summary(all_file, sig_file, outfile, threads, header=None):
     LOGGER.info("Parsing Signature Hits")
     p = Pool(threads)
     get_lines = line_generator(sig_file, 5000)
@@ -179,14 +179,17 @@ def get_summary(all_file, sig_file, outfile, threads):
         for i in range(1, n_samples + 1)]].sum(axis=1)
     data_frame = data_frame.sort_values('total', ascending=False)
     data_frame = data_frame.drop('total', axis=1)
+    with open(outfile, 'w') as out:
+        if header:
+            out.write("#,,,{}\n".format(",,,,".join(header)))
     data_frame.to_csv(
-        outfile, index=False) 
+            outfile, mode='a', index=False) 
 
 
 if __name__ == "__main__":
     #NCBI = NCBITaxa()
     try:
-        NCBI = NCBITaxa(taxdump_file=snakemake.params[0])
+        NCBI = get_ete_ncbi(snakemake.params[0])
         config_logging(snakemake.log[0], "INFO")      
         LOGGER = logging.getLogger(__name__)
 
@@ -195,7 +198,8 @@ if __name__ == "__main__":
             snakemake.input[1],
             snakemake.input[0],
             snakemake.output[0],
-            snakemake.threads)
+            snakemake.threads,
+            snakemake.params['header'])
     except NameError:
         PARSER = argparse.ArgumentParser(
         prog="MTSv Summary",

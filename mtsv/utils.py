@@ -4,10 +4,13 @@ import click
 import logging
 import os
 import json
+import hashlib
+import pandas as pd
+from ete3 import NCBITaxa
 from pkg_resources import resource_stream, resource_filename
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class MTSVError(Exception):
@@ -93,6 +96,72 @@ def snake_path(rule_name):
     fp = os.path.join('commands', 'snakefiles', rule_name)
     return resource_filename('mtsv', fp)
 
+def data_path():
+    """ Return expected values database path """
+    fp = os.path.join('data', "expected.data")
+    return resource_filename('mtsv', fp)
+
+def ete_database_data():
+    """ Return path to ete3 database json """
+    fp = os.path.join('data', 'ete_databases.json')
+    return resource_filename('mtsv', fp)
+
+def get_ete_ncbi(taxdump):
+    #sqlite3.OperationalError
+    ete_json = json.loads(open(ete_database_data(), 'r').read())
+    mod_time = os.path.getmtime(taxdump)
+    user = os.environ.get('HOME', '/')
+    if user in ete_json and taxdump in ete_json[user]:
+        entry = ete_json[user][taxdump]
+        db_path = entry['db_path']
+        if entry['modtime'] == mod_time:
+            if os.path.isfile(db_path):
+                LOGGER.info("Ete taxdump database already exists")
+                ncbi = NCBITaxa(dbfile=db_path)
+                return ncbi
+            else:
+                LOGGER.info(
+                    "Ete taxdump database has been deleted, rebuilding")
+        else:
+            LOGGER.info(
+                "Old version of ete taxdump database exists, updating")
+            ete_json[user][taxdump]['modtime'] == mod_time
+    else:
+        new_name = "mtsv_{}_taxa.sqlite".format(
+            hashlib.md5(bytes(taxdump, 'utf8')).hexdigest())
+        db_path = os.path.join(user, '.etetoolkit')
+        if not os.path.isdir(db_path):
+            os.makedirs(db_path)
+        db_path = os.path.join(db_path, new_name)
+        ete_json[user]= {taxdump: {'modtime': mod_time, 'db_path': db_path}}
+        LOGGER.info(
+                "New ete taxdump database created for taxdump {}".format(
+                    taxdump))
+    ncbi = NCBITaxa(dbfile=db_path, taxdump_file=taxdump)
+    with open(ete_database_data(), 'w') as out:
+        out.write(json.dumps(ete_json))
+    return ncbi
+
+    
+
+def get_precalculated_df():
+    return pd.read_csv(
+        data_path(),
+        dtype={
+            'Database': str,
+            'Kmer_Size': int,
+            'Edits': int,
+            'Seed_Size': int,
+            'Seed_Gap': int,
+            'Min_Seeds': int,
+            'Taxid': int,
+            'Total_Hits': int,
+            'Sig_Hits': int,
+            'Ratio': float
+        })
+
+def write_to_precalculated_db(df):
+    df.to_csv(data_path(), index=False)
 
 def line_generator(file_name, n_lines):
     go = True
@@ -108,7 +177,6 @@ def line_generator(file_name, n_lines):
             yield lines
         return 
 
-    
         
 
 

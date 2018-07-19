@@ -1,19 +1,19 @@
 import argparse
 import logging
-import time
-import mmap
 import os
 import numpy as np
 from multiprocessing import Pool
 from functools import partial
-from collections import namedtuple
 from mtsv.utils import config_logging
 from mtsv.mtsv_prep.MTSv_prune import deserialization, get_tree
 from mtsv.parsing import file_type, outfile_type, positive_int
 
 DNA = set(b"ACTG")
 
-POS_RANGE = namedtuple('Ranges', ['start', 'stop'])
+POSITIONS = None
+SORTED_POSITIONS = None
+TX_IDS = None
+EOF = None
 
 def get_eof(file_name):
     with open(file_name, 'r') as infile:
@@ -21,25 +21,57 @@ def get_eof(file_name):
         return infile.tell()
 
 
-def get_random_positions(ranges, n_samples):
-    lens = [r.stop - r.start for r in ranges]
-    total = sum(lens)
-    if n_samples*2 >= total:
-        pos = np.array([])
-        for r in ranges:
-            pos = np.append(pos, np.arange(r.start, r.stop))
-        return pos
-    p = [l/total for l in lens]
-    ns = np.random.multinomial(n_samples*2, p, size=1)[0]
-    pos = np.array([], dtype=int)
-    for n, _range in zip(ns, ranges):
-        pos = np.append(pos, np.random.choice(
-            np.arange(_range.start, _range.stop), replace=True, size=n))
-    return np.unique(pos)
+def get_counts(lens, total, n_samples):
+    ns = np.random.multinomial(
+        n_samples, pvals=[l/total for l in lens])
+    remainder = 0
+    for i, (n, l) in enumerate(zip(ns, lens)):
+        if n > l:
+            ns[i] = l
+            remainder += (n - l)
+        take_from_remainder = min(remainder, l - n)
+        remainder -= take_from_remainder
+        ns[i] += take_from_remainder
+    return ns
 
+def check_range(ranges, kmer_size):
+    # adjust the end of the range
+    # so that we don't go off the end
+    good_ranges = []
+    for start, stop in zip(ranges[0], ranges[1]):
+        stop = stop - kmer_size
+        if stop > start:
+            good_ranges.append((start, stop))
+    return np.array(good_ranges, dtype=np.uint64)
+
+
+def get_random_positions(ranges, n_samples, kmer_size):
+    ranges = check_range(ranges, kmer_size)
+    n_samples = n_samples * 2 # over sample as some will be lost due to duplicates
+    lengths = [r[1] - r[0] for r in ranges]
+    total = sum(lengths)
+    if n_samples >= total:
+        positions = []
+        for r in ranges:
+            positions += range(r[0], r[1])
+        return np.array(positions, dtype=int)
+    positions = []
+    # this may not add up perfectly to n_samples
+    # but we over sampled so this shouldn't
+    # be a problem.
+    ns = get_counts(lengths, total, n_samples)
+    for n, rng in zip(ns, ranges):
+        positions += list(np.random.choice(
+            np.arange(
+                rng[0], rng[1], dtype=int),
+                size=n, replace=False))
+    positions = np.array(positions, dtype=int)
+    positions.sort()
+    return positions
 
 def get_outstring(kmers, sample, total_samples):
-    count_arr = np.array(np.zeros(total_samples, dtype=int), dtype=bytes)
+    count_arr = np.array(
+        np.zeros(total_samples, dtype=int), dtype=bytes)
     count_arr[sample] = b"1"
     count_arr = b"_".join(count_arr)
     s = b""
@@ -47,51 +79,64 @@ def get_outstring(kmers, sample, total_samples):
         s += b">R" + next(ID) + b"_" + count_arr + b"\n" + kmer + b"\n"
     return s
     
-
-def get_kmers_from_taxon(
-    taxon, fasta, tax_ids, positions, kmer_size, n_kmers):
+def get_start_positions_for_taxon(
+    taxon, fasta, tax_ids, positions, n_kmers):
     taxons = set(get_tree(tax_ids, taxon, positions))
     tx_positions = []
-    LOGGER.info("Running taxon: {}".format(taxon))
     for tx in taxons:
         if tx:
             try:
                 tx_positions += positions[tx.encode()]
             except KeyError:
                 continue
+    if len(tx_positions) > 5 * n_kmers:
+        tx_positions = np.random.choice(
+            tx_positions, size=5 * n_kmers, replace=False)
     tx_positions.sort()
     with open(fasta, 'rb') as fasta_handle:
-        ranges = []
-        kmers = []
+        start_positions = []
+        seek = fasta_handle.seek
+        readline = fasta_handle.readline
+        tell = fasta_handle.tell
+        append = start_positions.append
         for position in tx_positions:
-            fasta_handle.seek(position)
-            fasta_handle.readline()  # header
-            r1 = fasta_handle.tell()
-            r2 = r1
-            line = fasta_handle.readline()
-            while line and chr(line[0]) != ">":
-                r2 = fasta_handle.tell()
-                line = fasta_handle.readline()
-            r2 = r2 - kmer_size
-            if r2 > r1 and (r2 - r1) > kmer_size :
-                ranges.append(POS_RANGE(r1,r2))
-        if not ranges:
-            LOGGER.info("No kmers found for taxid {}".format(taxon))
-            return ""
-        rand_positions = get_random_positions(ranges, n_kmers)
-        for pos in rand_positions:
-            fasta_handle.seek(pos)
-            kmer = fasta_handle.read(
-                    kmer_size * 2).replace(
-                        b"\n", b"")[:kmer_size]
+            seek(position)
+            readline()
+            append(tell())
+    return np.array(start_positions, dtype=np.uint64)        
+
+def get_end_position_for_taxon(
+    start_positions, sorted_positions, eof):
+    end_positions = []
+    append = end_positions.append
+    length_positions = len(sorted_positions)
+    for pos in start_positions:
+        end = np.searchsorted(
+            sorted_positions, np.uint64(pos), side='right')
+        
+        if end < length_positions:
+            append(sorted_positions[end])
+        else:
+            append(eof)
+    return np.array(end_positions, dtype=np.uint64)
+        
+
+def get_kmers(positions, fasta, kmer_size, n_kmers):
+    with open(fasta, 'rb') as fasta_handle:
+        seek = fasta_handle.seek
+        read = fasta_handle.read
+        replace = bytes.replace
+        kmers = []
+        for position in positions:
+            seek(position)
+            kmer = replace(
+                read(kmer_size * 2),
+                b"\n", b"")[:kmer_size]
             if valid_kmer(kmer, kmer_size):
                 kmers.append(kmer)
         kmers = np.unique(kmers)
         np.random.shuffle(kmers)
         kmers = kmers[:n_kmers]
-        LOGGER.info(
-            "Found {0} kmers for taxon {1}".format(
-                len(kmers), taxon))
         return kmers
 
 
@@ -107,34 +152,30 @@ def valid_kmer(kmer, kmer_size):
     if len(kmer) < kmer_size:
         return False
     return True
-    
 
-# def get_kmers_from_taxon(fasta, kmer_size, n_kmers):
-#     len_of_file = get_eof(fasta)
-#     if len_of_file < kmer_size:
-#         LOGGER.warn("No kmers found for taxid {0}".format(fasta))
-#         return set()
-#     with open(fasta, 'r+b') as handle:
-#         good_kmers = set()
-#         mm = mmap.mmap(handle.fileno(), 0, mmap.PROT_READ)
-#         n_tries = 0
-#         while len(good_kmers) < n_kmers and n_tries < 3:
-#             # over sample because some will be lost in QC
-#             for i in range(n_kmers + n_kmers//2):
-#                 position = np.random.randint(len_of_file)
-#                 mm.seek(position)
-#                 kmer = mm.read(kmer_size)
-#                 if not valid_kmer(kmer, kmer_size):
-#                     continue
-#                 good_kmers.add(kmer)
-#             n_tries += 1
-#         mm.close()
-#     good_kmers = list(good_kmers) if len(
-#         good_kmers) <= n_kmers else list(good_kmers)[:n_kmers]
-#     LOGGER.info(
-#         "Sampled {0} kmers for taxid {1}".format(
-#             len(good_kmers), fasta))
-#     return good_kmers
+
+def get_sorted_positions():
+    pos = []
+    for p in POSITIONS.values():
+        pos += p
+    pos = np.array(pos, dtype=np.uint64)
+    pos.sort()
+    return pos
+
+
+def get_kmers_from_taxon(
+    taxon, fasta_path, n_kmers, kmer_size):
+    LOGGER.info("Sampling kmers from taxid {}".format(taxon))
+    start_positions = get_start_positions_for_taxon(
+        taxon, fasta_path, TX_IDS, POSITIONS, n_kmers)
+
+    return get_kmers(get_random_positions(
+        (start_positions,
+        get_end_position_for_taxon(
+        start_positions, SORTED_POSITIONS, EOF)),
+        n_kmers, kmer_size
+    ), fasta_path, kmer_size, n_kmers)
+    
 
 
 def get_sample_kmers(
@@ -143,51 +184,46 @@ def get_sample_kmers(
     taxa = np.array(np.genfromtxt(taxa, dtype=str), ndmin=1)
     total_samples = len(taxa)
     LOGGER.info(
-        "Generating random kmers for candidate taxa:\n {}".format(
+        "Generating random kmers for candidate taxa:\n{}".format(
             "\n".join(taxa)))
-    LOGGER.info("deserializing {}".format(pickle_path))
-    tx_ids, _, positions = deserialization(pickle_path)
+    LOGGER.info("Deserializing {}".format(pickle_path))
+    global TX_IDS
+    global POSITIONS
+    global SORTED_POSITIONS
+    global EOF
+    TX_IDS, _, POSITIONS = deserialization(pickle_path)
+    EOF = get_eof(fasta_path)
+    SORTED_POSITIONS = get_sorted_positions()
     LOGGER.info("Finished deserialization")
-    # write_seq_partial = partial(
-    #     write_sequences_to_file,
-    #         fasta=fasta_path,
-    #         tax_ids=tx_ids,
-    #         positions=positions,
-    #         outpath=os.path.dirname(outpath)
-    #     )
-    # p = Pool(threads)    
-    # seq_files = p.map(write_seq_partial, taxa)
-    # p.close()
-    # p.join()
-    
-    get_kmer_partial = partial(
-        get_kmers_from_taxon,
-        kmer_size=kmer_size,
-        n_kmers=n_kmers,
-        positions=positions,
-        tax_ids=tx_ids,
-        fasta=fasta_path
-        )
 
-    
-    p = Pool(threads)
     LOGGER.info(
         "Starting {0} threads to generate {1} "
         "random kmers of size {2} from {3} candidate taxa".format(
             threads, n_kmers, kmer_size, len(taxa)
         ))
-    
-    LOGGER.info("Writing to file: {}".format(outpath))
 
+    get_kmers_partial = partial(
+        get_kmers_from_taxon, 
+        fasta_path=fasta_path,
+        n_kmers=n_kmers,
+        kmer_size=kmer_size)
+
+    p = Pool(threads)
+    LOGGER.info("Writing to file {}".format(outpath))
     with open(outpath, 'wb') as handle:
         for sample, kmer in enumerate(p.imap(
-            get_kmer_partial, taxa, chunksize=1)):
-            LOGGER.info("Writing sample {} to file".format(sample + 1))
+            get_kmers_partial, taxa, chunksize=1)):
+            taxid = taxa[sample]
+            LOGGER.info("Found {0} kmers for taxid {1}.".format(
+                len(kmer), taxid))
+            LOGGER.info("Writing samples for taxid {} to file".format(
+                taxid))
             handle.write(
                 get_outstring(
                     kmer, sample, total_samples))
-            LOGGER.info("Done writing sample {} to file".format(sample + 1))
-
+            LOGGER.info(
+                "Done writing sample for taxid {} to file".format(
+                    taxid))
 
     p.close()
     p.join()

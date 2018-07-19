@@ -14,6 +14,7 @@ input_hits:
     The merged file should be passed if all query hits should be
     extracted and the signature hits file should be passed if 
     only signature queries are desired. 
+  type: file_type
 by_sample:
   help: Breakdown extracted queries by sample.
   default: T
