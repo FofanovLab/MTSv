@@ -77,12 +77,12 @@ def decompression(x, path):
     return x.strip(".gz")
 
 def oneclickbuild(args):
-    with open(os.path.join(args.path, "artifacts/decompression.log"), "w" ):
+    with open(os.path.join(args.path, "artifacts","decompression.log"), "w" ):
         pass
     pool = Pool(args.threads)
     pool.starmap(decompression, [(os.path.abspath(x),
-                                  args.path) for x in iglob(os.path.join(args.path,"flat_files/*.gz"))])
-    for fp in iglob(os.path.join(args.path,"artifacts/","*_ff.txt")):
+                                  args.path) for x in iglob(os.path.join(args.path,"flat_files", "*.gz"))])
+    for fp in iglob(os.path.join(args.path,"artifacts","*_ff.txt")):
         db = list(os.path.split(fp))
         db[1] = db[1].strip().replace("_ff.txt",".fas")
         db = os.path.abspath("{0}{1}{2}".format(db[0],os.sep,db[1]))
@@ -100,14 +100,18 @@ def oneclickbuild(args):
         build_db(os.path.abspath(fp), db, os.devnull, os.devnull, args.threads, os.devnull)
 
     arguments = oneclickjson(args.path)
-
+    for argument in arguments:
+        pool.apply_async(tree_make, (argument['taxdump-path'], ))
+        break
     pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
                                       argument['taxdump-path']) for argument in arguments ])
 
+    pool.close()
     # shutil.rmtree(os.path.join(args.path, "flat_files" ))
 
-def mapper(x):
-    return clip(*x)
+def tree_make(in_path):
+    out_path = os.path.abspath(os.path.join(os.path.dirname(in_path), "tree.index"))
+    subprocess.run("{0} --index {1} --dump {2}".format(bin_path('mtsv-tree-build'), out_path, os.path.abspath(in_path) ).split())
 
 def partition(args):
     partition_list = []
@@ -340,43 +344,45 @@ def setup_and_run(parser):
         args = parser.parse_known_args()[0]
 
         try:
-
             if args.cmd_class == Database:
+                for i, val in enumerate(args.includedb):
+                    args.includedb[i] = val.strip().replace(" ","_").lower()
                 if args.download_only:
                     args.path = os.path.abspath(oneclickdl(args))
-
                 elif args.build_only:
                     if args.path and  os.path.isdir(args.path):
                         oneclickbuild(args)
                         json_updater(args)
                         make_json_abs(args)
-
                     else:
-                        print("A valid path was not specified")
+                        print("A valid directory path was not specified")
                 else:
                     args.path = os.path.abspath(oneclickdl(args))
                     oneclickbuild(args)
                     json_updater(args)
                     make_json_abs(args)
-
             elif args.cmd_class == CustomDB:
+                for i, val in enumerate(args.customdb):
+                    args.includedb[i] = val.strip().replace(" ","_").lower()
                 oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
                 json_updater(args)
                 make_json_abs(args)
 
-            # try:
-            #     make_json_rel(args)
-            # except:
-            #     pass
 
         except AttributeError:
             sys.argv[1] = "database"
             args = parser.parse_known_args()[0]
+            for i, val in enumerate(args.includedb):
+                args.includedb[i] = val.strip().replace(" ", "_").lower()
             args.path = os.path.abspath(oneclickdl(args))
             oneclickbuild(args)
             path = args.path
+            json_updater(args)
+            make_json_abs(args)
             sys.argv[1] = "custom_db"
             args = parser.parse_known_args()[0]
+            for i, val in enumerate(args.customdb):
+                args.customdb[i] = val.strip().replace(" ", "_").lower()
             args.path = path
             oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
             json_updater(args)
