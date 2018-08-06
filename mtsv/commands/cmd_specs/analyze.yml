@@ -1,5 +1,5 @@
 _meta_analyze:
-  help: Run statisical analysis
+  help: Run statistical analysis
 analysis_file:
   default: ./Analysis/analysis.csv
   type: outfile_type
