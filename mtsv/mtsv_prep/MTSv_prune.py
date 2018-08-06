@@ -399,27 +399,27 @@ def arg_unwrappers(args, arguments=None):
 
 def oneclickjson(path):
     arguments = []
-    for fh in os.listdir(os.path.join(path, "artifacts/")):
+    for fh in os.listdir(os.path.join(path, "artifacts")):
         if fnmatch.fnmatch(fh, "*.fas"):
             arguments.append({})
             fh = fh.split(".")[0]
-            arguments[-1]['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts/{0}.p".format(fh)))
+            arguments[-1]['serialization-path'] = os.path.abspath( os.path.join(path, "artifacts","{0}.p".format(fh)))
 
-            arguments[-1]['fasta-path'] = os.path.abspath(os.path.join(path, "artifacts/{0}.fas".format(fh)))
+            arguments[-1]['fasta-path'] = os.path.abspath(os.path.join(path, "artifacts", "{0}.fas".format(fh)))
 
             arguments[-1]['minimum-length'] = 0
 
             arguments[-1]['maximum-length'] = float('inf')
-            arguments[-1]['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts/taxdump.tar.gz"))
+            arguments[-1]['taxdump-path'] = os.path.abspath(os.path.join(path, "artifacts","taxdump.tar.gz"))
 
             arguments[-1]['acc-to-taxid-paths'] = []
-            for fp in os.listdir(os.path.join(path,"artifacts/")):
+            for fp in os.listdir(os.path.join(path,"artifacts")):
                     if fnmatch.fnmatch(fp, "*accession2taxid*"):
-                        arguments[-1]['acc-to-taxid-paths'].append(os.path.abspath(os.path.join(path,"artifacts/",fp)))
+                        arguments[-1]['acc-to-taxid-paths'].append(os.path.abspath(os.path.join(path,"artifacts",fp)))
 
             arguments[-1]['rollup-rank'] = "species"
 
-            with open(os.path.abspath(os.path.join(path,"artifacts/{0}.json".format(fh))), "w") as file:
+            with open(os.path.abspath(os.path.join(path,"artifacts", "{0}.json".format(fh))), "w") as file:
                 json.dump(arguments[-1], file, sort_keys=True, indent=4)
 
     return arguments
@@ -474,7 +474,10 @@ def ftp_dl(x):
     connection.login()
 
     while x:
-        fp_path = x.pop()
+        try:
+            fp_path = x.pop()
+        except IndexError:
+            break
         raw_path = fp_path[0]
         fp_path = fp_path[1]
         try:
@@ -582,17 +585,18 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
                 continue
         except:
             pass
-        if line[11].strip().decode().lower().replace(" ", "_") in databases:
+        db = line[11].strip().decode().lower().replace(" ", "_")
+        if db in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
             except:
                 continue
             try:
-                level2path[line[11].strip()].append(temp_path)
+                level2path[db.encode()].append(temp_path)
             except:
-                level2path[line[11].strip()] = [temp_path]
-            to_download.append((os.path.join(raw_path,"flat_files/"),temp_path))
+                level2path[db.encode()] = [temp_path]
+            to_download.append((os.path.join(raw_path,"flat_files"),temp_path))
 
     reader = BytesIO()
     connection.retrbinary("RETR {0}{1}".format(assembly_gb,assembly_gb_summary) ,reader.write)
@@ -609,24 +613,24 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
                 continue
         except:
             pass
-
-        if line[11].strip().decode().lower().replace(" ", "_") in databases:
+        db = line[11].strip().decode().lower().replace(" ", "_")
+        if db in databases:
             try:
                 temp = line[19].split(ftp_path.encode(),1)[1].decode()
                 temp_path = "{0}/{1}_genomic.gbff.gz".format(temp, os.path.basename(temp))
             except:
                 continue
             try:
-                level2path[line[11].strip()].append(temp_path)
+                level2path[db.encode()].append(temp_path)
             except:
-                level2path[line[11].strip()] = [temp_path]
+                level2path[db.encode()] = [temp_path]
 
             to_download.append((os.path.join(raw_path,"flat_files/"), temp_path) )
     artifacts = [(os.path.join(raw_path,"artifacts/"),"/pub/taxonomy/taxdump.tar.gz")]
     tax_path = "/pub/taxonomy/accession2taxid/"
     for file in connection.nlst(tax_path):
         if not fnmatch.fnmatch(os.path.basename(file), 'dead*') and not fnmatch.fnmatch(file, '*md5'):
-            artifacts.append((os.path.join(raw_path,"artifacts/"),file))
+            artifacts.append((os.path.join(raw_path, "artifacts"), file))
 
     man = Manager()
     connection.quit()
@@ -634,7 +638,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
     to_download = man.list(to_download)
 
     proc = [Process(target = ftp_dl, args=(to_download,)) for i in range(thread_count)]
-    with open(os.path.join(raw_path,"artifacts/ftp_dl.log"), "w"):
+    with open(os.path.join(raw_path,"artifacts", "ftp_dl.log"), "w"):
         pass
     for p in proc:
         p.start()
@@ -647,7 +651,7 @@ def pull(path="",thread_count=1,databases ={"genbank"} ):
         fp = "{0}_ff.txt".format(i.decode().replace(" ","_"))
         with open(os.path.join(raw_path,"artifacts/",fp), "w") as out_file:
             for line in level2path[i]:
-                out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/",os.path.basename(line))))
+                out_file.write("{0}\n".format(os.path.join(os.path.abspath(raw_path),"flat_files/", os.path.basename(line))))
     return string_date
 
 if __name__ =="__main__":
