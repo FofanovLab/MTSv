@@ -68,7 +68,7 @@ rule summary_report:
         """
         Running summary report.
         Writing report to {output}
-        Snakemake sceduler assuming {threads} threads""" 
+        Snakemake scheduler assuming {threads} thread(s)""" 
     # resources:
     #     mem_mb=lambda wildcards, attempt, input: max(1,
     #         attempt * int(os.path.getsize(input[0]) * 0.0000011))
@@ -131,7 +131,7 @@ rule signature:
         Finding signature hits from {input.infile}.
         Writing to {output} 
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads"""
+        Snakemake scheduler assuming {threads} thread(s)"""
     shell:
         """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
 
@@ -161,6 +161,6 @@ rule summary:
         and merge file {input.clp}
         Writing summary to {output} 
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads"""
+        Snakemake scheduler assuming {threads} thread(s)"""
 
     script: SCRIPT
