@@ -63,9 +63,15 @@ def get_descendants(taxa):
     descendants = {}
     for taxon in taxa:
         if taxon in levels and levels[taxon] != "species":
-            for descendant in NCBI.get_descendant_taxa(
-                    taxon, collapse_subspecies=True):
-                descendants[descendant] = taxon
+            try:
+                for descendant in NCBI.get_descendant_taxa(
+                        taxon, collapse_subspecies=True):
+                    descendants[descendant] = taxon
+            except AttributeError:
+                # when rank does not exist
+                for descendant in NCBI.get_descendant_taxa(
+                        taxon, collapse_subspecies=False):
+                    descendants[descendant] = taxon
     return descendants
 
 
@@ -219,7 +225,7 @@ if __name__ == "__main__":
         )
         
         PARSER.add_argument(
-            "-o", "--output", type=outfile_type, default="./",
+            "-o", "--output", type=outfile_type, default="./summary.csv",
             help="Summary output"
         )
 
