@@ -89,7 +89,7 @@ def write_signature_rollups(multiples, common_ancestors, outfile):
                 
 
 def signature(clps_file, rank, outfile, threads):
-    LOGGER.info("Reading from file: {}".format(outfile))
+    LOGGER.info("Reading from file: {}".format(clps_file))
     singletons, multiples = separate_multiples_from_singletons(clps_file)
     LOGGER.info("Found {} queries with a single hit.".format(len(singletons)))
     proc = Process(target=write_signature, args=(singletons, outfile,))
@@ -105,6 +105,8 @@ def signature(clps_file, rank, outfile, threads):
         p.join()
         proc.join()
         write_signature_rollups(multiples, common_ancestors, outfile)
+    else:
+        proc.join()
     LOGGER.info("MTSv Signature Completed")
 
 
