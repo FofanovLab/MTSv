@@ -21,6 +21,11 @@ split = str.split
 strip = str.strip
 rsplit = str.rsplit
 
+bsplit = bytes.split
+bstrip = bytes.strip
+brsplit = bytes.rsplit
+
+
 def make_sub_parser(subparser, cmd, cmd_class):
     global_defaults = get_global_config(cmd_class.config_section)
     help_str = global_defaults["_meta_{}".format(cmd)]["help"]
@@ -303,6 +308,13 @@ def parse_output_row(row):
     return Record(
         read_id=read_id, counts=counts, taxa=taxa, read_name=read_name)
 
+def parse_output_row_bytes(row):
+    read_name, taxa = bsplit(row, b":")
+    taxa = np.array([tax for tax in bsplit(taxa, b",")], dtype=int)
+    counts = np.array([c for c in bsplit(read_name, b"_")[1:]], dtype=int)
+    read_id = bsplit(read_name, b"_")[0]
+    return Record(
+        read_id=read_id, counts=counts, taxa=taxa, read_name=read_name)
 
 
 def parse_query_id(query_id):
