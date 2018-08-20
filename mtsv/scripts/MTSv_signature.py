@@ -12,6 +12,7 @@ from mtsv.parsing import (
     positive_int)
 
 
+
 def separate_multiples_from_singletons(input_file):
     """The format of the input file should be:
             R1_1_0_1:123
@@ -51,15 +52,16 @@ def get_common_ancestor(taxids, rank):
     hit. Otherwise the taxid of the common ancestor of the given rank 
     will be returned.
     """
-
-    common_ancestor = np.array(GET_LINEAGE(taxids[0]), dtype=int)
+    get_lineage = NCBI.get_lineage
+    get_rank = NCBI.get_rank
+    common_ancestor = np.array(get_lineage(taxids[0]), dtype=int)
     for taxid in taxids[1:]:
         common_ancestor = np.intersect1d(
-            common_ancestor, GET_LINEAGE(taxid))
-        if rank not in set(GET_RANK(common_ancestor).values()):
+            common_ancestor, get_lineage(taxid))
+        if rank not in set(get_rank(common_ancestor).values()):
             return None
     return [key for key, value 
-                in GET_RANK(common_ancestor).items()
+                in get_rank(common_ancestor).items()
                 if value == rank][0]
 
 def get_byte_stream(name, taxid):
@@ -113,8 +115,6 @@ def signature(clps_file, rank, outfile, threads):
 if __name__ == "__main__":
     try:
         NCBI = get_ete_ncbi(snakemake.params[0])
-        GET_LINEAGE = NCBI.get_lineage
-        GET_RANK = NCBI.get_rank
         config_logging(snakemake.log[0], "INFO")
         LOGGER = logging.getLogger(__name__)
         signature(
@@ -164,8 +164,6 @@ if __name__ == "__main__":
         ARGS = PARSER.parse_args()
 
         NCBI = NCBITaxa(taxdump_file=ARGS.taxdump)
-        GET_LINEAGE = NCBI.get_lineage
-        GET_RANK = NCBI.get_rank
         config_logging(ARGS.log, "INFO")
         LOGGER = logging.getLogger(__name__)
 
@@ -175,3 +173,5 @@ if __name__ == "__main__":
             ARGS.sig,
             ARGS.threads
         )
+else:
+    NCBI = NCBITaxa()
