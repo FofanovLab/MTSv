@@ -14,7 +14,7 @@ from mtsv.parsing import parse_output_row, file_type, outfile_type
 DIV_MAP = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
            2157: "Archaea", 12884: "Viroids", 28384: "Other and synthetic sequences",
            2759: "Eukaryotes", 33090: "Green Plants", 4751: "Fungi",
-           7742: "Vertebrates (excluding Primates, Chiroptera, Bos taurus, Canis lupus familiaris)",
+           7742: "Vertebrates (excluding Primates and Chiroptera and Bos taurus and Canis lupus familiaris)",
            9443: "Primates (excluding Homo sapiens)",
            9397: "Chiroptera", 9913: "Bos Taurus", 9615: "Canis lupus familiaris",
            9606: "Homo sapiens"}
