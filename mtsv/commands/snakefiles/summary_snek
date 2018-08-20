@@ -111,7 +111,7 @@ rule signature:
     #             os.path.getsize(input.infile) * 0.0000002))
     log:
         config['log_file']
-    threads: config['threads']
+    threads: 1
     message: 
         """
         Finding signature hits from {input.infile}.
