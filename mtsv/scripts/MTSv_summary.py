@@ -162,8 +162,7 @@ def get_summary(all_file, sig_file, outfile, threads, header=None):
     data_list = []
     for taxa, samples in data_dict.items():
         taxa_name = re.sub(
-            '\W+', ' ', taxid2name[taxa]).strip() if 
-            taxa in taxid2name else "Undefined"
+            '\W+', ' ', taxid2name[taxa]).strip() if taxa in taxid2name else "Undefined"
         row_list = [taxa, tax2div(taxa), taxa_name]
         for sample, value in samples.items():
             row_list += [value[0], value[1], value[2], value[3]]
