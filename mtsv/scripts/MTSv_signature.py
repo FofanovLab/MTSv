@@ -138,7 +138,7 @@ if __name__ == "__main__":
         )
         PARSER.add_argument(
             '-r', "--rank", type=str, default="species",
-            choice=["species", "genus", "family"],
+            choices=["species", "genus", "family"],
             help="Consider hits to be signature up to a certain "
                  "taxanomic level. Ex: If genus is selected, a hit with "
                  "multiple species from the same genus will be considered to "
