@@ -70,7 +70,7 @@ rule binning_report:
         Running binning report and finding unaligned queries.
         Writing report to {output.rep} 
         Writing unaligned queries to {output.unaligned}. 
-        Snakemake sceduler assuming {threads} threads """ 
+        Snakemake scheduler assuming {threads} thread(s) """ 
     # resources:
     #     mem_mb=lambda wildcards, input, attempt: max(1,
     #         attempt * int(
@@ -159,7 +159,7 @@ rule binning:
         Using index {input.fm_index}
         Writing files to directory {output}
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads""" 
+        Snakemake scheduler assuming {threads} thread(s)""" 
     log:
         os.path.join(config['binning_outpath'], "{index}.log")
     threads:
@@ -182,7 +182,7 @@ rule collapse:
         """
         Merging binning output into {output}.
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads"""
+        Snakemake scheduler assuming {threads} thread(s)"""
     log:
         config['log_file']
     params:

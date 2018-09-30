@@ -2,7 +2,7 @@ import os
 import numpy as np
 import json
 from mtsv.utils import (
-    bin_path, script_path,
+    script_path,
     track_file_params,
     get_database_params)
 from mtsv.parsing import (
@@ -10,8 +10,8 @@ from mtsv.parsing import (
     file_type, outfile_type, make_table)
 shell.prefix("set -euo pipefail;")
 
-BIN = bin_path('mtsv-signature')
-SCRIPT = script_path('MTSv_summary.py')
+SCRIPT = {"summary": script_path('MTSv_summary.py'),
+          "signature": script_path('MTSv_signature.py')}
 REPORT = outfile_type(os.path.join("Reports", "summary_report.html"))
 
 
@@ -39,20 +39,7 @@ if "header" not in config:
     
 config['taxdump_path'] = file_type(get_database_params(
     config['database_config'], 'taxdump-path'))
-config['tree_index'] = file_type(get_database_params(
-    config['database_config'], 'tree-index'))
 
-
-CML_PARAMS = format_cml_params(
-    'SUMMARY',
-    config,
-    ['taxdump_path', 'tax_level',
-    'merge_file', 'signature_file',
-    'summary_file', 'tree_index'],
-    ["--{}".format(config['tax_level'])] if
-        config['tax_level'] != 'species' else [])
-
-MEM = 20
 
 rule summary_all:
     input:
@@ -68,7 +55,7 @@ rule summary_report:
         """
         Running summary report.
         Writing report to {output}
-        Snakemake sceduler assuming {threads} threads""" 
+        Snakemake scheduler assuming {threads} thread(s)""" 
     # resources:
     #     mem_mb=lambda wildcards, attempt, input: max(1,
     #         attempt * int(os.path.getsize(input[0]) * 0.0000011))
@@ -113,11 +100,10 @@ rule signature:
     output:
         config['signature_file']
     input:
-        infile = config['merge_file'],
-        index = config['tree_index']
+        infile = config['merge_file']
     params:
-        call = BIN,
-        args = CML_PARAMS
+        taxdump=config['taxdump_path'],
+        rank = config['tax_level']
     # resources:
     #     mem_mb=lambda wildcards, attempt, input: max(1,
     #         attempt * int(
@@ -125,15 +111,14 @@ rule signature:
     #             os.path.getsize(input.infile) * 0.0000002))
     log:
         config['log_file']
-    threads: 1 # max at 1 until threading issue is figured out
+    threads: 1
     message: 
         """
         Finding signature hits from {input.infile}.
         Writing to {output} 
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads"""
-    shell:
-        """{params.call} --index {input.index} --input {input.infile} --output {output} --lca 0 {params.args} >> {log} 2>&1"""
+        Snakemake scheduler assuming {threads} thread(s)"""
+    script: SCRIPT['signature']
 
 rule summary:
     """Summarize number of total and signature hits for each taxa"""
@@ -161,6 +146,6 @@ rule summary:
         and merge file {input.clp}
         Writing summary to {output} 
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads"""
+        Snakemake scheduler assuming {threads} thread(s)"""
 
-    script: SCRIPT
+    script: SCRIPT["summary"]

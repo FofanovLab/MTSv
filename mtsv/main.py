@@ -122,7 +122,7 @@ def main(argv=None):
 
     parser_init = subparsers.add_parser(
         'init',
-        help="initializes a directory with a pre-filled parameters file"
+        help="Initializes a directory with a pre-filled parameters file"
     )
     parser_init.add_argument(
         "-c", "--config", type=TYPES['write_handle_type'],

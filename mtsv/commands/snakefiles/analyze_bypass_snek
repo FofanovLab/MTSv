@@ -24,7 +24,7 @@ rule analyze:
         Analyzing statistics.
         Writing to {output}.
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
+        Snakemake scheduler assuming {threads} thread(s) and 
         {resources.mem_mb} Mb of memory.
         """
     resources:

@@ -24,3 +24,6 @@ install:
   - conda install mtsv -c tara_furstenau -c bioconda -c etetoolkit -c conda-forge
 script:
   - mtsv --help
+cache:
+  directories:
+  - $HOME/.etetoolkit

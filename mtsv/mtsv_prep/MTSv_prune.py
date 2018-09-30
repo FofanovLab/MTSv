@@ -431,10 +431,11 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
 
     os.chdir(script_dir)
     command_one = "g++ -std=c++11 -pthread -static-libstdc++ taxidtool.cpp -o db_builder"
-    command_two = "./db_builder {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
-                                                                    source_out_fp, thread_count, gi_to_word)
-    command_three = command_two = "{6} {0} {1}.tmp {2} {3} {4} {5}".format(flat_list_in_fp, fasta_out_fp, keyword_out_fp,
-                                                                    source_out_fp, thread_count, gi_to_word, bin_path('mtsv-db-build'))
+    command_two = "./db_builder {0} {1}.tmp {2}.tsv {3}".format(flat_list_in_fp, fasta_out_fp, fasta_out_fp.rsplit(".",1)[0],
+                                                                        thread_count)
+
+    command_three = "{4} {0} {1}.tmp {2}.tsv {3}".format(flat_list_in_fp, fasta_out_fp, fasta_out_fp.rsplit(".",1)[0],
+                                                                     thread_count, bin_path('mtsv-db-build'))
     if not os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
         if os.path.isfile(bin_path('mtsv-db-build')):
             subprocess.run(command_three.split())
