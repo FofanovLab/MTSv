@@ -98,8 +98,13 @@ def snake_path(rule_name):
 
 def data_path():
     """ Return expected values database path """
-    fp = os.path.join('data', "expected.data")
-    return resource_filename('mtsv', fp)
+    user = os.environ.get('HOME', '/')
+    data_file = os.path.join(user, ".mtsv/expected.csv")
+    try:
+        open(data_file, 'r')
+    except FileNotFoundError:
+        init_precalculated_df(data_file)
+    return data_file
 
 def ete_database_data():
     """ Return path to ete3 database json """
@@ -143,6 +148,11 @@ def get_ete_ncbi(taxdump):
     return ncbi
 
     
+def init_precalculated_df(data_file):
+    with open(data_file, 'w') as out:
+        out.write("Database,Kmer_Size,Edits,Seed_Size,"\
+                  "Seed_Gap,Min_Seeds,Taxid,Total_Hits,Sig_Hits,Ratio\n")
+
 
 def get_precalculated_df():
     return pd.read_csv(
