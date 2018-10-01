@@ -251,6 +251,14 @@ def json_updater(args):
             params['partition-path'].append(os.path.abspath(path))
 
         params['tree-index'] = os.path.abspath(os.path.join(args.path, "artifacts","tree.index"))
+        params['serialization-path'] = os.path.abspath(os.path.join(args.path, "artifacts","{0}.p".format(base)))
+        params['taxdump-path'] = os.path.abspath(os.path.join(args.path, "artifacts","taxdump.tar.gz"))
+        params['fasta-path'] = os.path.abspath(os.path.join(args.path, "artifacts","{0}.fas".format(base)))
+
+        params['acc-to-taxid-paths'] = []
+        for path in iglob(os.path.join(args.path, "artifacts","*taxid.gz")):
+            params['acc-to-taxid-paths'].append(os.path.abspath(path))
+
         with open(json_path, "w") as file:
             json.dump(params, file, sort_keys=True, indent=4)
 

@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import re
 import argparse
 import pandas as pd
 import numpy as np
@@ -14,12 +15,10 @@ from mtsv.parsing import parse_output_row, file_type, outfile_type
 DIV_MAP = {2:"Bacteria", 10239: "Viruses (excluding environmental sample)",
            2157: "Archaea", 12884: "Viroids", 28384: "Other and synthetic sequences",
            2759: "Eukaryotes", 33090: "Green Plants", 4751: "Fungi",
-           7742: "Vertebrates (excluding Primates, Chiroptera, Bos taurus, Canis lupus familiaris)",
+           7742: "Vertebrates (excluding Primates and Chiroptera and Bos taurus and Canis lupus familiaris)",
            9443: "Primates (excluding Homo sapiens)",
            9397: "Chiroptera", 9913: "Bos Taurus", 9615: "Canis lupus familiaris",
            9606: "Homo sapiens"}
-
-
 
 
 def tax2div(taxid):
@@ -63,9 +62,15 @@ def get_descendants(taxa):
     descendants = {}
     for taxon in taxa:
         if taxon in levels and levels[taxon] != "species":
-            for descendant in NCBI.get_descendant_taxa(
-                    taxon, collapse_subspecies=True):
-                descendants[descendant] = taxon
+            try:
+                for descendant in NCBI.get_descendant_taxa(
+                        taxon, collapse_subspecies=True):
+                    descendants[descendant] = taxon
+            except AttributeError:
+                # when rank does not exist
+                for descendant in NCBI.get_descendant_taxa(
+                        taxon, collapse_subspecies=False):
+                    descendants[descendant] = taxon
     return descendants
 
 
@@ -156,7 +161,8 @@ def get_summary(all_file, sig_file, outfile, threads, header=None):
 
     data_list = []
     for taxa, samples in data_dict.items():
-        taxa_name = taxid2name[taxa] if taxa in taxid2name else "Undefined"
+        taxa_name = re.sub(
+            '\W+', ' ', taxid2name[taxa]).strip() if taxa in taxid2name else "Undefined"
         row_list = [taxa, tax2div(taxa), taxa_name]
         for sample, value in samples.items():
             row_list += [value[0], value[1], value[2], value[3]]
@@ -187,7 +193,6 @@ def get_summary(all_file, sig_file, outfile, threads, header=None):
 
 
 if __name__ == "__main__":
-    #NCBI = NCBITaxa()
     try:
         NCBI = get_ete_ncbi(snakemake.params[0])
         config_logging(snakemake.log[0], "INFO")      
@@ -219,7 +224,7 @@ if __name__ == "__main__":
         )
         
         PARSER.add_argument(
-            "-o", "--output", type=outfile_type, default="./",
+            "-o", "--output", type=outfile_type, default="./summary.csv",
             help="Summary output"
         )
 
@@ -253,6 +258,9 @@ if __name__ == "__main__":
             ARGS.sig,
             ARGS.output,
             ARGS.threads)
+else:
+    NCBI = NCBITaxa()
+
 
 
         

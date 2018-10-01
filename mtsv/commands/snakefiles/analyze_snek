@@ -39,7 +39,7 @@ rule random_kmers:
         Generating random kmers from taxa in {input}.
         Writing to {output}.
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
+        Snakemake scheduler assuming {threads} thread(s) and 
         {resources.mem_mb} Mb of memory."""
     resources:
         mem_mb=lambda wildcards, attempt: max(
@@ -67,7 +67,7 @@ rule analyze:
         Reading from {input}
         Writing to {output}.
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
+        Snakemake scheduler assuming {threads} thread(s) and 
         {resources.mem_mb} Mb of memory.
         """
     params:

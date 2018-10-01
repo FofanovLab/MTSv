@@ -266,9 +266,9 @@ words maintaining association by building forward_list structures at the same ti
 are initially inserted into sets to acquire the ordered and unique properties that container has. When
 the words are inserted into the global keyword set a space delimited string is built to use for final processing.
 */
-void producer_seqs(set<std::string> file_list, char* seqs_out){
+void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_out){
 
-    string command, buffer, line, temp, temp_key ="", temp_src = "", sequences ="";
+    string command, buffer, line, temp, temp_key ="", temp_src = "", sequences ="", positions="";
     const int BUFFER_SIZE = 2500000;
     char in_buffer[BUFFER_SIZE];
     sequences.reserve(BUFFER_SIZE);
@@ -277,22 +277,8 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
     regex allowed("[^a-zA-Z0-9:'_. *-]");
     regex alpha("[^a-zA-Z]");
     unsigned long  gi ;
+
     for(set<string>::iterator file = file_list.begin(); file != file_list.end(); ++file){
-//            try{
-//            buffer.clear();
-//            command = "zcat ";
-//            command += *file;
-//            command += " | tr -d '\\r'";
-//
-//            in = popen(command.c_str() , "r");
-//
-//            while(fgets(in_buffer, sizeof(in_buffer), in) != NULL){
-//                buffer += in_buffer;
-//            }
-//            pclose(in);
-//            if (buffer.length() == 0) throw 1;
-//        }
-//        catch(...){
             buffer.clear();
             command = "cat ";
             command += *file;
@@ -313,6 +299,8 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
             getline(input,line);
             while(!input.eof()){
                 if(line.length())
+
+                    line = line.substr(line.find_first_not_of(" \t"), line.length());
                     temp = line.substr(0, line.find_first_of(" ") );
                     if(temp == "DEFINITION"){
                         command.clear();
@@ -333,6 +321,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
                         line = line.substr(line.find_first_of(" "), line.length() );
                         line = line.substr(line.find_first_not_of(" "), line.length() );
                         version =  regex_replace( line, regex("  +"), " " );
+                        positions += version;
                     }
                     else if(temp == "SOURCE"){
                         line = line.substr(line.find_first_of(" "), line.length() );
@@ -374,25 +363,41 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
                         temp_src.clear();
                         temp_key.clear();
                     }
+                    else if(temp == "gene"){
+                        temp = line.substr(line.find_first_of(" \t"), line.length());
+                        temp = temp.substr(temp.find_first_not_of(" \t"), temp.length());
+                        getline(input,line);
+                        temp = line.substr(line.find_first_of('"'), line.find_last_of('"')) + "|" + temp;
+                        getline(input,line);
+                        temp = line.substr(line.find_first_of('"'), line.find_last_of('"')) + "|" + temp;
+                        positions += "\t" + temp;
+
+                    }
                     getline(input,line);
                 }
 
 
-                if (sequences.length() > BUFFER_SIZE){
+                if (sequences.length() > 0){
                     file_lock.lock();
                     output.open(seqs_out, ofstream::app);
                     output <<sequences;
                     output.close();
-                    file_lock.unlock();
-                    string().swap(sequences);
-                }
-                else if( file_lock.try_lock()){
-                    output.open(seqs_out, ofstream::app);
-                    output <<sequences;
+                    output.open(position_out, ofstream::app);
+                    output << positions;
+                    output << "\n";
                     output.close();
                     file_lock.unlock();
-                    sequences.clear();
-                    }
+                    string().swap(sequences);
+                    string().swap(positions);
+                }
+//                else if( file_lock.try_lock()){
+//                    output.open(seqs_out, ofstream::app);
+//                    output <<sequences;
+//                    output.close();
+//                    file_lock.unlock();
+//                    sequences.clear();
+//                    }
+
                 cout << *file << endl;
 
             }
@@ -403,8 +408,13 @@ void producer_seqs(set<std::string> file_list, char* seqs_out){
             output.open(seqs_out, ofstream::app);
             output <<sequences;
             output.close();
+            output.open(position_out, ofstream::app);
+            output <<positions;
+            output << "\n";
+            output.close();
             file_lock.unlock();
             sequences.clear();
+            positions.clear();
         }
 
     }
@@ -469,7 +479,7 @@ void sort_file(char* file){
 */
 int main(int argc, char** argv){
         vector<thread> thread_vector;
-        unsigned long threads = atol(argv[5]);
+        unsigned long threads = atol(argv[4]);
 
         vector<pair<string,ifstream::streampos>> file_pairs =  get_filesize_list(argv[1]);
 
@@ -481,9 +491,11 @@ int main(int argc, char** argv){
         ofstream out;
         out.open(argv[2]);
         out.close();
+        out.open(argv[3]);
+        out.close();
 
         while(file_sets.size()){
-            thread_vector.push_back(thread(producer_seqs, file_sets.back(), argv[2]));
+            thread_vector.push_back(thread(producer_seqs, file_sets.back(), argv[2], argv[3] ));
             file_sets.pop_back();
         }
         for (auto& thread : thread_vector) {

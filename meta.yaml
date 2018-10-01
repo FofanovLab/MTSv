@@ -2,13 +2,14 @@
 
 package:
   name: 'mtsv'
-  version: {{ data.get('version') }}
+  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 source:
   git_url: https://github.com/FofanovLab/MTSv
 
 build:
-  number: 0
+  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+  # string: {{ environ.get('GIT_BUILD_STR', '') }}
   binary_relocation: True
   entry_points:
     - mtsv = mtsv.main:main
@@ -18,10 +19,10 @@ build:
 requirements:
   build:
     - rust>=1.24.0
-    - python>=3.5
+    - python==3.6
     - setuptools
   run:
-    - python>=3.5
+    - python==3.6
     - snakemake>=4.1
     - pandas>=0.20.3
     - ete3
@@ -35,6 +36,12 @@ requirements:
     - zlib
     - wgfast
 
-
+test:
+  imports:
+    - mtsv
+  requires:
+    - pytest
+  commands:
+    - py.test --pyargs mtsv
 
 

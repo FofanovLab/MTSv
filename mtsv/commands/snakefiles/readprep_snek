@@ -32,7 +32,7 @@ rule readprep_report:
     message: 
         """
         Running readprep report. Writing to {output}.
-        Snakemake sceduler assuming {threads} threads """
+        Snakemake scheduler assuming {threads} thread(s) """
     # resources:
     #     mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
     #         os.path.getsize(input[0]) * 0.0000005))
@@ -127,7 +127,7 @@ rule readprep:
         Running Readprep on {input}.
         Writing to {output}
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
+        Snakemake scheduler assuming {threads} thread(s) and 
         {resources.mem_mb} Mb of memory. """
     shell:
         '''{params.call} {input} -o {output} {params.args} >> {log} 2>&1'''

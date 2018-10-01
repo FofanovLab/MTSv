@@ -81,7 +81,7 @@ rule extract_report:
         """
         Generating extract report from {input.fasta} and {input.fastq}
         Writing to {output}
-        Snakemake sceduler assuming {threads} threads and
+        Snakemake scheduler assuming {threads} threads and
         {resources.mem_mb} Mb of memory. """
 
     params:
@@ -149,6 +149,6 @@ rule extract:
         that were hits in {input.clp}
         Writing to {output}
         Logging to {log}
-        Snakemake sceduler assuming {threads} threads and 
+        Snakemake scheduler assuming {threads} threads and 
         {resources.mem_mb} Mb of memory. """
     script: SCRIPT
