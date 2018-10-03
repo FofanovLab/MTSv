@@ -2,7 +2,6 @@ import os
 import json
 import pandas as pd
 import numpy as np
-from Bio import SeqIO
 from mtsv.parsing import (
     parse_query_id,
     format_cml_params,
@@ -17,6 +16,7 @@ BINS = {
     name: bin_path('mtsv-{}'.format(name))
     for name in [
         'binner','collapse']}
+SCRIPT = {"unaligned_queries": script_path('MTSv_unaligned_queries.py'),}
 
 REPORT = outfile_type(os.path.join("Reports", "binning_report.html"))
 config['fm_index_paths'] = [file_type(f) for f in get_database_params(
@@ -52,25 +52,34 @@ CML_PARAMS = format_cml_params(
     'merge_file', 'binning_outpath'],
     [])
 
+try:
+    SAMPLES = json.loads(open(os.path.join(
+        os.path.dirname(config['fasta']),
+        ".params"),
+        'r').read())['readprep'][config['fasta']]['fastq']
+except FileNotFoundError:
+    SAMPLES = config['fastq']
+SAMPLES = [os.path.basename(s) for s in SAMPLES]
+UNALIGNED_QUERIES = [os.path.join(config['binning_outpath'],
+            "unaligned_queries_{}.fasta".format(s)) for s in SAMPLES]
 
 rule binning_all:
     input: REPORT
 
 rule binning_report:
     input:
-        clps = config['merge_file'],
-        fasta = config['fasta']
+        os.path.join(config['binning_outpath'],
+            'query_stats.json')
     output:
-        rep=REPORT,
-        unaligned = os.path.join(
-            config['binning_outpath'],
-            'unaligned_queries.fasta')
+        rep=REPORT
+    params:
+        header = SAMPLES
     message: 
         """
-        Running binning report and finding unaligned queries.
+        Running binning report.
         Writing report to {output.rep} 
-        Writing unaligned queries to {output.unaligned}. 
-        Snakemake scheduler assuming {threads} thread(s) """ 
+        Snakemake scheduler assuming {threads} thread(s)
+        """ 
     # resources:
     #     mem_mb=lambda wildcards, input, attempt: max(1,
     #         attempt * int(
@@ -78,63 +87,64 @@ rule binning_report:
     #             os.path.getsize(input.fasta) * 0.000002))
     run:
         from snakemake.utils import report
-        queries = SeqIO.to_dict(
-            SeqIO.parse(input[1], "fasta"))
-        hits = np.genfromtxt(
-            input[0], delimiter=":", dtype=str, usecols=0)
-        n_hits = len(hits)
-        total_queries = len(queries)
-        no_hits = np.setdiff1d(
-            list(queries.keys()),
-            hits,
-            assume_unique=True)
-        n_misses = len(no_hits)
-        n_total_misses = np.array(np.sum(
-            np.array(
-                [parse_query_id(miss) for miss in no_hits],
-                dtype=int), axis=0), dtype=str)
+      
+        summary_data = json.loads(open(input[0], 'r').read())
 
-        n_total_hits = np.sum(
-            np.array(
-                [parse_query_id(hit) for hit in hits],
-                dtype=int), axis=0)
-        n_tot_hits = np.sum(n_total_hits)
-        n_total_hits = np.array(n_total_hits, dtype=str)
-        n_unique_hits = np.array(np.sum(
-            np.array(
-                [parse_query_id(hit) for hit in hits],
-                dtype=bool), axis=0), dtype=str)
-
-        try:
-            header = json.loads(open(os.path.join(
-                os.path.dirname(config['fasta']),
-                ".params"),
-                'r').read())['readprep'][config['fasta']]['fastq']
-        except FileNotFoundError:
-            header = config['fastq']
-        header = [os.path.basename(h) for h in header]
         table = make_table(
-            [header, n_total_misses, n_total_hits, n_unique_hits],
-            ["Sample", "Total Unique Misses",
-            "Total Hits", "Total Unique Hits"])
-        no_hit_queries = [queries[query] for query in no_hits]
-        with open(output['unaligned'], "w") as output_handle:
-            SeqIO.write(no_hit_queries, output_handle, "fasta")
-        
+            [params.header, summary_data['total_queries_by_sample'],
+            summary_data['total_unique_queries_by_sample'],
+            summary_data['total_hits_by_sample'],
+            summary_data['total_unique_hits_by_sample'],
+            summary_data['total_unaligned_queries_by_sample'],
+            summary_data['total_unique_unaligned_queries_by_sample']],
+            ["Sample", "Total Queries", "Total Unique Queries",
+            "Total Hits", "Total Unique Hits", "Unaligned Queries",
+            "Unique Unaligned Queries"])
+
+        file_str = "\n".join(UNALIGNED_QUERIES)
         track_file_params('merge_file', config['merge_file'], config)
         
         report("""
         Binning Report
         ================================
         Hits are reported in:\n
-        {input.clps}\n
-        There were **{n_tot_hits}** total hits and **{n_hits}** unique hits out 
-        of **{total_queries}** unique queries.\n
-        There were **{n_misses}** queries with no hits.\n
-        These missed sequences are reported in {output.unaligned}.\n
-        Total number of reads associated with misses by sample:\n
+        {config['merge_file']}\n
+        There were **{summary_data['total_hits']}** total hits
+        and **{summary_data['total_unique_hits']}** unique hits out 
+        of **{summary_data['total_queries']}** total queries and
+        **{summary_data['total_unique_queries']}** unique queries.\n
+        There were **{summary_data['total_unaligned_queries']}** total
+        queries and **{summary_data['total_unique_unaligned_queries']}**
+        unique queries with no hits.\n
+        Analigned query sequences are reported in:\n
+        {file_str}.\n
+        Query Stats:\n
         {table}
         """, output['rep'])
+
+rule unaligned_queries:
+    """Get queries with no hits"""
+    output: 
+        out = UNALIGNED_QUERIES,
+        summary = os.path.join(config['binning_outpath'],
+            'query_stats.json')
+    input:
+        clps = config['merge_file'],
+        fasta = config['fasta']
+    params:
+        samples = SAMPLES
+    threads: config['threads']
+    log: config['log_file']
+    message:
+        """
+        Finding unaligned queries.
+        Writing unaligned queries to {output}. 
+        Snakemake scheduler assuming {threads} thread(s)
+        """
+    script: SCRIPT['unaligned_queries']
+
+
+
             
 rule binning:
     """Metagenomics binning"""
