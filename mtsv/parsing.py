@@ -209,6 +209,7 @@ def outpath_type(input_path):
     Throws PermissionError if there are no permissions to create
     directory. If path already exists and it is not empty, a warning
     is issued. Returns absolute path to directory.'''
+    input_path = os.path.abspath(input_path)
     try:
         os.mkdir(input_path)
         logger.info("Creating directory: {}".format(input_path))
@@ -220,7 +221,7 @@ def outpath_type(input_path):
             "Directory already exists: {}. ".format(input_path))
         if os.listdir(input_path):
             warn("Files in {} may be overwritten!".format(input_path))
-    return os.path.abspath(input_path)
+    return input_path
 
 
 def file_type(input_file):
