@@ -7,6 +7,7 @@ import json
 import hashlib
 import pandas as pd
 from ete3 import NCBITaxa
+from Bio import SeqIO
 from pkg_resources import resource_stream, resource_filename
 
 
@@ -187,7 +188,19 @@ def line_generator(file_name, n_lines):
             yield lines
         return 
 
-        
+def fasta_generator(file_name, n_records):
+    with open(file_name, 'r') as handle:
+        records = []
+        for record in SeqIO.parse(handle, 'fasta'):
+            records.append(record)
+            if len(records) == n_records:
+                yield records
+                records = []
+        if len(records):
+            yield records
+        return
+
+               
 
 
 #    while go:
