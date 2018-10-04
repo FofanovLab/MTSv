@@ -38,5 +38,9 @@ $ conda install mtsv -c fofanov -c bioconda -c etetoolkit -c conda-forge
 ```
 $ source deactivate
 ```
+---
+## License & Copyright
 
+© 2018 FofanovLab
 
+Licensed under the [MIT License](LICENSE)
