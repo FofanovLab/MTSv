@@ -7,21 +7,8 @@ import numpy as np
 from itertools import chain
 from multiprocessing import Pool
 from Bio import SeqIO
-from mtsv.utils import config_logging, error, line_generator#, fasta_generator
+from mtsv.utils import config_logging, error, line_generator, fasta_generator
 from mtsv.parsing import file_type, outpath_type, parse_query_id, outfile_type
-
-
-def fasta_generator(file_name, n_records):
-    with open(file_name, 'r') as handle:
-        records = {}
-        for record in SeqIO.parse(handle, 'fasta'):
-            records[record.id] = record
-            if len(records) == n_records:
-                yield records
-                records = {}
-        if len(records):
-            yield records
-        return
 
 
 class Result:
@@ -288,7 +275,7 @@ if __name__ == "__main__":
         config_logging(snakemake.log[0], "INFO")      
         LOGGER = logging.getLogger(__name__)
         get_unaligned_queries(snakemake.input[0],
-            snakemake.input[1], snakemake.output[0],
+            snakemake.input[1], snakemake.params[1],
             snakemake.params[0], snakemake.threads)
     except NameError:
         ARGS = parse_args()
