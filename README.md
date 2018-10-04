@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/FofanovLab/MTSv.svg?branch=master)](https://travis-ci.org/FofanovLab/MTSv)
 
 # MTSv Pipeline
+[Change log](CHANGELOG.md)
 
 MTSv is a suite of metagenomic binning and analysis tools. It attempts to accurately identify which taxa are present in a given DNA sample by identifying *signature* reads that are unique to a single taxa. It assumes that read fragments in samples will be in a "shotgun" or short read format, typically ~50-200 bases in length.
 
