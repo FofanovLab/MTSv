@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/FofanovLab/MTSv.svg?branch=master)](https://travis-ci.org/FofanovLab/MTSv)
-
+[![Anaconda-Server Badge](https://anaconda.org/tara_furstenau/mtsv/badges/installer/conda.svg)](https://conda.anaconda.org/tara_furstenau)
+[![Anaconda-Server Badge](https://anaconda.org/tara_furstenau/mtsv/badges/license.svg)](https://anaconda.org/tara_furstenau/mtsv)
+[![Anaconda-Server Badge](https://anaconda.org/tara_furstenau/mtsv/badges/platforms.svg)](https://anaconda.org/tara_furstenau/mtsv)
 # MTSv Pipeline
 [Change log](CHANGELOG.md)
 
