@@ -49,7 +49,7 @@ def remove_prev_calculated(
         LOGGER.warn(
             "Expected data file not found, "
             "recalculating all expected values.")
-        return can_taxa
+        return can_taxa, '{}'
     # get taxids that match all params and return remaining
     # taxids that are not found
     matching_taxa = df.loc[

@@ -60,7 +60,10 @@ try:
         ".params"),
         'r').read())['readprep'][config['fasta']]['fastq']
 except FileNotFoundError:
-    SAMPLES = config['fastq']
+    try:
+        SAMPLES = config['fastq']
+    except KeyError:
+        SAMPLES = []
 SAMPLES = [os.path.basename(s) for s in SAMPLES]
 SAMPLE_NAMES = [os.path.splitext(s)[0] for s in SAMPLES]
 UNALIGNED_QUERIES = [os.path.join(config['binning_outpath'],
