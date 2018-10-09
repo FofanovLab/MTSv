@@ -104,6 +104,7 @@ def data_path():
     try:
         open(data_file, 'r')
     except FileNotFoundError:
+        os.makedirs(os.path.join(user, ".mtsv"))
         init_precalculated_df(data_file)
     return data_file
 
