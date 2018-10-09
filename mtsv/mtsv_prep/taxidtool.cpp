@@ -321,7 +321,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
                         line = line.substr(line.find_first_of(" "), line.length() );
                         line = line.substr(line.find_first_not_of(" "), line.length() );
                         version =  regex_replace( line, regex("  +"), " " );
-                        positions += version;
+//                        positions += version;
                     }
                     else if(temp == "SOURCE"){
                         line = line.substr(line.find_first_of(" "), line.length() );
@@ -363,7 +363,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
                         temp_src.clear();
                         temp_key.clear();
                     }
-                    else if(temp == "gene"){
+//                    else if(temp == "gene"){
 //                        temp = line.substr(line.find_first_of(" \t"), line.length());
 //                        temp = temp.substr(temp.find_first_not_of(" \t"), temp.length());
 //                        getline(input,line);
@@ -371,7 +371,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
 //                        getline(input,line);
 //                        temp = line.substr(line.find_first_of('"'), line.find_last_of('"')) + "|" + temp;
 //                        positions += "\t" + temp;
-                    }
+//                    }
                     getline(input,line);
                 }
 
