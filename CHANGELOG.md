@@ -2,7 +2,7 @@
 
 ---
 
-## v.1.0.28 - October 4, 2018
+## v.1.0.1 - October 4, 2018
 ### Improved:
 **Database and Index Setup**  
 - Changed thread prioritization to minimize memory usage.
