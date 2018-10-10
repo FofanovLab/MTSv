@@ -299,8 +299,6 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
             getline(input,line);
             while(!input.eof()){
                 if(line.length())
-
-                    line = line.substr(line.find_first_not_of(" \t"), line.length());
                     temp = line.substr(0, line.find_first_of(" ") );
                     if(temp == "DEFINITION"){
                         command.clear();
@@ -356,9 +354,9 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
                         }
                         temp_key.replace(temp_key.length()-1, 1, "");
                         GI_lock.lock();
-                        gi_list.push_front(gi);
-                        source_words_list.push_front(temp_src);
-                        keywords_list.push_front(temp_key);
+//                        gi_list.push_front(gi);
+//                        source_words_list.push_front(temp_src);
+//                        keywords_list.push_front(temp_key);
                         GI_lock.unlock();
                         temp_src.clear();
                         temp_key.clear();
@@ -387,7 +385,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
 //                    output.close();
                     file_lock.unlock();
                     string().swap(sequences);
-                    string().swap(positions);
+//                    string().swap(positions);
                 }
 //                else if( file_lock.try_lock()){
 //                    output.open(seqs_out, ofstream::app);
@@ -413,7 +411,7 @@ void producer_seqs(set<std::string> file_list, char* seqs_out, char* position_ou
 //            output.close();
             file_lock.unlock();
             sequences.clear();
-            positions.clear();
+//            positions.clear();
         }
 
     }
