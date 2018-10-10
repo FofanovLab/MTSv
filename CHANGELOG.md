@@ -21,7 +21,6 @@
  
 ### Changed:
 **Database and Index Setup**
-- Added logic to parse features from GenBank flat files.
 - Created precursor data file for use in python serialization.
 
 **Binning and Analysis**
@@ -31,7 +30,7 @@
 
 ### Maintenance:
 **Database and Index Setup**
-- Removed deprecated data structures in C++ code
+- Stopped using deprecated data structures in C++ code
 
 **Binning and Analysis**
 - Added tests for mtst-signature
