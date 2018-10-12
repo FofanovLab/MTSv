@@ -18,7 +18,7 @@ BINS = {
     name: bin_path('mtsv-{}'.format(name))
     for name in [
         'binner','collapse']}
-SCRIPT = {"unaligned_queries": script_path('MTSv_unaligned_queries.py'),}
+BINNING_SCRIPT = {"unaligned_queries": script_path('MTSv_unaligned_queries.py'),}
 
 REPORT = outfile_type(os.path.join("Reports", "binning_report.html"))
 config['fm_index_paths'] = [file_type(f) for f in get_database_params(
@@ -159,7 +159,7 @@ rule unaligned_queries:
         Logging to {log}.
         Snakemake scheduler assuming {threads} thread(s)
         """
-    script: SCRIPT['unaligned_queries']
+    script: BINNING_SCRIPT['unaligned_queries']
 
 
 

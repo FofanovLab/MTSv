@@ -191,12 +191,12 @@ def line_generator(file_name, n_lines):
 
 def fasta_generator(file_name, n_records):
     with open(file_name, 'r') as handle:
-        records = []
+        records = {}
         for record in SeqIO.parse(handle, 'fasta'):
-            records.append(record)
+            records[record.id] = record
             if len(records) == n_records:
                 yield records
-                records = []
+                records = {}
         if len(records):
             yield records
         return

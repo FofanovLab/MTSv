@@ -10,7 +10,7 @@ from mtsv.parsing import (
     file_type, outfile_type, make_table)
 shell.prefix("set -euo pipefail;")
 
-SCRIPT = {"summary": script_path('MTSv_summary.py'),
+SUMMARY_SCRIPT = {"summary": script_path('MTSv_summary.py'),
           "signature": script_path('MTSv_signature.py')}
 REPORT = outfile_type(os.path.join("Reports", "summary_report.html"))
 
@@ -118,7 +118,7 @@ rule signature:
         Writing to {output} 
         Logging to {log}
         Snakemake scheduler assuming {threads} thread(s)"""
-    script: SCRIPT['signature']
+    script: SUMMARY_SCRIPT['signature']
 
 rule summary:
     """Summarize number of total and signature hits for each taxa"""
@@ -148,4 +148,4 @@ rule summary:
         Logging to {log}
         Snakemake scheduler assuming {threads} thread(s)"""
 
-    script: SCRIPT["summary"]
+    script: SUMMARY_SCRIPT["summary"]
