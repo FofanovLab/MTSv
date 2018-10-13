@@ -73,10 +73,10 @@ rule extract_report:
         fastq=FASTQ_OUTPUT
     output:
         REPORT
-    resources:
-        mem_mb=lambda wildcards, input, attempt: max(1, attempt * int(
-            os.path.getsize(input[0]) * 0.000001 +
-            os.path.getsize(input[1]) * 0.000001))
+    # resources:
+    #     mem_mb=lambda wildcards, input, attempt: max(1, attempt * int(
+    #         os.path.getsize(input[0]) * 0.000001 +
+    #         os.path.getsize(input[1]) * 0.000001))
     message:
         """
         Generating extract report from {input.fasta} and {input.fastq}
@@ -124,13 +124,13 @@ rule extract:
     input: 
         fasta=FASTA,
         clp=config['input_hits']
-    resources:
-        mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
-            os.path.getsize(input[0]) * 0.000001 +
-            os.path.getsize(input[1]) * 0.000001)) if attempt == 1
-            else ((2000 * attempt) + int(
-            os.path.getsize(input[0]) * 0.000001 +
-            os.path.getsize(input[1]) * 0.000001)))
+    # resources:
+    #     mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
+    #         os.path.getsize(input[0]) * 0.000001 +
+    #         os.path.getsize(input[1]) * 0.000001)) if attempt == 1
+    #         else ((2000 * attempt) + int(
+    #         os.path.getsize(input[0]) * 0.000001 +
+    #         os.path.getsize(input[1]) * 0.000001)))
     params:
         taxdump=config['taxdump_path'],
         taxids=config['taxids'],
