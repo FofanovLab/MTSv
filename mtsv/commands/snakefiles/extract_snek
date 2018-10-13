@@ -77,6 +77,8 @@ rule extract_report:
     #     mem_mb=lambda wildcards, input, attempt: max(1, attempt * int(
     #         os.path.getsize(input[0]) * 0.000001 +
     #         os.path.getsize(input[1]) * 0.000001))
+    resources:
+        mem_mb=200
     message:
         """
         Generating extract report from {input.fasta} and {input.fastq}
@@ -124,6 +126,8 @@ rule extract:
     input: 
         fasta=FASTA,
         clp=config['input_hits']
+    resources:
+        mem_mb=2000
     # resources:
     #     mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
     #         os.path.getsize(input[0]) * 0.000001 +
