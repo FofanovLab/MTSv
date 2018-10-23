@@ -55,7 +55,8 @@ rule readprep_report:
                 else:
                     count_list = parse_query_id(record.id)
                     record_counts = record_counts + count_list
-                    unique_counts = unique_counts + count_list
+                    unique_counts = unique_counts + get_unique_counts(
+                        count_list)
                     counts.append(np.sum(count_list))
         file_string = "\n".join(params[0])
         if len(counts):
