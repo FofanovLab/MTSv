@@ -42,6 +42,13 @@ test:
   requires:
     - pytest
   commands:
+    - mtsv > /dev/null
     - py.test --pyargs mtsv
+    
+about:
+  home: https://github.com/FofanovLab/MTSv
+  summary: MTSv is a suite of metagenomic binning and analysis tools.
+  license: MIT
+  license_file: LICENSE
 
 
