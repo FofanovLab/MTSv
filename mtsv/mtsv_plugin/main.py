@@ -1,7 +1,7 @@
 import argparse
 import sys
 import datetime
-from mtsv.commands import WGFast
+from mtsv.commands import WGFast, Concoct
 from mtsv.parameters import Parameters
 
 from mtsv.parsing import (
@@ -18,7 +18,8 @@ from mtsv.utils import(
 )
 
 COMMANDS = {
-    "wgfast": WGFast
+    "wgfast": WGFast,
+    "concoct": Concoct
 }
 
 def add_cfg_to_args(argv, parser):

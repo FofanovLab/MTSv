@@ -15,7 +15,9 @@ from mtsv.argutils import (read, export)
 from mtsv import (DEFAULT_LOG_FNAME, DEFAULT_CFG_FNAME)
 
 logger = logging.getLogger(__name__)
-SECTIONS = ["READPREP", "BINNING", "SUMMARY", "ANALYZE", "EXTRACT", "WGFAST"]
+SECTIONS = [
+    "READPREP", "BINNING", "SUMMARY",
+    "ANALYZE", "EXTRACT", "WGFAST", "CONCOCT"]
 
 split = str.split
 strip = str.strip
@@ -187,8 +189,11 @@ def project_dir_type(input_path):
     return input_path
 
 
+
 def path_list_type(input_paths):
     '''Returns list of absolute paths using glob'''
+    if not isinstance(input_paths, (list,)):
+        input_paths = [input_paths]
     glob_list = []
     for path in input_paths:
         glob_list += glob(path)

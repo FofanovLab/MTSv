@@ -35,6 +35,11 @@ requirements:
     - click
     - zlib
     - wgfast
+    - concoct
+    - megahit
+    - bwa
+    - samtools
+    - gsl
 
 test:
   imports:
