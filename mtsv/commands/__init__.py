@@ -11,7 +11,7 @@ SNAKEFILES = {
         "binning", "readprep", "summary",
         "analyze", "analyze_bypass", "analyze_setup",
         "pipeline", "extract",
-        "wgfast"]}
+        "wgfast", "concoct"]}
 
 class Command:
     config_section = []
@@ -34,6 +34,10 @@ class Command:
     @property
     def snake_params(self):
         return self._params.snake_params
+    
+    @snake_params.setter
+    def snake_params(self, params):
+        self._params.snake_params = params
 
     @property
     def rules(self):
@@ -194,5 +198,14 @@ class WGFast(Command):
     def __init__(self, params):
         super().__init__(params)
         self.rules = [SNAKEFILES['wgfast']]
+
+class Concoct(Command):
+    config_section=["CONCOCT"]
+    def __init__(self, params):
+        super().__init__(params)
+        # add cwd to snakemake command
+        self.snake_params = ["--directory", self.params['concoct_output']]
+        self.rules = [SNAKEFILES['concoct']]
+
 
 
