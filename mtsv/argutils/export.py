@@ -12,7 +12,7 @@ import warnings
 
 
 
-from mtsv.argutils import (
+from argutils import (
     format_comment, META_KEY, DESC_KEY, EXCLUDE_FLAG, FILE_W, FILE_R
 )
 
@@ -55,13 +55,7 @@ def to_config(cmd_name, argsdict, desc=None):
         if EXCLUDE_FLAG in argvals:
             continue
 
-        d = argvals.get(DESC_KEY, "")
-        if 'choices' in argvals:
-            d += " Choices {0}".format(argvals['choices'])
-        if 'required' in argvals:
-            d += " [REQUIRED]"
-        description = format_comment(d)
-
+        description = format_comment(argvals.get(DESC_KEY, ""))
         default = argvals.get("default", "")
         line = CFG_LINE_STR.format(key=argname, value=default)
         out += description + line
