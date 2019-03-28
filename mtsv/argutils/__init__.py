@@ -1,5 +1,3 @@
-# Source code from https://github.com/eclarke/argutils
-
 import textwrap
 try:
     from ConfigParser import NoSectionError
