@@ -12,7 +12,7 @@ import warnings
 
 
 
-from argutils import (
+from mtsv.argutils import (
     format_comment, META_KEY, DESC_KEY, EXCLUDE_FLAG, FILE_W, FILE_R
 )
 
