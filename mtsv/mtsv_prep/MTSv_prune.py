@@ -9,7 +9,6 @@ import gzip
 import tarfile
 from multiprocessing import Pool, Queue, Process, Manager, RLock
 import pickle, json
-from mtsv.utils import bin_path
 
 lock = RLock()
 
@@ -434,12 +433,12 @@ def build_db( flat_list_in_fp, fasta_out_fp, keyword_out_fp, source_out_fp, thre
     command_two = "./db_builder {0} {1}.tmp {2}.tsv {3}".format(flat_list_in_fp, fasta_out_fp, fasta_out_fp.rsplit(".",1)[0],
                                                                         thread_count)
 
-    command_three = "{4} {0} {1}.tmp {2}.tsv {3}".format(flat_list_in_fp, fasta_out_fp, fasta_out_fp.rsplit(".",1)[0],
-                                                                     thread_count, bin_path('mtsv-db-build'))
+    command_three = "mtsv-db-build {0} {1}.tmp {2}.tsv {3}".format(flat_list_in_fp, fasta_out_fp, fasta_out_fp.rsplit(".",1)[0],
+                                                                     thread_count)
     if not os.path.isfile(fasta_out_fp+".tmp") and not os.path.isfile(fasta_out_fp):
-        if os.path.isfile(bin_path('mtsv-db-build')):
+        try:
             subprocess.run(command_three.split())
-        else:
+        except:
             try:
                 subprocess.run(command_two.split())
             except:
