@@ -2,8 +2,6 @@
 
 cd $SRC_DIR/mtsv/ext
 
-# apparently the HOME variable isn't set correctly, and circle ci output indicates the following as the home directory
-export HOME="/Users/distiller"
 # To solve error: linker `cc` from https://users.rust-lang.org/t/compiling-rust-package-using-cc-linker-from-a-custom-location/15795
 export CC=$GCC
 # build statically linked binary with Rust
