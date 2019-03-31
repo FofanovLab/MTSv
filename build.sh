@@ -7,7 +7,7 @@ export CC=$GCC
 # build statically linked binary with Rust
 export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="${CC}"
 C_INCLUDE_PATH=$PREFIX/include LIBRARY_PATH=$PREFIX/lib RUST_BACKTRACE=1 cargo build --release --verbose
-$GXX -std=c++11 -pthread ../mtsv_prep/taxidtool.cpp -o mtsv-db-build
+g++ -std=c++11 -pthread ../mtsv_prep/taxidtool.cpp -o mtsv-db-build
 
 binaries="\
 mtsv-build \
