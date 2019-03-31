@@ -1,5 +1,5 @@
 import os
-from mtsv.utils import bin_path, track_file_params
+from mtsv.utils import track_file_params
 from mtsv.parsing import (
     parse_query_id, format_cml_params, outfile_type, make_table)
 from Bio import SeqIO
@@ -19,7 +19,7 @@ CML_PARAMS = format_cml_params(
 def get_unique_counts(counts):
     return np.array(np.array(counts, dtype=bool), dtype=int)
 
-BIN = bin_path('mtsv-readprep')
+
 rule readprep_all:
     input:
         REPORT
@@ -119,7 +119,6 @@ rule readprep:
         mem_mb=lambda wildcards, attempt, input: max(1, attempt * int(
             sum([os.path.getsize(i) for i in input]) * 0.0000015))
     params:
-        call=BIN,
         args=CML_PARAMS
     threads: config['threads']
     log: config['log_file']
@@ -131,4 +130,4 @@ rule readprep:
         Snakemake scheduler assuming {threads} thread(s) and 
         {resources.mem_mb} Mb of memory. """
     shell:
-        '''{params.call} {input} -o {output} {params.args} >> {log} 2>&1'''
+        '''mtsv-readprep {input} -o {output} {params.args} >> {log} 2>&1'''
