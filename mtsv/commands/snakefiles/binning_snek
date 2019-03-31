@@ -8,16 +8,13 @@ from mtsv.parsing import (
     file_type, outfile_type,
     make_table)
 from mtsv.utils import (
-    bin_path, script_path,
+    script_path,
     track_file_params, get_database_params)
 
 
 shell.prefix("set -euo pipefail;")
 
-BINS = {
-    name: bin_path('mtsv-{}'.format(name))
-    for name in [
-        'binner','collapse']}
+
 BINNING_SCRIPT = {"unaligned_queries": script_path('MTSv_unaligned_queries.py'),}
 
 REPORT = outfile_type(os.path.join("Reports", "binning_report.html"))
@@ -179,7 +176,6 @@ rule binning:
     #         os.path.getsize(input.fm_index) * 0.0000011)) * 
     #         attempt)
     params:
-        call=BINS['binner'],
         args=CML_PARAMS
     message:
         """
@@ -193,7 +189,7 @@ rule binning:
     threads:
         config['threads']
     shell:
-        """{params.call} --index {input.fm_index} --threads {threads} --results {output} --fasta {input.reads} {params.args} >> {log} 2>&1 """
+        """mtsv-binner --index {input.fm_index} --threads {threads} --results {output} --fasta {input.reads} {params.args} >> {log} 2>&1 """
 
 
 rule collapse:
@@ -213,10 +209,8 @@ rule collapse:
         Snakemake scheduler assuming {threads} thread(s)"""
     log:
         config['log_file']
-    params:
-        call=BINS['collapse']
     shell:
-        """{params.call} {input} -o {output} >> {log} 2>&1"""
+        """mtsv-collapse {input} -o {output} >> {log} 2>&1"""
 
 
 

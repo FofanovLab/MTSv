@@ -5,7 +5,7 @@ package:
   version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 source:
-  git_url: https://github.com/FofanovLab/MTSv
+  path: .
 
 build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
@@ -22,11 +22,10 @@ requirements:
     - python==3.6
     - setuptools
   run:
-    - python==3.6
+    - python>=3.5
     - snakemake>=4.1
     - pandas>=0.20.3
     - ete3
-    - ete_toolchain
     - biopython
     - scipy
     - six
@@ -35,6 +34,11 @@ requirements:
     - click
     - zlib
     - wgfast
+    - concoct
+    - megahit
+    - bwa
+    - samtools
+    - gsl
 
 test:
   imports:

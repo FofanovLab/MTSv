@@ -81,11 +81,6 @@ def specfile_path(name):
     return resource_filename(__name__, fp)
 
 
-def bin_path(cmd):
-    """Return the binary path for a given command name."""
-    fp = os.path.join('ext', cmd)
-    return resource_filename('mtsv', fp)
-
 def script_path(script_name):
     """ Return the script path for given script name."""
     fp = os.path.join('scripts', script_name)
@@ -201,6 +196,17 @@ def fasta_generator(file_name, n_records):
             yield records
         return
 
+
+def read_fasta(fp):
+    name, seq = None, []
+    for line in fp:
+        line = line.rstrip()
+        if line.startswith(">"):
+            if name: yield (name, ''.join(seq))
+            name, seq = line, []
+        else:
+            seq.append(line)
+    if name: yield (name, ''.join(seq))
                
 
 

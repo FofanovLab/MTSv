@@ -18,6 +18,10 @@ class Parameters:
     def snake_params(self):
         return self._snake_params
 
+    @snake_params.setter
+    def snake_params(self, params):
+        self._snake_params += params
+
     def write_parameters(self):
         file_name = outfile_type(os.path.join("./Params",
         "{cmd}_{timestamp}_params.txt".format(
