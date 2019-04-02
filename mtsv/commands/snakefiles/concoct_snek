@@ -4,20 +4,22 @@ from snakemake.utils import makedirs
 
 makedirs(["logs"])
 
-def get_threshold(concoct_opts):
-    concoct_opts_list = [opt for opt in concoct_opts.split(" ") if opt]
-    try:
-        idx = concoct_opts_list.index("-l")
-    except ValueError:
+def get_threshold(config):
+    if config['concoct_opts']:
+        
+        concoct_opts = config['concoct_opts'] 
         try:
-            idx = concoct_opts_list.index("--length_threshold")
+            idx = concoct_opts.index("-l")
         except ValueError:
-            # Use default value
-            return '1000', concoct_opts
-    threshold = [concoct_opts_list.pop(idx), concoct_opts_list.pop(idx)]
-    return (
-        threshold,
-        " ".join(concoct_opts))
+            try:
+                idx = concoct_opts.index("--length_threshold")
+            except ValueError:
+                # Use default value
+                return ('1000', " ".join(concoct_opts))
+        threshold = [concoct_opts.pop(idx), concoct_opts.pop(idx)][-1]
+        return (threshold, " ".join(concoct_opts))
+    else:
+        return ('1000', '')
     
 def get_samples(unaligned_queries):
     return [
@@ -31,8 +33,7 @@ def get_samples(unaligned_queries):
 INPUT_FILES = config['unaligned_queries']
 SAMPLES = get_samples(INPUT_FILES)
 SAMPLE_DICT = {sample: infile for sample, infile in zip(SAMPLES, INPUT_FILES)}
-THRESHOLD, CONCOCT_OPTS = get_threshold(config['concoct_opts'])
-
+THRESHOLD, CONCOCT_OPTS = get_threshold(config)
 
 def get_input_files(wildcards):
     return SAMPLE_DICT[wildcards.sample]
@@ -49,7 +50,7 @@ rule megahit:
         #     "{path}/unaligned_queries_{{sample}}.fasta",
         #     path=config['unaligned_queries'])
     output: "megahit_{sample}/final.contigs.fa"
-    params: config['megahit_opts']
+    params: " ".join(config['megahit_opts']) if 'megahit_opts' in config else ""
     log: "logs/{sample}_megahit.log"
     threads: config['threads']
     message:
@@ -74,7 +75,7 @@ rule cut_up:
     output:
         bed="concoct_{sample}/{sample}.bed",
         cut="concoct_{sample}/{sample}_cut.fasta"
-    params: config['cutup_opts']
+    params: " ".join(config['cutup_opts']) if 'cutup_opts' in config else ""
     threads: 1
     message:
         """
@@ -128,7 +129,7 @@ rule make_bam:
     output: 
         bam="concoct_{sample}/{sample}.bam",
         bai="concoct_{sample}/{sample}.bam.bai"
-    params: config['bwa_opts']
+    params: " ".join(config['bwa_opts']) if 'bwa_opts' in config else ""
     log: "logs/{sample}_bam.log"
     threads: config['threads']
     message:
@@ -206,7 +207,7 @@ rule concoct:
         """
         Running concoct using coverage table {input.cov} and fasta {input.cut}.
         Writing to {output}.
-        Additional Params: {params.threshold} {params.opts} 
+        Additional Params: -l {params.threshold} {params.opts} 
         Logging to {log}.
         Using {threads} thread(s).
         """

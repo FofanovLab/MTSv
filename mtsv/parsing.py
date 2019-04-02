@@ -201,6 +201,26 @@ def path_list_type(input_paths):
         raise argparse.ArgumentTypeError("Not a valid path")
     return list({os.path.abspath(path) for path in glob_list})
 
+def arg_list_type(args):
+    """ Returns a list of arguments """
+    new_args = []
+    for arg in args:
+        arg = [a.replace("\'","").replace("\"", "") for a in arg.split()]
+        new_args += arg
+    return new_args
+
+
+
+class Cmds(argparse.Action):
+    def __init__(self, option_strings, dest, nargs='+', **kwargs):
+        super(Cmds, self).__init__(option_strings, dest, nargs, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = arg_list_type(values)
+        setattr(namespace, self.dest, values)
+    
+
+
+
 class Glob(argparse.Action):
     def __init__(self, option_strings, dest, nargs='+', **kwargs):
         super(Glob, self).__init__(option_strings, dest, nargs, **kwargs)
@@ -366,6 +386,7 @@ TYPES = {
     'write_handle_type': write_handle_type,
     'read_handle_type': read_handle_type,
     'path_list_type': path_list_type,
-    'flag_type': flag_type
+    'flag_type': flag_type,
+    'arg_list_type': arg_list_type
     }
-ACTIONS = {'Glob': Glob}
+ACTIONS = {'Glob': Glob, 'Cmds': Cmds}

@@ -12,28 +12,28 @@ unaligned_queries:
     Path(s) to FASTA files with unaligned queries,
     absolute path or relative to working dir. 
 megahit_opts:
-  type: str
-  default: ""
+  nargs: +
+  action: Cmds
   help: >
-      Options to pass to megahit for assembly.
+      Options to pass to megahit for assembly in quotes.
       Include any options except for input, output, or hardware options.
 cutup_opts:
-  type: str
-  default: ""
+  nargs: +
+  action: Cmds
   help: >
-    Options to pass to concoct cut_up_fasta.py.
+    Options to pass to concoct cut_up_fasta.py in quotes.
     Include any options except for input and output.
 bwa_opts:
-  type: str
-  default: ""
+  nargs: +
+  action: Cmds
   help: >
-    Options to pass to bwa when mapping reads to contigs.
+    Options to pass to bwa when mapping reads to contigs in quotes.
     Include any options except for input, output, and threads.
-    Use --threads option to set max threads for all jobs.
+    Use --threads option to set max threads for all jobs. 
 concoct_opts:
-  type: str
-  default: ""
+  nargs: +
+  action: Cmds
   help: >
-    Options for running concoct binning.
+    Options for running concoct binning in quotes.
     Include any options except for input, output, and threads. 
     Use --threads option to set max threads for all jobs.
