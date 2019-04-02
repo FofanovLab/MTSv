@@ -14,7 +14,7 @@ from mtsv.commands import Command
 from mtsv.parsing import make_sub_parser, get_global_config, ACTIONS, TYPES, add_default_arguments
 from mtsv.mtsv_prep.MTSv_prune import *
 
-from mtsv.utils import error, bin_path, specfile_path, specfile_read
+from mtsv.utils import error, specfile_path, specfile_read
 
 from snakemake.workflow import Workflow, Rules, expand
 import snakemake.workflow
@@ -111,7 +111,8 @@ def oneclickbuild(args):
 
 def tree_make(in_path):
     out_path = os.path.abspath(os.path.join(os.path.dirname(in_path), "tree.index"))
-    subprocess.run("{0} --index {1} --dump {2}".format(bin_path('mtsv-tree-build'), out_path, os.path.abspath(in_path) ).split())
+    subprocess.run("mtsv-tree-build --index {0} --dump {1}".format(
+        out_path, os.path.abspath(in_path) ).split())
 
 def partition(args):
     partition_list = []
@@ -160,13 +161,13 @@ def chunk(file_list, args):
         db = os.path.basename(os.path.dirname(fp))
         out_dir = os.path.abspath(os.path.join(args.path, "indices", db,os.path.basename(fp).rsplit(".",1)[0] ))
         if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))+"ta" ) ):
-            subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, bin_path('mtsv-chunk'), args.chunk_size).split() )
+            subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, 'mtsv-chunk', args.chunk_size).split() )
         dir_set.add(out_dir)
     return list(dir_set)
 
 def snake(args):
-    chunk_path = bin_path('mtsv-chunk')
-    fm_build_path = bin_path('mtsv-build')
+    chunk_path = 'mtsv-chunk'
+    fm_build_path = 'mtsv-build'
     print(chunk_path)
     print(fm_build_path)
     print(args)
@@ -214,7 +215,11 @@ def fm_build(dir_list):
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.index".format(os.path.basename(fp).split(".")[0]))
             if not os.path.isfile(out_file):
-                result = subprocess.run("{2} --fasta {0} --index {1}".format(os.path.abspath(fp), out_file, bin_path('mtsv-build')).split() )
+                result = subprocess.run(
+                    "{2} --fasta {0} --index {1}".format(
+                        os.path.abspath(fp),
+                        out_file,
+                        'mtsv-build').split() )
                 if result.returncode == 0:
                     os.remove(os.path.abspath(fp))
             fm_list.append(out_file)
