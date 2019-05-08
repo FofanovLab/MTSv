@@ -10,7 +10,6 @@ source:
 build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
   # string: {{ environ.get('GIT_BUILD_STR', '') }}
-  binary_relocation: True
   entry_points:
     - mtsv = mtsv.main:main
     - mtsv_setup = mtsv.mtsv_prep.main:main
@@ -18,11 +17,13 @@ build:
 
 requirements:
   build:
+    - {{ compiler('cxx')}}
+  host:
     - rust>=1.24.0
     - python==3.6
     - setuptools
   run:
-    - python>=3.5
+    - python==3.6
     - snakemake>=4.1
     - pandas>=0.20.3
     - ete3
