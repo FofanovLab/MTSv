@@ -20,7 +20,7 @@ before_install:
 # Install packages
 install:
   - conda install -q python=3.6 pip requests conda-build jinja2 anaconda-client 
-  - travis_wait 60 conda build . -c tara_furstenau -c bioconda -c conda-forge
+  - travis_wait 120 conda build . -c tara_furstenau -c bioconda -c conda-forge
   - conda install mtsv --use-local -c tara_furstenau -c bioconda -c conda-forge
 script:
   - mtsv --help
