@@ -47,7 +47,16 @@ test:
   requires:
     - pytest
   commands:
-    - mtsv > /dev/null
+    - mtsv --help > /dev/null
+    - mtsv_setup --help > /dev/null
+    - mtsv_plugin --help > /dev/null
+    - mtsv-build --help > /dev/null
+    - mtsv-readprep --help > /dev/null
+    - mtsv-binner --help > /dev/null
+    - mtsv-signature --help > /dev/null
+    - mtsv-chunk --help > /dev/null
+    - mtsv-collapse --help > /dev/null
+    - mtsv-tree-build --help > /dev/null
     - py.test --pyargs mtsv
     
 about:
