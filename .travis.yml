@@ -20,8 +20,8 @@ before_install:
 # Install packages
 install:
   - conda install -q python=3.6 pip requests conda-build jinja2 anaconda-client 
-  - travis_wait 120 conda build . -c tara_furstenau -c bioconda -c conda-forge
-  - conda install mtsv --use-local -c tara_furstenau -c bioconda -c conda-forge
+  - travis_wait 120 conda build . -c bioconda -c conda-forge --override-channels
+  - conda install mtsv --use-local -c bioconda -c conda-forge --override-channels
 script:
   - mtsv --help
 cache:
