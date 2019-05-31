@@ -269,36 +269,37 @@ def json_updater(args):
 
 def make_json_rel(args):
     rm_path = os.path.abspath(args.path)
-    for name in ["genbank", "Complete_Genome","Chromosome","Scaffold"]:
+    for name in ["genbank", "Complete_Genome","Chromosome","Scaffold", "contig"]:
         try:
             arguments = parse_json(os.path.join(args.path, "artifacts","{0}.json".format(name)))
-            try:
-                for i, abs_path in enumerate(arguments['acc-to-taxid-paths']):
-                    arguments['acc-to-taxid-paths'][i] = os.path.relpath(abs_path, rm_path)
-            except KeyError:
-                pass
-            try:
-                for j in arguments['fm-paths'].keys():
-                    for i, abs_path in enumerate(arguments['fm-paths'][j]):
-                        arguments['fm-paths'][j][i] = os.path.relpath(abs_path, rm_path)
-            except KeyError:
-                pass
-            try:
-                for j in arguments['partition-path'].keys():
-                    for abs_path in arguments['partition-path'][j]:
-                        arguments['partition-path'][j] = os.path.relpath(abs_path, rm_path)
-            except KeyError:
-                pass
-
-            for key in arguments.keys():
-                try:
-                    if rm_path in arguments[key]:
-                        arguments[key] = os.path.relpath(arguments[key], rm_path )
-                    # else:
-                except TypeError:
-                    continue
         except FileNotFoundError:
             continue
+        try:
+            for i, abs_path in enumerate(arguments['acc-to-taxid-paths']):
+                arguments['acc-to-taxid-paths'][i] = os.path.relpath(abs_path, rm_path)
+        except KeyError:
+            pass
+        try:
+            for j in arguments['fm-paths'].keys():
+                for i, abs_path in enumerate(arguments['fm-paths'][j]):
+                    arguments['fm-paths'][j][i] = os.path.relpath(abs_path, rm_path)
+        except KeyError:
+            pass
+        try:
+            for j in arguments['partition-path'].keys():
+                for abs_path in arguments['partition-path'][j]:
+                    arguments['partition-path'][j] = os.path.relpath(abs_path, rm_path)
+        except KeyError:
+            pass
+
+        for key in arguments.keys():
+            try:
+                if rm_path in arguments[key]:
+                    arguments[key] = os.path.relpath(arguments[key], rm_path )
+                # else:
+            except TypeError:
+                continue
+
         with open(os.path.join(args.path, "artifacts","{0}.json".format(name)), "w") as file:
             json.dump(arguments, file, sort_keys=True, indent=4)
 
@@ -376,13 +377,15 @@ def setup_and_run(parser):
                     make_json_abs(args)
             elif args.cmd_class == CustomDB:
                 for i, val in enumerate(args.customdb):
-                    args.includedb[i] = val.strip().replace(" ","_").lower()
+                    args.customdb[i] = val.strip().replace(" ","_").lower()
+                print(args.customdb)
                 oneclickfmbuild(args, args.partitions == DEFAULT_PARTITIONS)
                 json_updater(args)
                 make_json_abs(args)
 
 
         except AttributeError:
+            print("fuck")
             sys.argv[1] = "database"
             args = parser.parse_known_args()[0]
             for i, val in enumerate(args.includedb):
