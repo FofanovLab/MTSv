@@ -385,7 +385,6 @@ def setup_and_run(parser):
 
 
         except AttributeError:
-            print("fuck")
             sys.argv[1] = "database"
             args = parser.parse_known_args()[0]
             for i, val in enumerate(args.includedb):
