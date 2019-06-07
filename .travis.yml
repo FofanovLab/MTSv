@@ -16,12 +16,16 @@ before_install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda config --set anaconda_upload no
+  - conda config --add channels defaults
+  - conda config --add channels bioconda
+  - conda config --add channels conda-forge
+  - conda config --set channel_priority strict
 
 # Install packages
 install:
   - conda install -q python=3.6 pip requests conda-build jinja2 anaconda-client 
-  - travis_wait 120 conda build . -c bioconda -c conda-forge --override-channels
-  - conda install mtsv --use-local -c bioconda -c conda-forge
+  - travis_wait 120 conda build . 
+  - conda install mtsv --use-local 
 script:
   - mtsv --help
 cache:
