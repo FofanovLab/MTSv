@@ -228,7 +228,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
     if debug:
         return os.path.abspath(name)
     # try:
-    chunk_size *= 1000000000
+    chunk_size *= 10000000000
     if len(in_tx) ==1:
         temp = []
         try:
