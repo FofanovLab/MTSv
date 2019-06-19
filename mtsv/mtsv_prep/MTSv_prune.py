@@ -304,7 +304,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
                                 line = fasta.readline()
                                 line_count += len(line.strip())
 
-                            if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
+                            if line_count >= min and float(line_count)<= maximum:
                                 gi = header.split(b' ',2)[1].split(b':')[1]
                                 # gi = header.split(b' ',1)[0].strip(b'>')
                                 out.write(b'>'+gi+b'-'+rr_tx+b'\n')
