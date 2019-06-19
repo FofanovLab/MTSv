@@ -279,7 +279,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
             name = "_{}.".format(chunk).join(name.rsplit(".",1))
             byte_count = 0
             with open(name, "wb") as out:
-                while byte_count < chunk_size:
+                while srt_taxons and byte_count < chunk_size:
                     tx = srt_taxons.pop()
                     if tx:
                         tx = tx.encode().strip()
@@ -314,6 +314,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
                             seq = bytearray()
                 chunk += 1
             srt_taxons = list(sorted(taxons))
+            name = "{}.fasta".format(name.rsplit("_", 1)[0])
             # chunk +=
     return os.path.abspath(name)
 # except:
