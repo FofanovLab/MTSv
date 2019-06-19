@@ -228,7 +228,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
     if debug:
         return os.path.abspath(name)
     # try:
-    chunk_size *= 10000000000
+    chunk_size *= 1000000000
     if len(in_tx) ==1:
         temp = []
         try:
@@ -274,6 +274,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
     # print("Writing")
     chunk = 0
     srt_taxons = list(sorted(taxons))
+    ret_list = []
     with open(fasta_path, "rb") as fasta:
         while srt_taxons:
             name = "_{}.".format(chunk).join(name.rsplit(".",1))
@@ -313,10 +314,11 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
                             line_count = 0
                             seq = bytearray()
                 chunk += 1
-            srt_taxons = list(sorted(taxons))
+
+            ret_list.append(os.path.abspath(name))
             name = "{}.fasta".format(name.rsplit("_", 1)[0])
             # chunk +=
-    return os.path.abspath(name)
+    return ret_list
 # except:
     #     return 0
 # writes a new or updates json config file
@@ -324,7 +326,6 @@ def gen_json(configuration, args):
     if args.update and args.configuration_path:
         with open(args.configuration_path, "w") as file:
             json.dump(configuration, file, sort_keys=True)
-
     else:
         with open(args.output + ".json", "w") as file:
             json.dump(configuration, file, sort_keys=True, indent=4)

@@ -152,17 +152,20 @@ def partition(args):
 
     p = Pool(args.threads)
     ret_list = p.starmap(clip, partition_list)
-
-    return ret_list + list(fin), args
+    tmp = []
+    for x in ret_list:
+        tmp += x
+    return ",".join(list(set(ret_list + list(fin)))), args
 
 def chunk(file_list, args):
     dir_set = set()
-    for fp in file_list:
-        db = os.path.basename(os.path.dirname(fp))
-        out_dir = os.path.abspath(os.path.join(args.path, "indices", db,os.path.basename(fp).rsplit(".",1)[0] ))
-        if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))+"ta" ) ):
-            subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, 'mtsv-chunk', args.chunk_size).split() )
-        dir_set.add(out_dir)
+    for csv in file_list:
+        for fp in csv.split(","):
+            db = os.path.basename(os.path.dirname(fp))
+            out_dir = os.path.abspath(os.path.join(args.path, "indices", db,os.path.basename(fp).rsplit(".",1)[0] ))
+            # if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))+"ta" ) ):
+            #     subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, 'mtsv-chunk', args.chunk_size).split() )
+            dir_set.add(out_dir)
     return list(dir_set)
 
 # def snake(args):
