@@ -146,7 +146,7 @@ def partition(args):
                     partition_list.append ( (list(inc), args.rollup_rank, list(exc), os.path.join(chunk_path,
                                             "{0}.fasta".format(prt)),arguments['minimum-length'],
                                              arguments['maximum-length'], arguments["fasta-path"],
-                                             arguments["serialization-path"], args.debug)  )
+                                             arguments["serialization-path"], args.chunk_size ,args.debug)  )
             except OSError:
                 print("Partion folder {0} exists please use --overwrite to repartition".format(path))
 
