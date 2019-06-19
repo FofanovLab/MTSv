@@ -140,11 +140,11 @@ def partition(args):
                     os.makedirs(path)
                 except:
                     pass
-                if os.path.isfile(os.path.join(path, "{0}.fas".format(prt))) and not args.overwrite:
+                if os.path.isfile(os.path.join(chunk_path, "{0}_0.fasta".format(prt))) and not args.overwrite:
                     fin.add(os.path.abspath(os.path.join(path, "{0}.fas".format(prt))))
                 else:
-                    partition_list.append ( (list(inc), args.rollup_rank, list(exc), os.path.join(path,
-                                            "{0}.fas".format(prt)),arguments['minimum-length'],
+                    partition_list.append ( (list(inc), args.rollup_rank, list(exc), os.path.join(chunk_path,
+                                            "{0}.fasta".format(prt)),arguments['minimum-length'],
                                              arguments['maximum-length'], arguments["fasta-path"],
                                              arguments["serialization-path"], args.debug)  )
             except OSError:
@@ -165,48 +165,48 @@ def chunk(file_list, args):
         dir_set.add(out_dir)
     return list(dir_set)
 
-def snake(args):
-    chunk_path = 'mtsv-chunk'
-    fm_build_path = 'mtsv-build'
-    print(chunk_path)
-    print(fm_build_path)
-    print(args)
-
-    print(partition(args))
-    # for i in args:
-    #     print(i)
-    workflow = Workflow(
-        "__file__",
-        overwrite_workdir=args.working_dir)
-    if args.cluster_cfg is not None:
-        workflow.cluster_cfg = args.cluster_cfg
-    snakemake.workflow.rules = Rules()
-    snakemake.workflow.config = dict()
-
-
-
-
-    # @workflow.rule(name='chunking')
-    # @workflow.docstring("""Fasta chunking""")
-    # @workflow.input(os.path.join("test", "{}.index"))
-    # @workflow.output(os.path.join(cmd.params['binning_outpath'], "{index}.bn"))
-    # @workflow.params(call=chunk_path, args=args.chunk_size)
-    # @workflow.message("Executing Fasta chunking on the follow files {input}.")
-    # @workflow.log(os.path.join(args.path,"artifacts/logs/""{index}.log"))
-    # @workflow.threads(1)
-    # @workflow.shellcmd("{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1")
-    # @workflow.run
-    # def __rule_chunking(input, output, params, wildcards,
-    #                    threads, resources, log, version, rule,
-    #                    conda_env, singularity_img, singularity_args,
-    #                    use_singularity, bench_record, jobid, is_shell):
-    #     shell(
-    #         "{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1"
-    #     )
-    #
-    # workflow.check()
-    # print("Dry run first ...")
-    # workflow.execute(dryrun=True, updated_files=[])
+# def snake(args):
+#     chunk_path = 'mtsv-chunk'
+#     fm_build_path = 'mtsv-build'
+#     print(chunk_path)
+#     print(fm_build_path)
+#     print(args)
+#
+#     print(partition(args))
+#     # for i in args:
+#     #     print(i)
+#     workflow = Workflow(
+#         "__file__",
+#         overwrite_workdir=args.working_dir)
+#     if args.cluster_cfg is not None:
+#         workflow.cluster_cfg = args.cluster_cfg
+#     snakemake.workflow.rules = Rules()
+#     snakemake.workflow.config = dict()
+#
+#
+#
+#
+#     # @workflow.rule(name='chunking')
+#     # @workflow.docstring("""Fasta chunking""")
+#     # @workflow.input(os.path.join("test", "{}.index"))
+#     # @workflow.output(os.path.join(cmd.params['binning_outpath'], "{index}.bn"))
+#     # @workflow.params(call=chunk_path, args=args.chunk_size)
+#     # @workflow.message("Executing Fasta chunking on the follow files {input}.")
+#     # @workflow.log(os.path.join(args.path,"artifacts/logs/""{index}.log"))
+#     # @workflow.threads(1)
+#     # @workflow.shellcmd("{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1")
+#     # @workflow.run
+#     # def __rule_chunking(input, output, params, wildcards,
+#     #                    threads, resources, log, version, rule,
+#     #                    conda_env, singularity_img, singularity_args,
+#     #                    use_singularity, bench_record, jobid, is_shell):
+#     #     shell(
+#     #         "{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1"
+#     #     )
+#     #
+#     # workflow.check()
+#     # print("Dry run first ...")
+#     # workflow.execute(dryrun=True, updated_files=[])
     # return workflow
 
 def fm_build(dir_list):
@@ -426,6 +426,9 @@ def main(argv=None):
     p = subparsers.add_parser("json_update")
     p.add_argument("--path")
     p = subparsers.add_parser("oneclick")
+    p = subparsers.add_parser("ff_list")
+    p.add_argument("--path")
+
     for command, cmd_class in COMMANDS.items():
         for arg, desc in get_global_config(cmd_class.config_section).items():
             if "_meta" in arg:

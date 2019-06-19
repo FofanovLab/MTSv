@@ -224,10 +224,11 @@ def roll_up(tx_id, rank, c2p, prev_roll=None):
 # Call function (uses depth first search) to get a set of all child of the taxid repeat for tax ids to exclude
 # use set difference to get desired leaf taxids
 # Opens fasta DB and out file reading sequence in from start of sequence header roll up occuring at runtime
-def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=False):
+def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_size = 2,debug=False):
     if debug:
         return os.path.abspath(name)
     # try:
+    chunk_size *= 1000000000
     if len(in_tx) ==1:
         temp = []
         try:
@@ -271,38 +272,49 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, debug=
     seq = bytearray()
     line_count = 0
     # print("Writing")
+    chunk = 0
+    srt_taxons = list(sorted(taxons))
     with open(fasta_path, "rb") as fasta:
-        with open(name, "wb") as out:
-            for tx in sorted(taxons):
-                if tx:
-                    tx = tx.encode().strip()
-                    try:
+        while srt_taxons:
+            name = "_{}.".format(chunk).join(name.rsplit(".",1))
+            byte_count = 0
+            with open(name, "wb") as out:
+                while byte_count < chunk_size:
+                    tx = srt_taxons.pop()
+                    if tx:
+                        tx = tx.encode().strip()
+                        try:
+                            positions[tx].sort()
+                        except KeyError:
+                            continue
+                        if ru_rank:
+                            rr_tx = roll_up(tx, ru_rank, child2parent)
+                        else:
+                            rr_tx = tx
+                        if not rr_tx:
+                            continue
+                        # print()
                         positions[tx].sort()
-                    except KeyError:
-                        continue
-                    if ru_rank:
-                        rr_tx = roll_up(tx, ru_rank, child2parent)
-                    else:
-                        rr_tx = tx
-                    if not rr_tx:
-                        continue
-                    # print()
-                    positions[tx].sort()
-                    for off in positions[tx]:
-                        fasta.seek(off)
-                        header = fasta.readline()
-                        line = fasta.readline()
-                        while line and chr(line[0]) != ">":
-                            seq += line
-                            line_count += 1
+                        for off in positions[tx]:
+                            fasta.seek(off)
+                            header = fasta.readline()
                             line = fasta.readline()
-                        if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
-                            gi = header.split(b' ',2)[1].split(b':')[1]
-                            # gi = header.split(b' ',1)[0].strip(b'>')
-                            out.write(b'>'+gi+b'-'+rr_tx+b'\n')
-                            out.write(seq)
-                        line_count = 0
-                        seq = bytearray()
+                            while line and chr(line[0]) != ">":
+                                seq += line
+                                line = fasta.readline()
+                                line_count += len(line.strip())
+
+                            if len(seq)-line_count >= min and len(seq)-float(line_count)<= maximum:
+                                gi = header.split(b' ',2)[1].split(b':')[1]
+                                # gi = header.split(b' ',1)[0].strip(b'>')
+                                out.write(b'>'+gi+b'-'+rr_tx+b'\n')
+                                out.write(seq)
+                                byte_count += len(b'>'+gi+b'-'+rr_tx+b'\n') + line_count
+                            line_count = 0
+                            seq = bytearray()
+                chunk += 1
+            srt_taxons = list(sorted(taxons))
+            # chunk +=
     return os.path.abspath(name)
 # except:
     #     return 0
