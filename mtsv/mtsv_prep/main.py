@@ -140,10 +140,10 @@ def partition(args):
                     os.makedirs(path)
                 except:
                     pass
-                if os.path.isfile(os.path.join(chunk_path, "{0}_0.fasta".format(prt))) and not args.overwrite:
-                    fin.add(os.path.abspath(os.path.join(path, "{0}.fas".format(prt))))
-                else:
-                    partition_list.append ( (list(inc), args.rollup_rank, list(exc), os.path.join(chunk_path,
+                # if os.path.isfile(os.path.join(chunk_path, "{0}_0.fasta".format(prt))) and not args.overwrite:
+                #     fin.add(os.path.abspath(os.path.join(path, "{0}.fas".format(prt))))
+                # else:
+                partition_list.append ( (list(inc), args.rollup_rank, list(exc), os.path.join(chunk_path,
                                             "{0}.fasta".format(prt)),arguments['minimum-length'],
                                              arguments['maximum-length'], arguments["fasta-path"],
                                              arguments["serialization-path"], args.chunk_size ,args.debug)  )
@@ -155,17 +155,19 @@ def partition(args):
     tmp = []
     for x in ret_list:
         tmp += x
-    return ",".join(list(set(ret_list + list(fin)))), args
-
+    # out_str = ",".join(list(set(tmp + list(fin) )))
+    # return out_str, args
+    return list(set(tmp).union(fin)), args
 def chunk(file_list, args):
     dir_set = set()
-    for csv in file_list:
-        for fp in csv.split(","):
-            db = os.path.basename(os.path.dirname(fp))
-            out_dir = os.path.abspath(os.path.join(args.path, "indices", db,os.path.basename(fp).rsplit(".",1)[0] ))
-            # if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))+"ta" ) ):
-            #     subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, 'mtsv-chunk', args.chunk_size).split() )
-            dir_set.add(out_dir)
+    for fp in file_list:
+    # for fp in csv.split(","):
+    #     db = os.path.basename(os.path.dirname(fp))
+        out_dir = os.path.dirname(fp)
+        # out_dir = os.path.abspath(os.path.join(args.path, "indices", db,os.path.basename(fp).rsplit(".",1)[0] ))
+        # if not os.path.isfile( os.path.join(out_dir,"_0.".join(os.path.basename(fp).rsplit(".", 1))+"ta" ) ):
+        #     subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, 'mtsv-chunk', args.chunk_size).split() )
+        dir_set.add(out_dir)
     return list(dir_set)
 
 # def snake(args):
@@ -214,6 +216,7 @@ def chunk(file_list, args):
 
 def fm_build(dir_list):
     fm_list = []
+    # print(dir_list)
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
             out_file = os.path.join(directory, "{0}.index".format(os.path.basename(fp).split(".")[0]))
@@ -223,8 +226,8 @@ def fm_build(dir_list):
                         os.path.abspath(fp),
                         out_file,
                         'mtsv-build').split() )
-                if result.returncode == 0:
-                    os.remove(os.path.abspath(fp))
+                # if result.returncode == 0:
+                #     os.remove(os.path.abspath(fp))
             fm_list.append(out_file)
     return fm_list
 
