@@ -136,10 +136,10 @@ def partition(args):
                     os.makedirs(chunk_path, exist_ok=True)
                     prt = "{0}".format("_".join(sorted(inc)) )
                 path = os.path.join(args.path, "fastas", db)
-                try:
-                    os.makedirs(path)
-                except:
-                    pass
+                # try:
+                #     os.makedirs(path)
+                # except:
+                #     pass
                 # if os.path.isfile(os.path.join(chunk_path, "{0}_0.fasta".format(prt))) and not args.overwrite:
                 #     fin.add(os.path.abspath(os.path.join(path, "{0}.fas".format(prt))))
                 # else:
