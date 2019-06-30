@@ -321,23 +321,18 @@ def make_json_abs(args):
             except KeyError:
                 pass
             try:
-                # keys = list(arguments['fm-paths'].keys())
                 for j in arguments['fm-paths'].keys():
                     for i, abs_path  in enumerate(arguments['fm-paths'][j]):
                         arguments['fm-paths'][j][i] = os.path.abspath(os.path.join(args.path,abs_path))
             except KeyError:
                 pass
             try:
-                # keys = list()
                 for j, val in enumerate(arguments['partition-path']):
-                    # for abs_path in arguments['partition-path'][j]:
                     arguments['partition-path'][j] = os.path.abspath(val)
             except KeyError:
                 pass
             try:
-                # keys = list()
-                for j, val in enumerate(arguments['fm-index-paths']):
-                    # for abs_path in arguments['partition-path'][j]:
+              for j, val in enumerate(arguments['fm-index-paths']):
                     arguments['fm-index-paths'][j] = os.path.abspath(val)
             except KeyError:
                 pass
@@ -353,12 +348,62 @@ def make_json_abs(args):
         with open(os.path.join(args.path, "artifacts","{0}.json".format(name)), "w") as file:
             json.dump(arguments, file, sort_keys=True, indent=4)
 
+def json_build(arguments):
+    if arguments.custom_db and arguments.path and arguments.partitions:
+        starter = parse_json("{}.json".format(os.path.join(arguments.path,"artifacts",arguments.custom_db[0])))
+        starter['fasta-path'] = [starter['fasta-path']]
+        starter['partition-path'] = [starter['parition-path']]
+
+        parts = arguments.partitions.split("-")
+        if len(parts) == 2:
+            parts = "{}-{}".format( "_".join(sorted(parts[0].split(","))), "_".join(sorted(parts[1].split(","))) )
+        else:
+            parts = "{}".format("_".join(sorted(parts[0].split(","))))
+        try:
+            starter['fm-paths'][parts]
+        except KeyError:
+            print("Requested fm-indices not found for {0} build using command:\n"
+                  "mtsv_setup custom_db --customdb {0} --path {1} --partitions {2}".format( arguments.custom_db[0], arguments.path, parts.replace("_",",") ))
+            starter['fm-paths'][parts] = []
+
+        for assem in arguments.custom_db[1:]:
+            temp = parse_json("{}.json".format(os.path.join(arguments.path,"artifacts",assem)))
+            starter['fasta-path'].append(temp['fasta-path'])
+            # starter['fm-index-paths'] += temp['fm-index-paths']
+
+            try:
+                starter['fm-paths'][parts] += temp['fm-paths'][parts]
+            except KeyError:
+                print("Requested fm-indices not found for {0} build using command:\n"
+                      "mtsv_setup custom_db --customdb {0} --path {1} --partitions {2}".format( assem, arguments.path, parts.replace("_", ",")))
+            try:
+                for j, val in enumerate(arguments['partition-path']):
+                    arguments['partition-path'][j] = os.path.abspath(val)
+            except KeyError:
+                pass
+
+
+        starter['fm-index-paths'] = starter['fm-paths'][parts]
+
+        try:
+            with open(arguments.output+".json", "w") as file:
+                json.dump(starter, file, sort_keys=True, indent=4)
+
+        except:
+            with open("{}.json".format(parts), "w") as file:
+                json.dump(starter, file, sort_keys=True, indent=4)
+
+    else:
+        print("The path, databases, and taxid partitions are required.")
 
 def setup_and_run(parser):
     if sys.argv[1] == "json_update":
         args = parser.parse_known_args()[0]
         json_updater(args)
         make_json_abs(args)
+    elif sys.argv[1] == "json_combine":
+        args = parser.parse_known_args()[0]
+        json_build(args)
 
     else:
         args = parser.parse_known_args()[0]
@@ -432,6 +477,12 @@ def main(argv=None):
     p = subparsers.add_parser("json_update")
     p.add_argument("--path")
     p = subparsers.add_parser("oneclick")
+    p = subparsers.add_parser("json_combine")
+    p.add_argument("--path", type=str)
+    p.add_argument("--custom_db", nargs='+', type=str)
+    p.add_argument("--partitions",type=str)
+    p.add_argument("--output", type=str)
+
     p = subparsers.add_parser("ff_list")
     p.add_argument("--path")
 
