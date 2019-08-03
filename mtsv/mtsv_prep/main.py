@@ -4,10 +4,12 @@ import argparse
 import os
 import datetime
 import inspect
+import fnmatch
 from ftplib import FTP
 from time import sleep
 import gzip
 import tarfile
+from shutil import copyfile
 from multiprocessing import Pool, Queue, Process, Manager, RLock, freeze_support
 from glob import iglob
 from mtsv.commands import Command
@@ -109,6 +111,55 @@ def oneclickbuild(args):
     pool.close()
     # shutil.rmtree(os.path.join(args.path, "flat_files" ))
 
+def ff_build(args):
+    os.makedirs(os.path.join(args.path,"artifacts"), exist_ok=True)
+    artifacts = [(os.path.join(args.path ,"artifacts", "taxdump.tar.gz"), os.path.abspath(os.path.join(args.taxonomy_path,"taxdump.tar.gz" )))]
+    tax_path = os.path.join(args.taxonomy_path, "accession2taxid/")
+    for file in iglob(tax_path):
+        if not os.path.isdir(file) and not fnmatch.fnmatch(os.path.basename(file), 'dead*') and not fnmatch.fnmatch(file, '*md5'):
+            artifacts.append((os.path.join(args.path, "artifacts",os.path.basename(file)), os.path.abspath(file)))
+    for file in artifacts:
+        copyfile(file[1],file[0])
+
+    with open(os.path.join(args.path, "artifacts","decompression.log"), "w" ):
+        pass
+    pool = Pool(args.threads)
+
+    base = os.path.basename(args.ff_list).rsplit(".", 1)[0]
+    ff_list = []
+    with open("{}_ff.txt".format(os.path.join(args.path,"artifacts",base)) , "w") as out:
+        with open(args.ff_list, "r") as file_list:
+            for x in file_list:
+                ff_list.append((os.path.abspath(x.strip()), args.path, ))
+                out.write(os.path.abspath(x))
+
+    pool.starmap(decompression, ff_list)
+    for fp in iglob(os.path.join(args.path,"artifacts","*_ff.txt")):
+        db = list(os.path.split(fp))
+        db[1] = db[1].strip().replace("_ff.txt",".fas")
+        db = os.path.abspath("{0}{1}{2}".format(db[0],os.sep,db[1]))
+        with open(os.path.abspath(fp), "r" ) as file:
+            temp = file.readlines()
+
+        with open(os.path.abspath(fp), "w") as file:
+            for x in temp:
+                if x.strip().rsplit(".",1)[1] == "gz":
+                    x= x.strip().rsplit(".",1)[0]
+                file.write("{0}\n".format(x))
+
+        if os.path.isfile(db):
+            continue
+        build_db(os.path.abspath(fp), db, os.devnull, os.devnull, args.threads, os.devnull)
+
+    arguments = oneclickjson(args.path)
+    for argument in arguments:
+        pool.apply_async(tree_make, (argument['taxdump-path'], ))
+        break
+    pool.starmap(acc_serialization, [(argument['acc-to-taxid-paths'], argument['fasta-path'],
+                                      argument['taxdump-path']) for argument in arguments ])
+
+    pool.close()
+
 def tree_make(in_path):
     out_path = os.path.abspath(os.path.join(os.path.dirname(in_path), "tree.index"))
     subprocess.run("mtsv-tree-build --index {0} --dump {1}".format(
@@ -158,6 +209,7 @@ def partition(args):
     # out_str = ",".join(list(set(tmp + list(fin) )))
     # return out_str, args
     return list(set(tmp).union(fin)), args
+
 def chunk(file_list, args):
     dir_set = set()
     for fp in file_list:
@@ -169,50 +221,6 @@ def chunk(file_list, args):
         #     subprocess.run("{2} --input {0} --output {1} --gb {3}".format(fp, out_dir, 'mtsv-chunk', args.chunk_size).split() )
         dir_set.add(out_dir)
     return list(dir_set)
-
-# def snake(args):
-#     chunk_path = 'mtsv-chunk'
-#     fm_build_path = 'mtsv-build'
-#     print(chunk_path)
-#     print(fm_build_path)
-#     print(args)
-#
-#     print(partition(args))
-#     # for i in args:
-#     #     print(i)
-#     workflow = Workflow(
-#         "__file__",
-#         overwrite_workdir=args.working_dir)
-#     if args.cluster_cfg is not None:
-#         workflow.cluster_cfg = args.cluster_cfg
-#     snakemake.workflow.rules = Rules()
-#     snakemake.workflow.config = dict()
-#
-#
-#
-#
-#     # @workflow.rule(name='chunking')
-#     # @workflow.docstring("""Fasta chunking""")
-#     # @workflow.input(os.path.join("test", "{}.index"))
-#     # @workflow.output(os.path.join(cmd.params['binning_outpath'], "{index}.bn"))
-#     # @workflow.params(call=chunk_path, args=args.chunk_size)
-#     # @workflow.message("Executing Fasta chunking on the follow files {input}.")
-#     # @workflow.log(os.path.join(args.path,"artifacts/logs/""{index}.log"))
-#     # @workflow.threads(1)
-#     # @workflow.shellcmd("{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1")
-#     # @workflow.run
-#     # def __rule_chunking(input, output, params, wildcards,
-#     #                    threads, resources, log, version, rule,
-#     #                    conda_env, singularity_img, singularity_args,
-#     #                    use_singularity, bench_record, jobid, is_shell):
-#     #     shell(
-#     #         "{params.call} --input {input} --output{output} --gb {params.args} > {log} 2>&1"
-#     #     )
-#     #
-#     # workflow.check()
-#     # print("Dry run first ...")
-#     # workflow.execute(dryrun=True, updated_files=[])
-    # return workflow
 
 def fm_build(dir_list):
     fm_list = []
@@ -415,7 +423,11 @@ def setup_and_run(parser):
                 if args.download_only:
                     args.path = os.path.abspath(oneclickdl(args))
                 elif args.build_only:
-                    if args.path and  os.path.isdir(args.path):
+                    if args.ff_list and args.path:
+                        ff_build(args)
+                        json_updater(args)
+                        make_json_abs(args)
+                    elif args.path and  os.path.isdir(args.path):
                         oneclickbuild(args)
                         json_updater(args)
                         make_json_abs(args)
