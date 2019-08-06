@@ -113,14 +113,13 @@ def oneclickbuild(args):
 
 def ff_build(args):
     os.makedirs(os.path.join(args.path,"artifacts"), exist_ok=True)
-    artifacts = [(os.path.join(args.path ,"artifacts", "taxdump.tar.gz"), os.path.abspath(os.path.join(args.taxonomy_path,"taxdump.tar.gz" )))]
-    tax_path = os.path.join(args.taxonomy_path, "accession2taxid/")
-    for file in iglob(tax_path):
+    artifacts = [(os.path.abspath(os.path.join(args.path ,"artifacts", "taxdump.tar.gz")), os.path.abspath(os.path.join(args.taxonomy_path,"taxdump.tar.gz" )))]
+    tax_path = os.path.abspath(os.path.join(args.taxonomy_path, "accession2taxid/","*accession2taxid*"))
+    for file in iglob(tax_path+'**', recursive=True):
         if not os.path.isdir(file) and not fnmatch.fnmatch(os.path.basename(file), 'dead*') and not fnmatch.fnmatch(file, '*md5'):
-            artifacts.append((os.path.join(args.path, "artifacts",os.path.basename(file)), os.path.abspath(file)))
+            artifacts.append((os.path.abspath(os.path.join(args.path, "artifacts",os.path.basename(file))), os.path.abspath(file),))
     for file in artifacts:
         copyfile(file[1],file[0])
-
     with open(os.path.join(args.path, "artifacts","decompression.log"), "w" ):
         pass
     pool = Pool(args.threads)
