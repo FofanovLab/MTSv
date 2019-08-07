@@ -123,17 +123,21 @@ def binary_search(a, x, lo=0, hi=None):   # can't use a to specify default for h
     lo = 0
     mid = (hi-lo)//2
     while True:
-        if lo >= hi:
-            if a[mid][0] == x: return mid
-            else: return -1
-        if a[mid][0] == x:
-            return mid
-        elif a[mid][0] < x:
-            lo = mid +1
-        else:
-            hi = mid -1
-        mid = ((hi - lo) // 2)+lo
+        try:
+            if lo >= hi:
+                if a[mid] == x: return mid
+                else: return -1
+            if a[mid] == x:
+                return mid
+            elif a[mid] < x:
+                lo = mid +1
+            else:
+                hi = mid -1
+            mid = ((hi - lo) // 2)+lo
+        except:
+            print(x,lo,hi,mid)
 
+            break
 def taxids2name(dump_path):
     dump = tarfile.open(dump_path, "r:gz")
     tax_ids = {}
@@ -247,8 +251,7 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
             ex_tx = temp
         except FileNotFoundError:
             pass
-    # print(pickle_path)
-    # print("Getting Offsets and Tree")
+
     tx_ids, child2parent, positions = deserialization(pickle_path)
 
     taxons = set()
@@ -271,56 +274,92 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
 
     seq = bytearray()
     line_count = 0
-    # print("Writing")
+    bins = first_fit(list(taxons), positions, os.path.getsize(fasta_path), chunk_size)
     chunk = 0
-    srt_taxons = list(sorted(taxons))
     ret_list = []
     with open(fasta_path, "rb") as fasta:
-        while srt_taxons:
-            name = "_{}.".format(chunk).join(name.rsplit(".",1))
-            byte_count = 0
-            with open(name, "wb") as out:
-                while srt_taxons and byte_count < chunk_size:
-                    tx = srt_taxons.pop()
-                    if tx:
-                        tx = tx.encode().strip()
-                        try:
+        for bin in bins:
+            srt_taxons = list(sorted(bin))
+            while srt_taxons:
+                name = "_{}.".format(chunk).join(name.rsplit(".",1))
+                # byte_count = 0
+                with open(name, "wb") as out:
+                    while srt_taxons:
+                        tx = srt_taxons.pop()
+                        if tx:
+                            tx = tx.encode().strip()
+                            try:
+                                positions[tx].sort()
+                            except KeyError:
+                                continue
+                            if ru_rank:
+                                rr_tx = roll_up(tx, ru_rank, child2parent)
+                            else:
+                                rr_tx = tx
+                            if not rr_tx:
+                                continue
                             positions[tx].sort()
-                        except KeyError:
-                            continue
-                        if ru_rank:
-                            rr_tx = roll_up(tx, ru_rank, child2parent)
-                        else:
-                            rr_tx = tx
-                        if not rr_tx:
-                            continue
-                        # print()
-                        positions[tx].sort()
-                        for off in positions[tx]:
-                            fasta.seek(off)
-                            header = fasta.readline()
-                            line = fasta.readline()
-                            while line and chr(line[0]) != ">":
-                                seq += line
+                            for off in positions[tx]:
+                                fasta.seek(off)
+                                header = fasta.readline()
                                 line = fasta.readline()
-                                line_count += len(line.strip())
+                                while line and chr(line[0]) != ">":
+                                    seq += line
+                                    line = fasta.readline()
+                                    line_count += len(line.strip())
 
-                            if line_count >= min and float(line_count)<= maximum:
-                                gi = header.split(b' ',2)[1].split(b':')[1]
-                                # gi = header.split(b' ',1)[0].strip(b'>')
-                                out.write(b'>'+gi+b'-'+rr_tx+b'\n')
-                                out.write(seq)
-                                byte_count += len(b'>'+gi+b'-'+rr_tx+b'\n') + line_count
-                            line_count = 0
-                            seq = bytearray()
-                chunk += 1
+                                if line_count >= min and float(line_count)<= maximum:
+                                    gi = header.split(b' ',2)[1].split(b':')[1]
+                                    out.write(b'>'+gi+b'-'+rr_tx+b'\n')
+                                    out.write(seq)
+                                line_count = 0
+                                seq = bytearray()
+                    chunk += 1
 
             ret_list.append(os.path.abspath(name))
             name = "{}.fasta".format(name.rsplit("_", 1)[0])
-            # chunk +=
     return ret_list
-# except:
-    #     return 0
+
+def first_fit(taxa_list, positions, file_size, threshold):
+    pos = []
+    for key in positions.keys():
+        pos += positions[key]
+    pos.sort()
+    tax2bytes = {x:0 for x in taxa_list}
+    # print(positions)
+
+    for tax in taxa_list:
+        ind = -1
+        try:
+            positions[tax.encode()]
+        except KeyError:
+            continue
+        for offset in positions[tax.encode()]:
+            # print(tax)
+            ind = binary_search(pos, offset)
+            if ind != -1:
+                try:
+                    tax2bytes[tax] += pos[ind+1] - pos[ind]
+                except IndexError:
+                    tax2bytes[tax] += file_size - pos[ind]
+    sorted_taxon = sorted(tax2bytes.items(), key=lambda kv: kv[1], reverse=True)
+
+    bins = [set()]
+    bins_size = [0]
+    found = False
+    for item in sorted_taxon:
+        for ind, bin in enumerate(bins):
+            if bins_size[ind]+item[1] <= threshold:
+                bin.add(item[0])
+                bins_size[ind] += item[1]
+                found = True
+                break
+        if not found:
+            bins.append({item[0]})
+            bins_size.append(item[1])
+        found = False
+    return bins
+
 # writes a new or updates json config file
 def gen_json(configuration, args):
     if args.update and args.configuration_path:
