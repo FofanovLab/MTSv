@@ -1,7 +1,7 @@
 # Change Log
 
 ---
-## v.1.0.4 - October 3, 2018
+## v.1.0.5 - October 3, 2019
 ### Improved:
 **Database and Index Setup**
 - Allow database build from flat file list per issue [#30](https://github.com/FofanovLab/MTSv/issues/33).
