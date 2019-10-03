@@ -105,8 +105,12 @@ def data_path():
 
 def ete_database_data():
     """ Return path to ete3 database json """
-    fp = os.path.join('data', 'ete_databases.json')
-    return resource_filename('mtsv', fp)
+    user = os.environ.get('HOME', '/')
+    fp = os.path.join(user, ".mtsv/ete_databases.json")
+    if not os.path.isfile(fp):
+        with open(fp, 'w') as outfile:
+            outfile.write("{}")
+    return fp
 
 def get_ete_ncbi(taxdump):
     #sqlite3.OperationalError
