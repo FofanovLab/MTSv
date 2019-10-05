@@ -1,6 +1,18 @@
 # Change Log
 
 ---
+## v.1.0.5 - October 3, 2019
+### Improved:
+**Database and Index Setup**
+- Allow database build from flat file list per issue [#30](https://github.com/FofanovLab/MTSv/issues/33).
+
+### Changed:
+**Summary and Analysis**
+- Moved ete database json out of package data into user home directory per issue [#33](https://github.com/FofanovLab/MTSv/issues/33). 
+### Maintenance:
+**Rust version**
+- Capped rust requirement for build to 1.36.0.
+
 
 ## v.1.0.1 - October 4, 2018
 ### Improved:

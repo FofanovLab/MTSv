@@ -7,7 +7,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(name='mtsv',
-      version='1.0.2',
+      version='1.0.4',
       description='Metagenomic analysis pipeline',
       author='Tara Furstenau',
       author_email='Tara.Furstenau@nau.edu',
@@ -23,8 +23,7 @@ setup(name='mtsv',
       'mtsv': [
           'commands/cmd_specs/*.yml',
           'scripts/*.py',
-          'commands/snakefiles/*snek',
-          'data/*']
+          'commands/snakefiles/*snek']
       },
       classifiers=[
           'Programming Language :: Python',
