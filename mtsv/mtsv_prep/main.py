@@ -119,7 +119,10 @@ def ff_build(args):
         if not os.path.isdir(file) and not fnmatch.fnmatch(os.path.basename(file), 'dead*') and not fnmatch.fnmatch(file, '*md5'):
             artifacts.append((os.path.abspath(os.path.join(args.path, "artifacts",os.path.basename(file))), os.path.abspath(file),))
     for file in artifacts:
-        copyfile(file[1],file[0])
+        try:
+            copyfile(file[1],file[0])
+        except shutil.SameFileError:
+            continue
     with open(os.path.join(args.path, "artifacts","decompression.log"), "w" ):
         pass
     pool = Pool(args.threads)
@@ -136,18 +139,25 @@ def ff_build(args):
     for fp in iglob(os.path.join(args.path,"artifacts","*_ff.txt")):
         db = list(os.path.split(fp))
         db[1] = db[1].strip().replace("_ff.txt",".fas")
+        if db[1] != "{}.fas".format(base):
+            continue
         db = os.path.abspath("{0}{1}{2}".format(db[0],os.sep,db[1]))
+        if os.path.isfile(db):
+            continue
         with open(os.path.abspath(fp), "r" ) as file:
             temp = file.readlines()
 
         with open(os.path.abspath(fp), "w") as file:
             for x in temp:
-                if x.strip().rsplit(".",1)[1] == "gz":
-                    x= x.strip().rsplit(".",1)[0]
-                file.write("{0}\n".format(x))
+                if x.strip():
+                    if len(x.strip().rsplit(".",1)) == 2:
+                        if x.strip().rsplit(".",1)[1] == "gz":
+                            x = x.strip().rsplit(".",1)[0]
+                        else:
+                            x = x.strip()
+                    file.write("{0}\n".format(x.strip()))
 
-        if os.path.isfile(db):
-            continue
+
         build_db(os.path.abspath(fp), db, os.devnull, os.devnull, args.threads, os.devnull)
 
     arguments = oneclickjson(args.path)

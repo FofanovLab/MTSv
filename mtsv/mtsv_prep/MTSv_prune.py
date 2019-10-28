@@ -283,39 +283,46 @@ def clip(in_tx,ru_rank, ex_tx, name, min,maximum,fasta_path, pickle_path, chunk_
             while srt_taxons:
                 name = "_{}.".format(chunk).join(name.rsplit(".",1))
                 # byte_count = 0
-                with open(name, "wb") as out:
-                    while srt_taxons:
-                        tx = srt_taxons.pop()
-                        if tx:
-                            tx = tx.encode().strip()
-                            try:
-                                positions[tx].sort()
-                            except KeyError:
-                                continue
-                            if ru_rank:
-                                rr_tx = roll_up(tx, ru_rank, child2parent)
-                            else:
-                                rr_tx = tx
-                            if not rr_tx:
-                                continue
+                out = open(name,"wb")
+#                with open(name, "wb") as out:
+                while srt_taxons:
+                    tx = srt_taxons.pop()
+                    if tx:
+                        tx = tx.encode().strip()
+                        try:
                             positions[tx].sort()
-                            for off in positions[tx]:
-                                fasta.seek(off)
-                                header = fasta.readline()
+                        except KeyError:
+                            continue
+                        if ru_rank:
+                            rr_tx = roll_up(tx, ru_rank, child2parent)
+                        else:
+                            rr_tx = tx
+                        if not rr_tx:
+                            continue
+                        positions[tx].sort()
+                        for off in positions[tx]:
+                            fasta.seek(off)
+                            header = fasta.readline()
+                            line = fasta.readline()
+                            while line and chr(line[0]) != ">":
+                                seq += line
                                 line = fasta.readline()
-                                while line and chr(line[0]) != ">":
-                                    seq += line
-                                    line = fasta.readline()
-                                    line_count += len(line.strip())
+                                line_count += len(line.strip())
 
-                                if line_count >= min and float(line_count)<= maximum:
-                                    gi = header.split(b' ',2)[1].split(b':')[1]
-                                    out.write(b'>'+gi+b'-'+rr_tx+b'\n')
-                                    out.write(seq)
-                                line_count = 0
-                                seq = bytearray()
+                            if line_count >= min and float(line_count)<= maximum:
+                                gi = header.split(b' ',2)[1].split(b':')[1]
+                                out.write(b'>'+gi+b'-'+rr_tx+b'\n')
+                                out.write(seq)
+                            line_count = 0
+                            seq = bytearray()
+                            if out.tell() > chunk_size:
+                                chunk += 1
+                                name = "{}.fasta".format(name.rsplit("_", 1)[0])
+                                name = "_{}.".format(chunk).join(name.rsplit(".", 1))
+                                out.close()
+                                out = open(name, "wb")
                     chunk += 1
-
+            out.close()
             ret_list.append(os.path.abspath(name))
             name = "{}.fasta".format(name.rsplit("_", 1)[0])
     return ret_list
@@ -349,7 +356,7 @@ def first_fit(taxa_list, positions, file_size, threshold):
     found = False
     for item in sorted_taxon:
         for ind, bin in enumerate(bins):
-            if bins_size[ind]+item[1] <= threshold:
+            if bins_size[ind]+item[1] <= threshold or bins_size[ind] == 0:
                 bin.add(item[0])
                 bins_size[ind] += item[1]
                 found = True
