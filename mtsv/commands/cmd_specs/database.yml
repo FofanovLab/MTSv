@@ -11,9 +11,9 @@ build_only:
   action: 'store_true'
   help: Build from local database that exists at this path.
 includedb:
-  default: ["genbank","Complete Genome","Chromosome","Scaffold"]
+  default: ["genbank","Complete Genome"]
   nargs: +
-  help: Subsets of defaults can be specified for download or partitioning
+  help: GenBank and subsets of RefSeq, based on assembly level, can be specified for download or partitioning ["genbank","Complete Genome", "Chromosome", "contig", "scaffold"]
 ff_list:
   help: Used with build_only to create a local database from a filelist of GenBank Flat files
 taxonomy_path:
