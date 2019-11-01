@@ -93,11 +93,6 @@ def snake_path(rule_name):
     return resource_filename('mtsv', fp)
 
 
-def make_dir(path):
-    try:
-        os.makedirs(path)
-
-
 def get_user_mtsv_dir():
     user = os.environ.get('HOME', '/')
     mtsv_path = os.path.join(user, ".mtsv")
@@ -106,8 +101,7 @@ def get_user_mtsv_dir():
         LOGGER.info("Adding user mtsv path: {}".format(mtsv_path))
     except OSError:
         LOGGER.info("User mtsv path exists: {}".format(mtsv_path))
-    return
-        mtsv_path
+    return mtsv_path
 
 def data_path():
     """ Return expected values database path """
