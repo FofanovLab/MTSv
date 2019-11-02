@@ -92,21 +92,29 @@ def snake_path(rule_name):
     fp = os.path.join('commands', 'snakefiles', rule_name)
     return resource_filename('mtsv', fp)
 
+
+def get_user_mtsv_dir():
+    user = os.environ.get('HOME', '/')
+    mtsv_path = os.path.join(user, ".mtsv")
+    try:
+        os.makedirs(mtsv_path)
+        LOGGER.info("Adding user mtsv path: {}".format(mtsv_path))
+    except OSError:
+        LOGGER.info("User mtsv path exists: {}".format(mtsv_path))
+    return mtsv_path
+
 def data_path():
     """ Return expected values database path """
-    user = os.environ.get('HOME', '/')
-    data_file = os.path.join(user, ".mtsv/expected.csv")
-    try:
-        open(data_file, 'r')
-    except FileNotFoundError:
-        os.makedirs(os.path.join(user, ".mtsv"))
+    mtsv_path = get_user_mtsv_dir()
+    data_file = os.path.join(mtsv_path, "expected.csv")
+    if not os.path.isfile(data_file):
         init_precalculated_df(data_file)
     return data_file
 
 def ete_database_data():
     """ Return path to ete3 database json """
-    user = os.environ.get('HOME', '/')
-    fp = os.path.join(user, ".mtsv/ete_databases.json")
+    mtsv_path = get_user_mtsv_dir()
+    fp = os.path.join(mtsv_path, "ete_databases.json")
     if not os.path.isfile(fp):
         with open(fp, 'w') as outfile:
             outfile.write("{}")
