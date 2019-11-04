@@ -217,6 +217,8 @@ def roll_up(tx_id, rank, c2p, prev_roll=None):
                     prev_roll[tx_id] = tx_id
             except TypeError:
                 pass
+            except KeyError:
+                return None
         return tx_id
 
         # else:
