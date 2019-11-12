@@ -1,0 +1,52 @@
+from glob import glob
+
+def get_fastqs(wildcards):
+    path = config['samples'][wildcards.sample]
+    files = glob(path)
+    print(files)
+    return files
+
+
+SAMPLES = list(config['samples'].keys())
+
+
+rule all:
+    input: 
+        expand(
+            "reads/{sample}_qc.fastq", sample=SAMPLES)
+
+rule fastp:
+    """
+    Run fastp quality control on input fastq reads.
+    Merges paired end reads into a single output.
+    """
+    input: get_fastqs
+    output: 
+        qc="reads/{sample}_qc.fastq",
+        html="reads/{sample}_qc.html",
+        json="reads/{sample}_qc.json"
+    message:
+        """
+        Running QC on fastqs: {input}.
+        Writing to {output.qc} {output.html} {output.json}.
+        Logging to {log}.
+        Using {threads} threads.
+        Additional params: {params}
+        """
+    params: 
+        fastp_params = config.get(
+            'fastp_params', "")
+    log: "logs/{sample}_qc.log"
+    threads: 1
+    run:
+        if len(input) > 1:
+            shell("""
+                fastp -i {input[0]} -I {input[1]} --stdout \
+                --json {output.json} --html {output.html} \
+                {params.fastp_params} > {output.qc} 2> {log}""")
+        else:
+            shell("""
+            fastp -i {input[0]} -o {output.qc} \
+            --json {output.json} --html {output.html} \
+            {params.fastp_params} 2> {log}""")
+            
