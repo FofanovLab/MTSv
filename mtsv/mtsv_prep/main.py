@@ -236,6 +236,9 @@ def fm_build(dir_list):
     # print(dir_list)
     for directory in dir_list:
         for fp in iglob(os.path.join(directory, "*.fasta")):
+            if os.path.getsize(os.path.abspath(fp)) == 0:
+                os.remove(fp)
+                continue
             out_file = os.path.join(directory, "{0}.index".format(os.path.basename(fp).split(".")[0]))
             if not os.path.isfile(out_file):
                 result = subprocess.run(
