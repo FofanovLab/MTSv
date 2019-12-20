@@ -1,109 +1,186 @@
-import os
-from shutil import copyfile
-from mtsv.parsing import format_cml_params
+from mtsv.utils import error
 
-include: "extract_snek"
-
-shell.prefix("set -euo pipefail;")
-
-REPORT = "Reports/wgfast_report.html"
-
-rule wgfast_all:
-    input:
-        REPORT
-
-CML = format_cml_params(
-    'WGFAST', config, [
-        'wgfast_output', 'extract_path',
-        'input_hits', 'taxids', 'by_sample',
-        'descendants'], [])
+if len(config.get("wgfast_taxids", [])) != len(
+    config.get("wgfast_reference_dirs", [])):
+    error("""
+        wgfast_taxids and wgfast_reference_dirs must
+        be lists of the same length:
+        wgfast_taxids: {0}
+        wgfast_reference_dirs: {1}
+        """.format(
+            config.get("wgfast_taxids"),
+            config.get("wgfast_reference_dirs")))
 
 
-def format_fastq_file(file):
-    path, filename = os.path.split(file)
-    filename = os.path.splitext(filename)[0]
-    filename = "S{0}_R1_001.fastq".format(filename)
-    return os.path.join(path, filename)
-
-FASTQ_GZ = [format_fastq_file(f) for f in FASTQ_OUTPUT]
-
-rule wgfast_report:
-    input: 
-        tree = os.path.join(
-            config['wgfast_output'], "transformed.tree"),
-        nasp = os.path.join(
-            config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
-        pat = os.path.join(
-            config['wgfast_output'], "all_patristic_distances.txt")
-    output: REPORT
-    message:
-        """
-        Generating WGFAST report at {output}
-        """
-    run:
-        from snakemake.utils import report
-        cov = os.path.join(
-            config['wgfast_output'], "coverage_out.txt")
-        hits = config['input_hits']
-        taxids = config['taxids'][0]
-        report(
-            """
-            WGFAST Report
-            =============================
-            WGFAST was ran on queries extracted from **{hits}**
-            for taxid **{taxids}**. The output files are at the 
-            following paths:\n
-            This file is a nexus file of the starting tree with the unknowns placed. If
-            this file is opened with figtree, the unknown isolates are shown in red.\n
-            **Figtree** http://tree.bio.ed.ac.uk/software/figtree/ \n
-            **{input.tree}**\n
-            This file is a modification of the original NASP matrix with
-            the unknowns inserted, so the user can identify specific SNPs. 
-            Information is lost from this matrix, so it cannot be used with 
-            additional WG-FAST runs.\n
-            **{input.nasp}**\n
-            If you chose to have genome coverage information, the coverage across
-            the reference genome is provided in this file.\n
-            **{cov}**\n
-            This file contains the patristic distance, or tree path distance, 
-            between all pairwise comparisons in the analysis.\n
-            **{input.pat}**""", output[0]
-        )
-
+reference_map = {
+    int(k): v for k, v in zip(
+        config.get("wgfast_taxids", []),
+        config.get("wgfast_reference_dirs", []))}
 
 rule wgfast:
+    """
+    SNP typing for strain-level resolution.
+    """
     input:
-        reads=FASTQ_GZ 
+        reads = "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
     output:
-        tree = os.path.join(
-            config['wgfast_output'], "transformed.tree"),
-        nasp = os.path.join(
-            config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
-        pat = os.path.join(
-            config['wgfast_output'], "all_patristic_distances.txt")
+        tree = report(
+            "wgfast/{sample}_taxid_{taxa}_transformed.tree",
+            category="WGFAST"),
+        nasp = report(
+            "wgfast/{sample}_taxid_{taxa}_nasp_matrix.with_unknowns.txt",
+            category="WGFAST"),
+        pat = report(
+            "wgfast/{sample}_taxid_{taxa}_all_patristic_distances.txt",
+            category="WGFAST")
+    log: "logs/wgfast_{sample}_taxid_{taxa}.log"
     params:
-        wd = config['wgfast_output'],
-        reads_dir = config['extract_path'],
-        cml = CML
-    threads: config['threads']
-    message: """Running WGFAST on {input} using {threads} threads"""
-    log: config['log_file']
+        wd = "wgfast",
+        reads_dir = "wgfast/reads",
+        wgfast_params = config.get('wgfast_params', ''),
+        reference_dir = lambda wc: reference_map[int(wc.taxa)]
+    threads: 8
+    message: 
+        """
+        Running WGFAST on {input.reads}.
+        Writing to {output.tree} {output.nasp} {output.pat}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        WGFAST Params: {params.wgfast_params}
+        """
     shell:
-        """cd {params.wd}; gzip {input.reads}; wgfast -d {params.reads_dir} -p {threads} {params.cml} > {log}"""
+        """
+        cd {params.wd}
+        mkdir tmp
+        wgfast -d {params.reads_dir} -r {params.reference_dir} \
+            -p {threads} --temp tmp {params.wgfast_params} > {log} 2>&1
+        """
 
-rule process_fastqs:
-    input: FASTQ_OUTPUT # ouput from extract see extract_snek
-    output: FASTQ_GZ
+rule wgfast_draw_tree:
+    """
+    Draw tree with strain placement.
+    """
+    input:
+        nexus = "wgfast/{sample}_taxid_{taxa}_transformed.tree"
+    output:
+        newick = "wgfast/{sample}_taxid_{taxa}_transformed.newick",
+        tree = report("wgfast/{sample}_taxid_{taxa}_transformed.png")
+    log: "logs/wgfast_tree_{sample}_taxid_{taxa}.log"
+    threads: 1
     message:
         """
-        Reformatting fastq file names for WGFAST input
-        Copying {input}
-        to {output}
+        Drawing wgfast tree from {input}.
+        Writing to {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
         """
     run:
-        for old, new in zip(input, output):
-            copyfile(old, new)
-            
+        from Bio import Phylo
+        from ete3 import Tree
+        Phylo.convert(input.nexus, "nexus",
+                      output.newick, "newick")
+        t = Tree(output.newick)
+        t.render(output.tree, w=183, units="mm")
+
+
+        
+
+
+rule wgfast_fasta_to_fastq:
+    """
+    Convert extracted taxa queries to fastq.
+    """
+    input: "extracted_queries/{sample}_taxid_{taxa}.fasta"
+    output: "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
+    log: "logs/wgfast_fasta_to_fastq_{sample}_taxid_{taxa}.log"
+    threads: 1
+    message:
+        """
+        Converting extracted queries {input} for {wildcards.taxa} to
+        fastq {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        """
+    run:
+        from Bio import SeqIO
+        import gzip
+        import shutil
+
+        with open(output[0], 'w') as fastq_handle:
+            with open(input[0], 'r') as fasta_handle:
+                for record in SeqIO.parse(fasta_handle, 'fasta'):
+                    record.letter_annotations[
+                        "phred_quality"] = [40] * len(record)
+                    name = record.id
+                    # repeat for the number of times the query appeared
+                    # in the sample
+                    for rep in range(int(name.split("_")[-1])):
+                        record.id = "{0}_{1}".format(name, rep)
+                        SeqIO.write(record, qhandle, "fastq")
 
 
 
+rule wgfast_gzip:
+    """
+    Gzip fastqs for WGFAST.
+    """
+    input: "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
+    output: "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
+    threads: 1
+    log: "logs/wgfast_gzip_fastq_{sample}_taxid_{taxa}.log"
+    message:   
+        """
+        Gzip fastq file {input}.
+        Writing to {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        """
+    shell:
+        """
+        gzip {input[0]} > {log} 2>&1
+        """
+
+
+
+# rule wgfast_report:
+#     input:
+#         tree = os.path.join(
+#             config['wgfast_output'], "transformed.tree"),
+#         nasp = os.path.join(
+#             config['wgfast_output'], "nasp_matrix.with_unknowns.txt"),
+#         pat = os.path.join(
+#             config['wgfast_output'], "all_patristic_distances.txt")
+#     output: REPORT
+#     message:
+#         """
+#         Generating WGFAST report at {output}
+#         """
+#     run:
+#         from snakemake.utils import report
+#         cov = os.path.join(
+#             config['wgfast_output'], "coverage_out.txt")
+#         hits = config['input_hits']
+#         taxids = config['taxids'][0]
+#         report(
+#             """
+#             WGFAST Report
+#             =============================
+#             WGFAST was ran on queries extracted from **{hits}**
+#             for taxid **{taxids}**. The output files are at the 
+#             following paths:\n
+#             This file is a nexus file of the starting tree with the unknowns placed. If
+#             this file is opened with figtree, the unknown isolates are shown in red.\n
+#             **Figtree** http://tree.bio.ed.ac.uk/software/figtree/ \n
+#             **{input.tree}**\n
+#             This file is a modification of the original NASP matrix with
+#             the unknowns inserted, so the user can identify specific SNPs. 
+#             Information is lost from this matrix, so it cannot be used with 
+#             additional WG-FAST runs.\n
+#             **{input.nasp}**\n
+#             If you chose to have genome coverage information, the coverage across
+#             the reference genome is provided in this file.\n
+#             **{cov}**\n
+#             This file contains the patristic distance, or tree path distance, 
+#             between all pairwise comparisons in the analysis.\n
+#             **{input.pat}**""", output[0]
+#         )
