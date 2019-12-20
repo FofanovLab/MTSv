@@ -1,58 +1,34 @@
-import os
-from glob import glob
-from snakemake.utils import makedirs
 
-makedirs(["logs"])
 
 def get_threshold(config):
-    if config['concoct_opts']:
-        
-        concoct_opts = config['concoct_opts'] 
-        try:
-            idx = concoct_opts.index("-l")
-        except ValueError:
-            try:
-                idx = concoct_opts.index("--length_threshold")
-            except ValueError:
-                # Use default value
-                return ('1000', " ".join(concoct_opts))
+    """
+    Parse threshold value to name output files.
+    """     
+    concoct_opts = [
+        p.strip() for p in
+            config.get("concoct_params", "-l 1000").split(" ")]
+    threshold_flag = list(
+        set(["-l", "--length_threshold"]).intersection(set(concoct_opts)))
+    if threshold_flag:
+        idx = min([concoct_opts.index(c) for c in threshold_flag]) # get first
+    # remove the flag and value from options, set threshold to the value
         threshold = [concoct_opts.pop(idx), concoct_opts.pop(idx)][-1]
-        return (threshold, " ".join(concoct_opts))
     else:
-        return ('1000', '')
-    
-def get_samples(unaligned_queries):
-    return [
-        os.path.splitext(os.path.basename(filename))[0].replace(
-            "unaligned_queries_", "") for
-        filename in unaligned_queries]
+        threshold = "1000"     
+    return (threshold, " ".join(concoct_opts))
 
 
-
-
-INPUT_FILES = config['unaligned_queries']
-SAMPLES = get_samples(INPUT_FILES)
-SAMPLE_DICT = {sample: infile for sample, infile in zip(SAMPLES, INPUT_FILES)}
 THRESHOLD, CONCOCT_OPTS = get_threshold(config)
-
-def get_input_files(wildcards):
-    return SAMPLE_DICT[wildcards.sample]
-
-
-rule concoct_all:
-    input: expand("concoct_{sample}/{sample}.done", sample=SAMPLES)
-
         
 rule megahit:
-    """Generate metagenomic assembly using megahit."""
-    input: get_input_files
-        # expand(
-        #     "{path}/unaligned_queries_{{sample}}.fasta",
-        #     path=config['unaligned_queries'])
-    output: "megahit_{sample}/final.contigs.fa"
-    params: " ".join(config['megahit_opts']) if 'megahit_opts' in config else ""
+    """
+    Metagenomic assembly using megahit.
+    """
+    input: "unaligned_queries/{sample}_unaligned.fasta"
+    output: "alignment_free_binning/megahit_{sample}/final.contigs.fa"
+    params: config.get("megahit_params", "")
     log: "logs/{sample}_megahit.log"
-    threads: config['threads']
+    threads: 12
     message:
         """
         Getting metagenomic assembly (megahit) from unaligned queries {input}.
@@ -64,18 +40,21 @@ rule megahit:
     shell:
         """
         echo MEGAHIT {wildcards.sample} >> {log}
-        rm -rf megahit_{wildcards.sample}
-        megahit -r {input} -o megahit_{wildcards.sample} -t {threads} {params} >> {log} 2>&1 
+        rm -rf alignment_free_binning/megahit_{wildcards.sample}
+        megahit -r {input} -o alignment_free_binning/megahit_{wildcards.sample} \
+            -t {threads} {params} >> {log} 2>&1 
         echo END MEGAHIT {wildcards.sample} >> {log}
         """
 
-rule cut_up:
-    """Cut assembled contigs into smaller parts"""
-    input: "megahit_{sample}/final.contigs.fa"
+rule concoct_cut_up:
+    """
+    Cut assembled contigs into smaller sequences.
+    """
+    input: "alignment_free_binning/megahit_{sample}/final.contigs.fa"
     output:
-        bed="concoct_{sample}/{sample}.bed",
-        cut="concoct_{sample}/{sample}_cut.fasta"
-    params: " ".join(config['cutup_opts']) if 'cutup_opts' in config else ""
+        bed = "alignment_free_binning/concoct_{sample}/{sample}.bed",
+        cut = "alignment_free_binning/concoct_{sample}/{sample}_cut.fasta"
+    params: config.get("cutup_params", "")
     threads: 1
     message:
         """
@@ -86,21 +65,17 @@ rule cut_up:
         """
     shell:
         """
-        mkdir -p concoct_{wildcards.sample};
+        mkdir -p alignment_free_binning/concoct_{wildcards.sample};
         cut_up_fasta.py {input} -b {output.bed} {params} > {output.cut}
         """
 
 
-rule fasta2fastq:
+rule concoct_fasta2fastq:
     """
-    Covert unaligned fasta queries to a fastq adding duplicates
-    back and supplying fake quality scores
+    Covert unaligned fasta queries to a fastq. 
     """
-    input: get_input_files
-        # expand(
-        #     "{path}/unaligned_queries_{{sample}}.fasta",
-        #     path=config['unaligned_queries'])
-    output: "concoct_{sample}/unaligned_queries_{sample}.fastq"
+    input: "unaligned_queries/{sample}_unaligned.fasta"
+    output: "alignment_free_binning/concoct_{sample}/unaligned_queries_{sample}.fastq"
     threads: 1
     message:
         """
@@ -110,7 +85,6 @@ rule fasta2fastq:
         """
     run:
         from Bio import SeqIO
-        os.makedirs(os.path.dirname(output[0]), exist_ok=True)
         with open(input[0], 'r') as handle:
             with open(output[0], 'w') as out:
                 for record in SeqIO.parse(handle, 'fasta'):
@@ -121,17 +95,19 @@ rule fasta2fastq:
                         SeqIO.write(record, out, "fastq")
 
 
-rule make_bam:
-    """Generate a bam file by mapping queries back to the contigs"""
+rule concoct_make_bam:
+    """
+    Generate a bam file by mapping queries back to the contigs.
+    """
     input:
-        ref="megahit_{sample}/final.contigs.fa", 
-        fastq="concoct_{sample}/unaligned_queries_{sample}.fastq"
+        ref = "alignment_free_binning/megahit_{sample}/final.contigs.fa",
+        fastq = "alignment_free_binning/concoct_{sample}/unaligned_queries_{sample}.fastq"
     output: 
-        bam="concoct_{sample}/{sample}.bam",
-        bai="concoct_{sample}/{sample}.bam.bai"
-    params: " ".join(config['bwa_opts']) if 'bwa_opts' in config else ""
-    log: "logs/{sample}_bam.log"
-    threads: config['threads']
+        bam = "alignment_free_binning/concoct_{sample}/{sample}.bam",
+        bai = "alignment_free_binning/concoct_{sample}/{sample}.bam.bai"
+    params: config.get("bwa_params", "")
+    log: "logs/concoct_{sample}_bam.log"
+    threads: 12
     message:
         """
         Mapping reads (BWA MEM) and indexing (Samtools) 
@@ -158,14 +134,16 @@ rule make_bam:
         echo END MAKE BAM {wildcards.sample} >> {log}
         """
 
-rule coverage_table:
-    """Generate table with coverage depth information per sample and subcontig."""
+rule concoct_coverage_table:
+    """
+    Generate table with coverage depth information.
+    """
     input:
-        bed="concoct_{sample}/{sample}.bed",
-        bai="concoct_{sample}/{sample}.bam.bai",
-        bam="concoct_{sample}/{sample}.bam"
-    output: "concoct_{sample}/{sample}_coverage_table.tsv"
-    log: "logs/{sample}_coverage_table.log"
+        bed = "alignment_free_binning/concoct_{sample}/{sample}.bed",
+        bai = "alignment_free_binning/concoct_{sample}/{sample}.bam.bai",
+        bam = "alignment_free_binning/concoct_{sample}/{sample}.bam"
+    output: "alignment_free_binning/concoct_{sample}/{sample}_coverage_table.tsv"
+    log: "logs/concoct_{sample}_coverage_table.log"
     threads: 1
     message:
         """
@@ -190,24 +168,26 @@ rule coverage_table:
 
 
 rule concoct:
-    """Run concoct binning"""
+    """
+    Run concoct alignment-free binning.
+    """
     input:
-        cov="concoct_{sample}/{sample}_coverage_table.tsv",
-        cut="concoct_{sample}/{sample}_cut.fasta"
+        cov="alignment_free_binning/concoct_{sample}/{sample}_coverage_table.tsv",
+        cut = "alignment_free_binning/concoct_{sample}/{sample}_cut.fasta"
     output: 
         expand(
-            "concoct_{{sample}}/clustering_gt{param}.csv",
+            "alignment_free_binning/concoct_{{sample}}/clustering_gt{param}.csv",
             param=THRESHOLD)
     params:
         threshold=THRESHOLD,
         opts=CONCOCT_OPTS
     log: "logs/{sample}_concoct.log"
-    threads: config['threads']
+    threads: 12
     message:
         """
         Running concoct using coverage table {input.cov} and fasta {input.cut}.
         Writing to {output}.
-        Additional Params: -l {params.threshold} {params.opts} 
+        Additional Params: length_threshold={params.threshold} {params.opts} 
         Logging to {log}.
         Using {threads} thread(s).
         """
@@ -227,15 +207,17 @@ rule concoct:
 
 
 
-rule merge:
-    """Merge subcontig clustering into original contig clustering."""
+rule concoct_merge:
+    """
+    Merge subcontig clustering into original contig clustering.
+    """
     input: 
         expand(
-            "concoct_{{sample}}/clustering_gt{param}.csv",
+            "alignment_free_binning/concoct_{{sample}}/clustering_gt{param}.csv",
             param=THRESHOLD)
-    output: "concoct_{sample}/clustering_merged.csv"
+    output: "alignment_free_binning/concoct_{sample}/clustering_merged.csv"
     threads: 1
-    log: "logs/{sample}_merge_clusters.log"
+    log: "logs/concoct_{sample}_merge_clusters.log"
     message:
         """
         Merge clustering from {input}.
@@ -250,16 +232,18 @@ rule merge:
         echo END MERGE CLUSTERS {wildcards.sample} >> {log}
         """
 
-rule fasta_bins:
-    """Extract bins as individual fastas"""
+rule concoct_fasta_bins:
+    """
+    Extract bins as individual fastas.
+    """
     input: 
-        clustered="concoct_{sample}/clustering_merged.csv",
-        assembly="megahit_{sample}/final.contigs.fa"
+        clustered = "alignment_free_binning/concoct_{sample}/clustering_merged.csv",
+        assembly = "alignment_free_binning/megahit_{sample}/final.contigs.fa"
     output: 
-        touch("concoct_{sample}/{sample}.done")
+        touch("alignment_free_binning/concoct_{sample}/{sample}.done")
     params:
-        outpath="concoct_{sample}/fasta_bins"
-    log: "logs/{sample}_bin_fastas.log"
+        outpath = "alignment_free_binning/concoct_{sample}/fasta_bins"
+    log: "logs/concoct_{sample}_bin_fastas.log"
     threads: 1
     message:
         """
@@ -283,18 +267,7 @@ rule fasta_bins:
         echo END FASTA_BINS {wildcards.sample} >> {log}
         """
 
-LOG_OUT = """
-        for VAR in megahit bam coverage_table concoct merge_clusters bin_fastas
-            do
-            cat "logs/"*$VAR".log" >> {log}
-            done
-        """.format(log=config['log_file'])
 
-onsuccess:
-    shell(LOG_OUT)
-
-onerror:
-    shell(LOG_OUT)
 
 
 
