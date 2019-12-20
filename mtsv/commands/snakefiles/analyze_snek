@@ -1,81 +1,375 @@
-from mtsv.utils import script_path
+import logging
+from mtsv.utils import (
+    script_path, get_item_from_artifact)
+from mtsv.scripts.datastore_management import (get_main_datastore_path)
 
-include: "binning_snek"
-include: "summary_snek"
 
-shell.prefix("set -euo pipefail;")
+BINNING_PARAMS = {
+    'kmer_size': config['kmer_size'],
+    'edits': config['edits'],
+    'seed_size': config['seed_size'],
+    'seed_gap': config['seed_gap'],
+    'min_seeds': config['min_seeds']}
 
-SCRIPTS = {
-    'random_kmers': script_path("MTSv_random_kmers.py"),
-    'analyze': script_path("MTSv_analyze.py")
+TAXDUMP = get_item_from_artifact(config['database_config'], "taxdump-path")
+FASTA_DB = get_item_from_artifact(config['database_config'], "fasta-path")
+SERIAL_PATH = get_item_from_artifact(
+    config['database_config'], "serialization-path")
+
+
+FILTER_PARAMS = {
+    'rule': config.get('filter_rule', 'min'),
+    'column': config.get('filter_column', 'unique_signature'),
+    'value': config.get('filter_value', '200')
 }
 
+MAIN_DATASTORE_PATH = get_main_datastore_path(
+    config['database_config'], BINNING_PARAMS)
 
-EXP_DB_PARAMS = {
-    'db_path': config['database_config'],
-    'kmer': config['kmer'],
-    'edits': config['edits'],
-    'seed_size': config['seed-size'],
-    'seed_gap': config['seed-gap'],
-    'min_seeds': config['min-seeds']}
+rule filter_candidate_taxa:
+    """
+    Collect all species taxids from summary files
+    that pass the filter rules.
+    """
+    input:
+        summary = expand(
+            "results/{sample}_raw_summary.csv",
+            sample = SAMPLES),
+    output: "results/.working/candidate_taxa.txt"
+    log: "logs/filtering_candidate_taxa.log"
+    message:
+        """
+        Filtering candidate taxa from {input.summary}.
+        Writing to {output}.
+        Logging to {log}.
+        Using {threads} threads.
+        Params: {params}
+        """
+    params: **FILTER_PARAMS
+    run:
+        from mtsv.scripts.analyze import get_candidate_taxa
+        from mtsv.utils import (config_logging, warn)
+        config_logging(log[0], "INFO")
+        with open(output[0], 'w') as out:
+            candidates = set()
+            for fn in input.summary:
+                candidates.update(
+                    get_candidate_taxa(
+                        fn, params.rule, params.column, params.value ))
+            out.write("\n".join(list(map(str, candidates))))
+        if len(candidates) == 0:
+            msg = "No candidates passed filter"
+            warn(msg)
+            logging.warning(msg)
+        else:
+            msg = "{0} candidates passed filter".format(len(candidates))
+            info(msg)
+            logging.info(msg)
 
-rule analyze_all:
-    input: config['analysis_file']
 
+checkpoint get_candidates_not_in_database:
+    """
+    Find candidates that are not already in the expected datastore.
+    """
+    input:
+        can_taxa = "results/.working/candidate_taxa.txt"
+    output: "results/.working/candidate_taxa_required.txt"
+    log: "logs/candidates_not_in_database.log"
+    params:
+        main_ds_path = MAIN_DATASTORE_PATH,
+        datastore = config['datastore']
+    # Datastore is a param instead of input to avoid issues with updating
+    # file in later rules and calculating DAG.
+    message:
+        """
+        Collecting candidates that are not in database
+        for further processing.
+        Writing to {output}.
+        Logging to {log}.
+        """
+    run:
+        from mtsv.utils import config_logging
+        from mtsv.scripts.datastore_management import candidates_not_in_database
+        config_logging(log[0], "INFO")
+        with open(input.can_taxa, 'r') as infile:
+            candidates = infile.read().split('\n')
 
-MEM = (config['kmer'] * 
-        config['n_kmers'] * 
-        config['threads'] * 
-        len(open(config['candidate_taxa_req']).read().split("\n")))
-
+        if not len(candidates):  # none of the species passed filter
+            required_candidates = []
+        else:
+            required_candidates = candidates_not_in_database(
+                candidates, params.datastore,
+                params.main_ds_path)
+        logging.info(
+            "{0} candidate taxid(s) to be processed: {1}".format(
+                len(required_candidates), ", ".join(required_candidates)))
+        with open(output[0], 'w') as outfile:
+            outfile.write("\n".join(required_candidates))
 
 
 rule random_kmers:
-    input: config['candidate_taxa_req']
+    """
+    Generate random kmers for taxid.
+    """
+    input:
+        fasta = FASTA_DB,
+        pickle = SERIAL_PATH,
     output:
-        fasta=config['fasta']
+        "results/.working/queries/{taxid}.fasta"
+    log: "results/.working/logs/random_kmers_{taxid}.log"
+    params:
+        kmer_size = BINNING_PARAMS['kmer_size'],
+        n_kmers = config.get('sample_n_kmers', 100000)
+    threads: 1
     message:
         """
-        Generating random kmers from taxa in {input}.
+        Generating random kmers from taxid: {wildcards.taxid}.
         Writing to {output}.
-        Logging to {log}
-        Snakemake scheduler assuming {threads} thread(s) and 
-        {resources.mem_mb} Mb of memory."""
-    resources:
-        mem_mb=lambda wildcards, attempt: max(
-            1, attempt * int(MEM * 0.0000015))
-    params:
-        kmer_size=config['kmer'],
-        n_kmers=config['n_kmers'],
-        fasta_path=config['fasta_db'],
-        pickle_path=config['serial_path']
-    threads:
-        config['threads']
-    log:
-        config['log_file']
-    script: SCRIPTS['random_kmers']
-
-
-rule analyze:
-    input: config['summary_file']
-    output: config['analysis_file']
-    resources:
-        mem_mb=lambda wildcards, attempt: attempt
-    message: 
+        Logging to {log}.
+        Using {threads} thread(s).
+        Parameters: kmer_size={params.kmer_size} sample_n_kmers={params.n_kmers}
         """
-        Analyzing statistics.
-        Reading from {input}
-        Writing to {output}.
-        Logging to {log}
-        Snakemake scheduler assuming {threads} thread(s) and 
-        {resources.mem_mb} Mb of memory.
-        """
-    params:
-        obs_summary=config['summary_file_in'],
-        taxa=config['candidate_taxa'],
-        req_taxa=config['candidate_taxa_req'],
-        exp_db_params=EXP_DB_PARAMS
-    log: config['log_file']
-    script: SCRIPTS['analyze']    
+    run:
+        from mtsv.utils import config_logging
+        from mtsv.scripts.random_kmers import random_kmers
+        config_logging(log[0], "INFO")
+        logging.info(
+            "Generating random kmers from taxid: {}".format(
+                wildcards.taxid))
+        random_kmers(
+            wildcards.taxid,
+            input.fasta,
+            input.pickle,
+            params.kmer_size,
+            params.n_kmers,
+            output[0]
+        )
+        logging.info("Finished generating random kmers")
 
+
+# input function for the rule aggregate
+def aggregate_input(wildcards):
+    taxa = get_taxa_wildcards(wildcards)
+    if not taxa:
+        return {"clp_file_list": [], "queries_list": []}
+    clp_file_list = expand(
+        "results/.working/binning/{taxid}_merged.clp",
+        taxid=taxa)
+    queries_list = expand(
+        "results/.working/queries/{taxid}.fasta",
+        taxid=taxa)
+    return {"clp_file_list": clp_file_list, "queries_list": queries_list}
+
+
+def get_taxa_wildcards(wildcards):
+    with checkpoints.get_candidates_not_in_database.get(
+            **wildcards).output[0].open() as f:
+        taxa = f.read().split("\n")
+    return [t for t in taxa if t]
+
+
+
+rule analyze_binning:
+    """
+    Alignment-based binning for simulated reads.
+    """
+    input:
+        queries = "results/.working/queries/{taxid}.fasta",
+        index = lambda wc: INDEX_MAP[wc.index]
+    output: temp("results/.working/binning/sample_{taxid}_index_{index}.bn")
+    log: "results/.working/logs/binning_sample_{taxid}_index_{index}.log"
+    threads: 12
+    params:
+        edits = config.get('edits', 3),
+        seed_size = config['seed_size'],
+        min_seeds = config['min_seeds'],
+        seed_gap = config['seed_gap']
+    message:
+        """
+        Executing Binner on queries in {input.queries}.
+        Using index {input.index}
+        Writing files to directory {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        Parameters: edits={params.edits}, seed_size={params.seed_size}
+        min_seeds=params.min_seeds, seed_gap={params.seed_gap}
+        """
+    shell:
+        """
+        mtsv-binner \
+        --index {input.index} --fasta {input.queries} \
+        --results {output} --threads {threads} \
+        --edits {params.edits} --seed-size {params.seed_size} \
+        --min-seeds {params.min_seeds} \
+        --seed-gap {params.seed_gap} >> {log} 2>&1
+        """
+
+
+rule analyze_collapse:
+    """
+    Combine binning results from different FM-indices for simulated reads.
+    """
+    input:
+        expand(
+            "results/.working/binning/sample_{{taxid}}_index_{index}.bn",
+            index=list(INDEX_MAP.keys()))
+    output: "results/.working/binning/{taxid}_merged.clp"
+    log: "results/.working/logs/{taxid}_merged.log"
+    threads: 1
+    message:
+        """
+        Merging binning output into {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        """
+    shell:
+        """
+        mtsv-collapse {input} -o {output} >> {log} 2>&1
+        """
     
+
+
+rule update_datastore:
+    """
+    Update expected values in datastore.
+    """
+    input:
+        unpack(aggregate_input),
+        taxdump = TAXDUMP
+    output: touch("results/.working/update_datastore.done")
+    log: "logs/update_datastore.log"
+    params:
+            max_taxa_per_query=config.get("max_taxa_per_query", 50),
+            main_ds_path=MAIN_DATASTORE_PATH,
+            artifact_path=config['database_config'],
+            taxids=get_taxa_wildcards,
+            # datastore is in params instead of input to avoid issues 
+            # with modification times and building the DAG.
+    message:
+        """
+        Updating datastore with data from {params.taxids}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        Additional parameters: 
+            max_taxa_per_query={params.max_taxa_per_query}
+        """
+    run:
+        from mtsv.utils import config_logging
+        from mtsv.scripts.datastore_management import (
+            update_datastore, get_dataset_info)
+        config_logging(log[0], "INFO")
+        logging.info("START rule update_datastore")
+        if not input.clp_file_list:
+            logging.info("END rule update_datastore: Nothing to update.")
+        else:
+            dataset_info = get_dataset_info(
+                params.artifact_path, params.main_ds_path)
+            update_datastore(
+                    input.clp_file_list, input.queries_list, params.taxids,
+                    config['datastore'], dataset_info,
+                    params.max_taxa_per_query, input.taxdump)
+            logging.info("END rule update_datastore")
+
+
+
+
+rule analysis:
+    """
+    Run equivalence hypothesis test on observed vs expected values.
+    """
+    input: 
+        datastore_update="results/.working/update_datastore.done",
+        summary="results/{sample}_raw_summary.csv",
+    output: 
+        report(
+            "results/{sample}_analysis.csv",
+            caption="report/analysis_raw_table.rst",
+            category="3 Analysis")
+    log: "logs/{sample}_analysis.log"
+    params:
+        main_ds_path=MAIN_DATASTORE_PATH,
+        alpha = config.get('alpha', 0.05),
+        h = config.get('h', 0.5),
+        filter_params = FILTER_PARAMS
+        # datastore is in params instead of input to avoid issues
+        # with modification times and buiding the DAG.
+    run:
+        from mtsv.scripts.analyze import analyze
+        from mtsv.scripts.datastore_management import (
+            get_expected_data_for_analysis)
+        from mtsv.utils import config_logging
+        import pandas as pd
+
+        config_logging(log[0], "INFO")
+        logging.info("START Running analysis")
+        summary_data = pd.read_csv(input.summary, index_col=0)
+        expected_data = get_expected_data_for_analysis(
+            config['datastore'], params.main_ds_path)
+        analysis_df = analyze(
+            summary_data, expected_data,
+            params.alpha, params.h, params.filter_params)
+        analysis_df.to_csv(output[0], float_format="%.5f", index=False)
+        logging.info("FINISHED Running analysis")
+
+
+rule analysis_figure:
+    """
+    Generate heatmaps for analysis results.
+    """
+    input:
+        expand(
+            "results/{sample}_analysis.csv", sample=SAMPLES)
+    output: 
+        report(
+            "results/heatmap.png",
+            caption="report/analysis_heatmap.rst",
+            category="3 Analysis")
+    log: "logs/heatmap_figure.log"
+    params:
+        kwargs=config.get("figure_kwargs", {})
+    threads: 1
+    message:
+        """
+        Generating heatmap figure from analysis results: {input}.
+        Writing to {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        """
+    run:
+        from mtsv.scripts.analyze import heatmap_figure
+        from mtsv.utils import config_logging
+        config_logging(log[0], "INFO")
+        logging.info("START Generating heatmap figure")
+        heatmap_figure(input, output[0], params.kwargs)
+        logging.info("FINISHED Generating heatmap figure")
+
+
+rule analysis_html:
+    """
+    Generate analysis collapsible table html.
+    """
+    input: "results/{sample}_analysis.csv"
+    output:
+        report(
+            "results/{sample}_analysis.html",
+            caption="report/analysis_expandable_table.rst",
+            category="3 Analysis")
+    log: "logs/{sample}_analysis_report_page.log"
+    threads: 1
+    message:
+        """
+        Generating analysis report page.
+        Writing to {output}.
+        Logging to {log}.
+        Using {threads} thread(s).
+        """
+    run:
+        from mtsv.scripts.analyze import get_report_html
+        from mtsv.utils import config_logging
+        config_logging(log[0], "INFO")
+        logging.info("START Generating report html")
+        get_report_html(input[0], output[0], wildcards.sample)
+        logging.info("FINISH Generating report html")
+
+      
+
