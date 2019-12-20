@@ -4,29 +4,13 @@ import os
 import sys
 import ast
 import logging
-import numpy as np
-from contextlib import suppress
 from glob import glob
-from collections import namedtuple
-
+from argutils import (read, export)
 
 from mtsv.utils import(error, warn, specfile_read)
-from mtsv.argutils import (read, export)
 from mtsv import (DEFAULT_LOG_FNAME, DEFAULT_CFG_FNAME)
 
 logger = logging.getLogger(__name__)
-SECTIONS = [
-    "READPREP", "BINNING", "SUMMARY",
-    "ANALYZE", "EXTRACT", "WGFAST", "CONCOCT"]
-
-split = str.split
-strip = str.strip
-rsplit = str.rsplit
-
-bsplit = bytes.split
-bstrip = bytes.strip
-brsplit = bytes.rsplit
-
 
 def make_sub_parser(subparser, cmd, cmd_class):
     global_defaults = get_global_config(cmd_class.config_section)
@@ -57,18 +41,7 @@ def make_sub_parser(subparser, cmd, cmd_class):
     add_default_arguments(p)
     p.set_defaults(cmd_class=cmd_class)
 
-def create_config_file(config_file):
-    cfg_file_str = ""
-    for cmd in SECTIONS:
-        spec = specfile_read(cmd)
-        opts = read.from_yaml(spec)
-        meta = opts['_meta_{}'.format(cmd.lower())]
-        del opts['_meta_{}'.format(cmd.lower())]
-        opts['_meta'] = meta
-        cfg_file_str += export.to_config(
-            cmd, opts) + "\n"
-    config_file.write(cfg_file_str)
-    config_file.close()
+
 
 def get_global_config(include_cmds):
     args_dict = {}
@@ -87,24 +60,6 @@ def get_global_config(include_cmds):
     return args_dict
 
 
-def format_cml_params(include_cmd, args, ignore, include):
-    command_list = []
-    for arg, desc in get_global_config([include_cmd]).items():
-        if '_meta' in arg:
-            continue
-        if 'positional' in desc:
-            continue
-        if arg in ignore:
-            continue
-        if arg in args and args[arg] is not None:
-            try:
-                val = args[arg].name
-            except AttributeError:
-                val = str(args[arg]) 
-            command_list += ["--{}".format(arg), val]
-    for incl in include:
-        command_list.append(incl)
-    return " ".join(command_list)
 
 
 def add_default_arguments(parser):
@@ -133,28 +88,7 @@ def add_default_arguments(parser):
         help="Number of worker threads to spawn. (default: 4)"
     )
 
-def get_missing_sections(config_file):
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    return [s for s in SECTIONS if s not in config.sections()]
 
-def parse_config_sections(config_file, sections):
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    config_for_sections = {}
-    try:
-        for section in sections:
-            with suppress(configparser.NoSectionError):
-                for cmd, val in config.items(section):
-                    # Only add if there is a value
-                    # avoids adding optional params
-                    if val:
-                        config_for_sections[cmd] = val                    
-    except configparser.ParsingError:
-        error(
-            "Cannot parse config file: {}".format(
-                config_file.name))
-    return config_for_sections
 
 def path_type(input_path):
     '''Path_type is for paths that should already exist.
@@ -323,51 +257,6 @@ def positive_int(input_val):
         raise argparse.ArgumentTypeError("Not a positive integer")
     return input_val
 
-
-Record = namedtuple('Record', ['read_id', 'counts', 'taxa', 'read_name'])
-
-def parse_output_row(row):
-    read_name, taxa = split(row, ":")
-    taxa = np.array([tax for tax in split(taxa, ",")], dtype=int)
-    counts = np.array([c for c in split(read_name, "_")[1:]], dtype=int)
-    read_id = split(read_name, "_")[0]
-    return Record(
-        read_id=read_id, counts=counts, taxa=taxa, read_name=read_name)
-
-def parse_output_row_bytes(row):
-    read_name, taxa = bsplit(row, b":")
-    taxa = np.array([tax for tax in bsplit(taxa, b",")], dtype=int)
-    counts = np.array([c for c in bsplit(read_name, b"_")[1:]], dtype=int)
-    read_id = bsplit(read_name, b"_")[0]
-    return Record(
-        read_id=read_id, counts=counts, taxa=taxa, read_name=read_name)
-
-
-def parse_query_id(query_id):
-    return np.array([int(q) for q in query_id.split("_")[1:]])
-
-
-def make_table(columns, headers):
-    if len(headers) != len(columns):
-        raise ValueError(
-            "Header does not match number of columns")
-    max_sizes = []
-    table = ""
-    for column, header in zip(columns, headers):
-        max_sizes.append( max([len(str(c)) for c in column] + [len(str(header))]) )
-    div = "  ".join(["=" * size for size in max_sizes]) + "\n"
-    table += div
-    fmt = []
-    for i, sz in zip(range(len(columns)), max_sizes):
-        fmt.append("{{{0}:<{1}}}".format(i, sz))
-    fmt = "  ".join(fmt) + "\n"
-    # add header
-    table += fmt.format(*headers)
-    table += div
-    for row in [*zip(*columns)]:
-        table += fmt.format(*row)
-    table += div
-    return table
 
 TYPES = {
     'int': int,
