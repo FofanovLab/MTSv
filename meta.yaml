@@ -51,12 +51,12 @@ requirements:
 test:
   imports:
     - mtsv
-  requires:
-    - pytest
+  # requires:
+  #   - pytest
   commands:
     - mtsv --help > /dev/null
     - mtsv_setup --help > /dev/null
-    - py.test --pyargs mtsv
+    # - py.test --pyargs mtsv
     
 about:
   home: https://github.com/FofanovLab/MTSv
