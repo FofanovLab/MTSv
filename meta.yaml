@@ -11,7 +11,7 @@ build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
   # string: {{ environ.get('GIT_BUILD_STR', '') }}
   entry_points:
-    - mtsv = mtsv.main:cli
+    - mtsv = mtsv.__main__:cli
     - mtsv_setup = mtsv.mtsv_prep.main:main
   skip: true  # [osx or not py36]
 
@@ -56,7 +56,6 @@ test:
   commands:
     - mtsv --help > /dev/null
     - mtsv_setup --help > /dev/null
-    - mtsv_plugin --help > /dev/null
     - py.test --pyargs mtsv
     
 about:
