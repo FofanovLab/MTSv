@@ -1,5 +1,6 @@
 # issue with normal GCC 7 C++ compiler for taxidtool.cpp 
 cxx_compiler:	
   - gxx      # [linux]
-
+python:
+  - 3.6
 
