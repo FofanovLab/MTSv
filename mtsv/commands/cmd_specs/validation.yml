@@ -1,0 +1,259 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+description: MTSv Pipeline
+properties:
+  fastq_pattern:
+    type: string
+    default: "reads/{sample}_R{pair}_001.fastq"
+    group: readprep
+    description: >
+      Snakemake pattern for fastq files to process.  
+      The default is "reads/{sample}_R{pair}_001.fastq"  
+      and should work for illumina formatted read files.  
+      The "sample" keyword is REQUIED and will be used to name  
+      all output files. The "pair" keyword can be used to combine  
+      paired end reads, they will be concatenated after QC and  
+      analyzed together. Other keywords and regex can be added  
+      to make sample name more specific.  
+      See Snakemake documentation (https://snakemake.readthedocs.io)  
+      for wildcard constraints.  
+      ---------  
+      Examples  
+      ---------  
+      For file myreads/HUMAN-Blank_S3_R1_001.fq  
+      the pattern "myreads/HUMAN-{sample}_R{pair}.fq" will  
+      name this sample "Blank_S3". If an R2 file with the  
+      same pattern exists in the same directory, they will be combined  
+      into the same sample.  
+      The pattern "myreads/{sample}.fq" will name this sample  
+      "HUMAN-Blank_S3_R1_001" and any R2 file in the same directory will  
+      be run separately as sample "HUMAN-Blank_S3_R2_001".  
+      ----------------------  
+      Advanced Regex Example  
+      ----------------------  
+      For files myreads/HUMAN-Blank-xx-xx-xxx-xxxx-xxx-xx_S2_R1_001.fastq and  
+      myreads/HUMAN-Sample1-xx-xx-xxx-xxxx-xxx-xx_S2_R1_001.fastq, where the  
+      x's represent values that are unique to each sample that you do not  
+      want included in the sample name you can use regex and a throwaway keyword.  
+      For example, the pattern  
+      "myreads/{sample,\w+-\w+}-{remove}_R{pair}_001.fastq" would work  
+      for this example, resulting in sample names "HUMAN-Blank" and  
+      "HUMAN-Sample1".
+  
+  fastp_params:
+    type: string
+    description: >
+      QC is performed by fastp (https://github.com/OpenGene/fastp).  
+      Default parameters are used but these can be modified by passing  
+      parameters as a string. Run  
+      "fastp --help" for options (avoid changing input/output and  
+      thread parameters as these are handled in the snakemake rule.)  
+      To bypass QC filtering, use  
+      "--disable_adapter_trimming --disable_trim_poly_g  
+      --disable_quality_filtering --disable_length_filtering"
+    default: '""'
+    group: "readprep"
+
+  kmer_size:
+    type: number
+    minimum: 1
+    default: 50
+    description: >
+      Reads will be chopped up into equal KMER_SIZE queries for  
+      processing.
+    group: readprep
+
+  binning_mode:
+    type: string
+    enum: ["fast", "efficient", "sensitive"]
+    default: "efficient"
+    description: >
+      Set recommended parameter mode to fast, efficient, or sensitive.  
+      These modes set values for SEED_SIZE, MIN_SEEDS, SEED_GAP  
+      fast (more misses, fast runtime), efficient (med misses, med runtime)  
+      or sensitive (few misses, slow) runs.  
+      fast=17,5,2, efficient=14,4,2, sensitive=11,3,1.  
+      Adding values for seed_size, min_seeds, or seed_gap in this config  
+      will override these settings.
+    group: binning
+  seed_size:
+    type: number
+    minimum: 1
+    group: binning
+    description: Inital exact match query size.
+  min_seeds:
+    type: number
+    minimum: 1
+    group: binning
+    description: Minimum number of seeds to perform alignment of a candidate site.
+  seed_gap:
+    type: number
+    group: binning
+    description: Gap between seeds used for initial exact match.
+  edits:
+    type: number
+    default: 3
+    group: binning
+    description: Edit distance to tolerate in matched reference sites.
+  database_config:
+    type: string
+    group: binning
+    description: Path to sequence database artifact json.
+  filter_rule:
+    type: string
+    enum: ["min", "in", "quant", "top"]
+    default: "min"
+    group: analyze
+    description: >
+      Rule for filtering candidates for analysis.  
+      "top" returns the taxa with the FILTER_VALUE highest values  
+      in the FILTER_COLUMN column of the summary table.  
+      "min" returns taxa that have values higher than FILTER_VALUE  
+      in the FILTER_COLUMN column of the summary table.  
+      "in" returns only taxa in a list of taxa provided for FILTER_VALUE.  
+      "quant" returns taxa in the FILTER_VALUE quantile for values in  
+      the FILTER_COLUMN column of the summary table.
+  filter_value:
+    default: 200
+    description: Provide the value to filter candidates.
+  filter_column:
+    type: string
+    enum: ["unique_signature", "signature", "total",
+      "unique", "weighted_support", "unique_weighted_support", "taxid"]
+    group: analyze
+    default: "unique_signature"
+    description: >
+      Define the summary data column to filter candidates.
+  datastore:
+    type: string
+    group: analyze
+    description: >
+      To save processing time, expected values gathered during the analysis  
+      step will be saved and used in future runs (assuming that the same  
+      binning parameters and sequence databases are used).  
+      The same datastore path should be used for every run to avoid  
+      havng to recalculate values. The same datastore can be shared among  
+      multiple uses if they have write access to the file.
+  sample_n_kmers:
+    type: number
+    minimum: 1
+    default: 100000
+    group: analyze
+    description: >
+      The number of queries to sample from taxa sequence database.  
+      These queries are used to calculate an expected value for the  
+      ratio of unique_signature hits to total unique hits.
+  alpha:
+    type: number
+    minimum: 0
+    maximum: 1
+    default: 0.05
+    group: analyze
+    description: Alpha cutoff for statistical analysis
+  h:
+    type: number
+    minimum: 0
+    default: 0.5
+    group: analyze
+    description: >
+      Cohen's h value for effect size. The statistical analysis  
+      uses an equivalence test and the range of this test is  
+      determinded using cohen's H.
+  figure_kwargs:
+    type: object
+    group: analyze
+    default: {}
+    description: >
+      Seaborn's clustermap is used to generate heatmap figures.  
+      Keyword arguments (e.g. figsize) can be passed to the function.
+  extract_taxids: 
+    type: array
+    default: []
+    group: extract
+    description: Extract queries that hit taxids in this list.
+  wgfast_taxids:
+    type: array
+    default: []
+    group: wgfast
+    description: Run wgfast on taxids in this list.
+  wgfast_reference_dirs:
+    type: array
+    default: []
+    group: wgfast
+    description: >
+      Reference directories that correspond to each taxid in WGFAST_TAXIDS.  
+      Use "wgfastdb" to setup the reference directories.
+  wgfast_params:
+    type: string
+    default: '""'
+    group: wgfast
+    description: >
+      Default WGFAST (https://github.com/jasonsahl/wgfast)  
+      parameters are used but parameters can be modified  
+      by passing them as a string. Run "wgfast --help" for  
+      options (avoid changing input/output and thread  
+      parameters as these are handled in the snakemake rule.)
+  megahit_params:
+    type: string
+    default: '""'
+    group: concoct
+    description: >
+      The queries are assembled using Megahit  
+      (https://github.com/voutcn/megahit). Default parameters are  
+      used but parameters can be modified by passing them as a string.  
+      Run megahit --help for options (avoid changing input/output and thread  
+      parameters as these are handled in the snakemake rule.)  
+  cutup_params: 
+    type: string
+    default: '""'
+    group: concoct
+    description: >
+      Concoct (https://github.com/BinPro/CONCOCT) cuts up contigs that  
+      are over a certain length. Default parameters are used but  
+      parameters can be modified by passing them as a string.  
+      Run "cut_up_fasta.py --help" for options (avoid changing  
+      input/output and thread parameters as these are handled  
+      in the snakemake rule.)
+  bwa_params:
+    type: string
+    default: '""'
+    group: concoct
+    description: >
+      Queries are mapped to the contigs using BWA (https://github.com/lh3/bwa).  
+      Default parameters are used but parameters can be modified by passing  
+      them as a string. Run "bwa mem" for options (avoid changing input/output  
+      and thread parameters as these are handled in the snakemake rule.)
+  concoct_params:
+    type: string
+    default: '""'
+    group: concoct
+    description: >
+      Concoct clusters contigs using nucleotide composition and coverage data  
+      across multiple samples (currently our pipeline runs samples separately).  
+      Default parameters are used but parameters can be modified by passing  
+      them as a string. Run "concoct --help" for options (avoid changing  
+      input/output and thread parameters as these are handled in the  
+      snakemake rule.)
+
+
+required:
+  - fastq_pattern
+  - database_config
+
+
+groups:
+  readprep:
+    description: QC reads, generate and deduplicate query kmers.
+  binning:
+    description: Alignment-based binning of queries.
+  analyze:
+    description: Perform statistical analysis on candidate taxa.
+  extract:
+    description: Extract queries that hit a given taxid.
+  wgfast:
+    description: SNP typing for strain-level resolution.
+  concoct:
+    description: >
+      Alignment-free binning of unaligned queries.  
+      See concoct documentation (https://github.com/BinPro/CONCOCT)  
+      for details on alignment free binning pipeline.
+
