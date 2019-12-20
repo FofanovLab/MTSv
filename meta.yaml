@@ -11,9 +11,8 @@ build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
   # string: {{ environ.get('GIT_BUILD_STR', '') }}
   entry_points:
-    - mtsv = mtsv.main:main
+    - mtsv = mtsv.main:cli
     - mtsv_setup = mtsv.mtsv_prep.main:main
-    - mtsv_plugin = mtsv.mtsv_plugin.main:main
   skip: true  # [osx or not py36]
 
 requirements:
@@ -25,15 +24,20 @@ requirements:
     - zlib
   run:
     - python
-    - snakemake>=4.1
+    - snakemake>=5.4
     - pandas>=0.20.3
     - ete3
+    - matplotlib
+    - seaborn
     - biopython
-    - scipy
+    - argutils
+    - jinja2
+    - statsmodels
     - six
     - mtsv-tools
     - numpy
     - pyyaml
+    - fastp
     - click
     - zlib
     - wgfast
@@ -42,6 +46,7 @@ requirements:
     - bwa
     - samtools
     - gsl
+    - pytables
 
 test:
   imports:
