@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script type="text/javascript">
+        const data = {{ children_data }}
+    </script>
+
+    <style>
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        #page-title {
+            text-align: center;
+        }
+
+        .nav-extended .nav-content .tabs .tab a:focus,
+        .nav-extended .nav-content .tabs .tab a:focus.active {
+            background-color: hsl(207, 89%, 95%);
+        }
+
+        .nav-extended .nav-content .tabs .tab a:hover {
+            color: #0d47a1;
+        }
+
+        .nav-extended .nav-content .tabs .indicator {
+            background-color: hsla(207, 89%, 60%, 0.75);
+            height: 6px;
+        }
+
+        .nav-extended .nav-content .tabs .tab a {
+            color: #1565c0;
+        }
+
+        .nav-extended {
+            /* margin-bottom: 10px; */
+        }
+
+        .nav-extended .tabs {
+            display: flex;
+        }
+
+        .expander-buttons {
+            margin-left: auto;
+            align-self: center;
+        }
+
+        .expander.btn-flat {
+            color: white;
+            border-radius: 3px;
+            margin-left: 0;
+        }
+
+        #root .row {
+            border: 0;
+            margin: 0;
+        }
+
+        #root .row .col {
+            text-align: center;
+        }
+
+        #root .collapsible {
+            margin: 0;
+            border: 0;
+        }
+
+        #root .collapsible-body {
+            padding: 0;
+            border: 0;
+        }
+
+        #root #data-header {
+            padding: .5rem;
+            padding-left: 3.5rem;
+            display: flex;
+            align-items: center;
+            font-weight: 200;
+            font-size: 1.1rem;
+        }
+
+        .node.inactive,
+        .leaf.inactive {
+            display: none;
+        }
+
+        .green-check {
+            font-weight: bolder;
+            color: green;
+        }
+
+        .red-x {
+            font-weight: bolder;
+            color: red;
+        }
+
+        div.material-tooltip {
+            background-color: #666666ee;
+            padding: 6px;
+            min-height: 0;
+        }
+
+        div.material-tooltip .tooltip-content {
+            font-size: 0.75rem;
+        }
+    </style>
+    <title>MTSv Summary</title>
+</head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <header>
+        <nav class="nav-extended">
+            <div class="nav-wrapper white">
+                <a href="#" class="brand-logo center blue-text" style="font-weight: 200;font-size: 3.5rem;">MTSv
+                    Summary</a>
+            </div>
+            <div class="nav-content light-blue lighten-3">
+                <ul class="tabs">
+                    <li class="tab" id="first"><a class="" href="#">{{ sample_name }}</a></li>
+                    <div class="expander-buttons">
+                        <a class="waves-effect waves-light btn-flat justify-right blue expander expand">Expand All</a>
+                        <a class="waves-effect waves-light btn-flat justify-right blue expander collapse">Collapse
+                            All</a>
+                    </div>
+                </ul>
+
+            </div>
+        </nav>
+    </header>
+    <main>
+
+        <div id="root"></div>
+
+    </main>
+    <footer class="page-footer white">
+        <div class="footer-copyright">
+            <div class="container">
+                <p class="black-text text-lighten-4 left">{{ sample_name }}</p>
+                <p class="black-text text-lighten-4 right">{{ creation_date }}</p>
+            </div>
+        </div>
+    </footer>
+
+    <script type="text/javascript">
+        /* global data */
+        const root = document.getElementById('root')
+
+        // Initialize Materialize-CSS Tabs
+        M.Tabs.init(document.querySelector('.tabs'))
+
+        const { ranks } = data.meta
+
+        // Sort columns by colIndex
+        const sortedColumns = data.values.sort((a, b) => a.colIndex - b.colIndex)
+
+        // Apply custom filter against columns during render
+        const columnFormat = (propName, v) => {
+            let value = String(v)
+            switch (propName) {
+                case "Significant":
+                    value = value.replace(/true/gi, '<span class="green-check">✔</span>');
+                    value = value.replace(/false/gi, '<span class="red-x">✘</span>');
+            }
+            return value
+        }
+
+        const buildTree = (node) => {
+
+            const isLeaf = node.children.length === 0
+            const body = isLeaf
+                ? ''
+                : `
+      <div class="collapsible-body">
+        ${node.children.map(buildTree).join('\n')}
+      </div>
+    `
+
+            return `
+    <ul class="node ${isLeaf ? '' : 'collapsible'} active">
+      <li class="${isLeaf ? 'leaf' : 'node'}">
+        <div class="row collapsible-header ${ranks[node.values.Level].color} ">
+          ${
+                isLeaf
+                    ? '<i class="material-icons arrow-wrapper"></i>'
+                    : '<i class="material-icons arrow-wrapper arrow">keyboard_arrow_right</i>'
+                }
+          ${data.values.map(value => `<div class="col s${value.colWidth}">${columnFormat(value.propName, node.values[value.propName])}</div>`).join('\n')}
+        </div >
+        ${body}
+      </li >
+    </ul >
+  `
+
+        }
+
+    const header = `
+  <div id = "data-header" class="row grey lighten-3 black-text" >
+    ${data.values.map(value => `<div class="col s${value.colWidth} ${value.tooltipped ? "tooltipped" : ""}" data-tooltip="${value.tooltip}" data-position="top">${value.header}</div>`).join('\n')}
+  </div >
+  `
+
+        root.innerHTML = header + data.children.map(buildTree).join('\n')
+
+        const toggleExpand = (e, instances, state) => {
+            switch (state) {
+                case "open":
+                    instances.forEach(elem => elem.open(0))
+                    break;
+                case "close":
+                    instances.forEach(elem => elem.close(0))
+                    break;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const elems = document.querySelectorAll('.tooltipped');
+            const instances = M.Tooltip.init(elems);
+
+            const expandButton = document.getElementsByClassName('expand')[0]
+            const collapseButton = document.getElementsByClassName('collapse')[0]
+
+            const collapsibles = document.querySelectorAll('.collapsible');
+            const collapseOptions = {
+                accordion: false,
+                onOpenStart: li => li.querySelector('.arrow').textContent = "keyboard_arrow_down",
+                onCloseStart: li => li.querySelector('.arrow').textContent = "keyboard_arrow_right",
+            }
+            const collapsible_instances = M.Collapsible.init(collapsibles, collapseOptions);
+
+            expandButton.addEventListener('click', (e) => toggleExpand(e, collapsible_instances, 'open'))
+            collapseButton.addEventListener('click', (e) => toggleExpand(e, collapsible_instances, 'close'))
+        });
+
+
+    </script>
+</body>
+
+</html>
