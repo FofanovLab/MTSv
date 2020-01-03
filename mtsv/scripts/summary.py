@@ -139,6 +139,7 @@ def format_summary_table(summary_table, ncbi):
     """
     # get scientific name from unique values
     summary_table = get_scientific_names(summary_table, ncbi)
+    summary_table = validate_level(summary_table, ncbi)
     summary_table = summary_table[[
         'taxid', 'scientific_name', 'level', 'total', 'unique',
         'signature', 'unique_signature', 'weighted_support',
@@ -195,6 +196,17 @@ AGG_FUNCT = {
 def aggregate_rows(df, group, agg_func):
     return df.groupby(group).agg(agg_func)
 
+
+def validate_level(summary_table, ncbi):
+    """
+    Some taxids in the database may not be at the species level initially.
+    This will cause them to have an incorrect rank. Update to value 
+    provided by ncbi database.
+    """
+    taxonomic_rank = ncbi.get_rank(summary_table['taxid'].unique())
+    summary_table['level'] = summary_table['taxid'].apply(
+        lambda x: taxonomic_rank.get(x, "Undefined"))
+    return summary_table
 
 
 def get_scientific_names(summary_table, ncbi):
