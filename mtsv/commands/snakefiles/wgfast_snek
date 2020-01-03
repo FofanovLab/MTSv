@@ -1,4 +1,8 @@
 from mtsv.utils import error
+from snakemake.utils import makedirs
+import os
+
+makedirs(['wgfast', 'wgfast/tmp'])
 
 if len(config.get("wgfast_taxids", [])) != len(
     config.get("wgfast_reference_dirs", [])):
@@ -36,9 +40,9 @@ rule wgfast:
     log: "logs/wgfast_{sample}_taxid_{taxa}.log"
     params:
         wd = "wgfast",
-        reads_dir = "wgfast/reads",
+        reads_dir = "reads",
         wgfast_params = config.get('wgfast_params', ''),
-        reference_dir = lambda wc: reference_map[int(wc.taxa)]
+        reference_dir = lambda wc: os.path.abspath(reference_map[int(wc.taxa)])
     threads: 8
     message: 
         """
@@ -51,9 +55,8 @@ rule wgfast:
     shell:
         """
         cd {params.wd}
-        mkdir tmp
         wgfast -d {params.reads_dir} -r {params.reference_dir} \
-            -p {threads} --temp tmp {params.wgfast_params} > {log} 2>&1
+            -p {threads} --temp tmp {params.wgfast_params} > ../{log} 2>&1
         """
 
 rule wgfast_draw_tree:
@@ -116,7 +119,7 @@ rule wgfast_fasta_to_fastq:
                     # in the sample
                     for rep in range(int(name.split("_")[-1])):
                         record.id = "{0}_{1}".format(name, rep)
-                        SeqIO.write(record, qhandle, "fastq")
+                        SeqIO.write(record, fastq_handle, "fastq")
 
 
 
