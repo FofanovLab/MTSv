@@ -40,8 +40,8 @@ def run_wgfast(wildcards):
     if config.get('run_wgfast', False) and \
         config.get('wgfast_taxids', []):
         return expand(
-            "wgfast/{sample}_taxid_{taxa}_transformed.png",
-            sample=SAMPLES, taxa=config.get('wgfast_taxids'))
+            "wgfast/{taxa}/transformed.png",
+            taxa=config.get('wgfast_taxids'))
     else:
         return []
 

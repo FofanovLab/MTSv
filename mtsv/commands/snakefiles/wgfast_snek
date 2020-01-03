@@ -2,7 +2,11 @@ from mtsv.utils import error
 from snakemake.utils import makedirs
 import os
 
-makedirs(['wgfast', 'wgfast/tmp'])
+makedirs(
+    ["wgfast"] +
+    ["wgfast/{}".format(taxid) for taxid in config.get("wgfast_taxids", [])] + 
+    ["wgfast/{}/tmp".format(taxid) for taxid in config.get("wgfast_taxids", [])] + 
+    ["wgfast/{}/reads".format(taxid) for taxid in config.get("wgfast_taxids", [])])
 
 if len(config.get("wgfast_taxids", [])) != len(
     config.get("wgfast_reference_dirs", [])):
@@ -26,20 +30,22 @@ rule wgfast:
     SNP typing for strain-level resolution.
     """
     input:
-        reads = "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
+        reads = expand(
+            "wgfast/{{taxa}}/reads/S{sample}_taxid_{{taxa}}_R1_001.fastq.gz",
+            sample=SAMPLES)
     output:
         tree = report(
-            "wgfast/{sample}_taxid_{taxa}_transformed.tree",
+            "wgfast/{taxa}/transformed.tree",
             category="WGFAST"),
         nasp = report(
-            "wgfast/{sample}_taxid_{taxa}_nasp_matrix.with_unknowns.txt",
+            "wgfast/{taxa}/nasp_matrix.with_unknowns.txt",
             category="WGFAST"),
         pat = report(
-            "wgfast/{sample}_taxid_{taxa}_all_patristic_distances.txt",
+            "wgfast/{taxa}/all_patristic_distances.txt",
             category="WGFAST")
-    log: "logs/wgfast_{sample}_taxid_{taxa}.log"
+    log: "logs/wgfast_taxid_{taxa}.log"
     params:
-        wd = "wgfast",
+        wd = lambda wc: "wgfast/{}".format(wc.taxa),
         reads_dir = "reads",
         wgfast_params = config.get('wgfast_params', ''),
         reference_dir = lambda wc: os.path.abspath(reference_map[int(wc.taxa)])
@@ -56,7 +62,7 @@ rule wgfast:
         """
         cd {params.wd}
         wgfast -d {params.reads_dir} -r {params.reference_dir} \
-            -p {threads} --temp tmp {params.wgfast_params} > ../{log} 2>&1
+            -p {threads} --temp tmp {params.wgfast_params} > ../../{log} 2>&1
         """
 
 rule wgfast_draw_tree:
@@ -64,11 +70,11 @@ rule wgfast_draw_tree:
     Draw tree with strain placement.
     """
     input:
-        nexus = "wgfast/{sample}_taxid_{taxa}_transformed.tree"
+        nexus = "wgfast/{taxa}/transformed.tree"
     output:
-        newick = "wgfast/{sample}_taxid_{taxa}_transformed.newick",
-        tree = report("wgfast/{sample}_taxid_{taxa}_transformed.png")
-    log: "logs/wgfast_tree_{sample}_taxid_{taxa}.log"
+        newick = "wgfast/{taxa}/transformed.newick",
+        tree = report("wgfast/{taxa}/transformed.png")
+    log: "logs/wgfast_tree_taxid_{taxa}.log"
     threads: 1
     message:
         """
@@ -87,14 +93,12 @@ rule wgfast_draw_tree:
 
 
         
-
-
 rule wgfast_fasta_to_fastq:
     """
     Convert extracted taxa queries to fastq.
     """
     input: "extracted_queries/{sample}_taxid_{taxa}.fasta"
-    output: "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
+    output: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
     log: "logs/wgfast_fasta_to_fastq_{sample}_taxid_{taxa}.log"
     threads: 1
     message:
@@ -127,8 +131,8 @@ rule wgfast_gzip:
     """
     Gzip fastqs for WGFAST.
     """
-    input: "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
-    output: "wgfast/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
+    input: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
+    output: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
     threads: 1
     log: "logs/wgfast_gzip_fastq_{sample}_taxid_{taxa}.log"
     message:   
