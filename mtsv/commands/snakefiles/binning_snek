@@ -61,7 +61,7 @@ rule binning:
         index = lambda wc: INDEX_MAP[wc.index]
     output: temp("binning/sample_{sample}_index_{index}.bn")
     log: "logs/binning_sample_{sample}_index_{index}.log"
-    threads: 12
+    threads: 128
     params:
         edits=config.get('edits', 3),
         seed_size=config['seed_size'],
@@ -103,9 +103,7 @@ rule collapse:
         "binning/sample_{{sample}}_index_{index}.bn",
         index=list(INDEX_MAP.keys()))
     output: "binning/{sample}_merged.clp"
-    log: 
-        main="logs/{sample}_merged.log",
-        params=".working/{sample}_binning.params"
+    log: "logs/{sample}_merged.log"
     threads: 1
     message:
         """
@@ -115,7 +113,7 @@ rule collapse:
         """
     shell:
         """
-        mtsv-collapse {input} -o {output} >> {log.main} 2>&1
+        mtsv-collapse {input} -o {output} >> {log} 2>&1
         """
 
 
