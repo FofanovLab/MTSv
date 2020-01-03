@@ -1,8 +1,10 @@
 import logging
+from snakemake.utils import makedirs
 from mtsv.utils import (
     script_path, get_item_from_artifact)
 from mtsv.scripts.datastore_management import (get_main_datastore_path)
 
+makedirs(["results", "results/.working", "results/.working/logs"])
 
 BINNING_PARAMS = {
     'kmer_size': config['kmer_size'],
@@ -292,7 +294,7 @@ rule analysis:
         h = config.get('h', 0.5),
         filter_params = FILTER_PARAMS
         # datastore is in params instead of input to avoid issues
-        # with modification times and buiding the DAG.
+        # with modification times and building the DAG.
     run:
         from mtsv.scripts.analyze import analyze
         from mtsv.scripts.datastore_management import (
