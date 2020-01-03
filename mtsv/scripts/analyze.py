@@ -79,6 +79,7 @@ def filter_candidate_taxa(df, rule, column, value):
     return list(filter_func(df))
 
 
+
 def get_candidate_taxa(fn, rule, col, value):
     df = get_species(
             pd.read_csv(fn))
@@ -270,6 +271,7 @@ def draw_figure(df, kwargs):
     default_kwargs.update(kwargs)
     g = sns.clustermap(df, **default_kwargs)
     ax = g.ax_heatmap
+    plt.setp(ax.yaxis.get_majorticklabels(), rotation=0)
     ax.set_xlabel("Sample")
     ax.set_ylabel("")
     return g
