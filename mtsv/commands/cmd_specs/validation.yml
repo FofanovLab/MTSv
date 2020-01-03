@@ -6,10 +6,12 @@ properties:
     default: "reads/{sample}_R{pair}_001.fastq"
     group: readprep
     description: >
-      Snakemake pattern for fastq files to process.  
+      The fastq files for processing are found by matching the  
+      the fastq_pattern provided below (in Snakemake wildcard  
+      format).  
       The default is "reads/{sample}_R{pair}_001.fastq"  
-      and should work for illumina formatted read files.  
-      The "sample" keyword is REQUIED and will be used to name  
+      and should work for illumina formatted file names.  
+      The "sample" keyword is REQUIRED and will be used to name  
       all output files. The "pair" keyword can be used to combine  
       paired end reads, they will be concatenated after QC and  
       analyzed together. Other keywords and regex can be added  
@@ -30,14 +32,18 @@ properties:
       ----------------------  
       Advanced Regex Example  
       ----------------------  
-      For files myreads/HUMAN-Blank-xx-xx-xxx-xxxx-xxx-xx_S2_R1_001.fastq and  
+      For files myreads/HUMAN-Blank-xx-xx-xxx-xxxx-xxx-xx_S1_R1_001.fastq and  
       myreads/HUMAN-Sample1-xx-xx-xxx-xxxx-xxx-xx_S2_R1_001.fastq, where the  
       x's represent values that are unique to each sample that you do not  
-      want included in the sample name you can use regex and a throwaway keyword.  
-      For example, the pattern  
+      want included in the sample name you can use regex and/or a  
+      throwaway keyword.  
+      The pattern  
       "myreads/{sample,\w+-\w+}-{remove}_R{pair}_001.fastq" would work  
       for this example, resulting in sample names "HUMAN-Blank" and  
-      "HUMAN-Sample1".
+      "HUMAN-Sample1".  
+      The throwaway keyword, "remove", is ignored and not included in the sample  
+      name. The regex following the comma in the "sample" wildcard helps  
+      constrain the name used for sample.
   
   fastp_params:
     type: string
@@ -58,8 +64,8 @@ properties:
     minimum: 1
     default: 50
     description: >
-      Reads will be chopped up into equal KMER_SIZE queries for  
-      processing.
+      Reads will be chopped up into equal, non-overlapping  
+      KMER_SIZE queries for processing.
     group: readprep
 
   binning_mode:
@@ -67,13 +73,14 @@ properties:
     enum: ["fast", "efficient", "sensitive"]
     default: "efficient"
     description: >
-      Set recommended parameter mode to fast, efficient, or sensitive.  
-      These modes set values for SEED_SIZE, MIN_SEEDS, SEED_GAP  
-      fast (more misses, fast runtime), efficient (med misses, med runtime)  
+      Set seed-based alignment parameters to a recommended mode  
+      for fast (more misses, fast runtime),  
+      efficient (med misses, med runtime),  
       or sensitive (few misses, slow) runs.  
+      These modes set values for SEED_SIZE, MIN_SEEDS, and SEED_GAP to  
       fast=17,5,2, efficient=14,4,2, sensitive=11,3,1.  
-      Adding values for seed_size, min_seeds, or seed_gap in this config  
-      will override these settings.
+      Adding values for seed_size, min_seeds, or seed_gap in this  
+      config file will override these settings.
     group: binning
   seed_size:
     type: number
@@ -97,19 +104,25 @@ properties:
   database_config:
     type: string
     group: binning
-    description: Path to sequence database artifact json.
+    description: >
+      Path to sequence database artifact json. This file is created  
+      during the database build step. Use `mtsv_setup --help` or  
+      see the "Sequence Download and Setup Quick Start Guide" in the  
+      wiki (https://github.com/FofanovLab/MTSv/wiki/) for help  
+      setting up the database.
   filter_rule:
     type: string
     enum: ["min", "in", "quant", "top"]
     default: "min"
     group: analyze
     description: >
-      Rule for filtering candidates for analysis.  
-      "top" returns the taxa with the FILTER_VALUE highest values  
+      Provide a rule for filtering candidate taxa for analysis.  
+      "top" returns the top FILTER_VALUE taxa based on values  
       in the FILTER_COLUMN column of the summary table.  
       "min" returns taxa that have values higher than FILTER_VALUE  
       in the FILTER_COLUMN column of the summary table.  
       "in" returns only taxa in a list of taxa provided for FILTER_VALUE.  
+      Only species-level taxids should be provided.  
       "quant" returns taxa in the FILTER_VALUE quantile for values in  
       the FILTER_COLUMN column of the summary table.
   filter_value:
@@ -122,7 +135,10 @@ properties:
     group: analyze
     default: "unique_signature"
     description: >
-      Define the summary data column to filter candidates.
+      Define the summary data column to filter candidates.  
+      Choices: "unique_signature", "signature", "total",  
+      "unique", "weighted_support", "unique_weighted_support",  
+      "taxid"
   datastore:
     type: string
     group: analyze
@@ -130,18 +146,18 @@ properties:
       To save processing time, expected values gathered during the analysis  
       step will be saved and used in future runs (assuming that the same  
       binning parameters and sequence databases are used).  
-      The same datastore path should be used for every run to avoid  
-      havng to recalculate values. The same datastore can be shared among  
-      multiple uses if they have write access to the file.
+      The same datastore path should be used for every run to avoid needing to  
+      recalculate values. The same datastore can be shared among  
+      multiple users if they have write access to the file.
   sample_n_kmers:
     type: number
     minimum: 1
     default: 100000
     group: analyze
     description: >
-      The number of queries to sample from taxa sequence database.  
-      These queries are used to calculate an expected value for the  
-      ratio of unique_signature hits to total unique hits.
+      The expected values are calculated by simulating queries from  
+      the sequence database for each candidate species. SAMPLE_N_KMERS  
+      is the number of queries to sample.
   alpha:
     type: number
     minimum: 0
@@ -155,16 +171,17 @@ properties:
     default: 0.5
     group: analyze
     description: >
-      Cohen's h value for effect size. The statistical analysis  
-      uses an equivalence test and the range of this test is  
-      determinded using cohen's H.
+      The statistical analysis uses an equivalence test  
+      and the equivalence bounds are calculated based  
+      on Cohen's H effect size.
   figure_kwargs:
     type: object
     group: analyze
     default: {}
     description: >
       Seaborn's clustermap is used to generate heatmap figures.  
-      Keyword arguments (e.g. figsize) can be passed to the function.
+      Keyword arguments (e.g. {'figsize': (10,10)}) can be passed to  
+      the function as a dictionary.
   extract_taxids: 
     type: array
     default: []
@@ -246,7 +263,11 @@ groups:
   binning:
     description: Alignment-based binning of queries.
   analyze:
-    description: Perform statistical analysis on candidate taxa.
+    description: >
+      Perform statistical analysis on candidate taxa.  
+      The analysis compares the difference between expected and  
+      observed values for the ratio of unique signature hits to  
+      total unique hits.
   extract:
     description: Extract queries that hit a given taxid.
   wgfast:
