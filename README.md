@@ -4,7 +4,7 @@
 # MTSv Pipeline
 [Change log](CHANGELOG.md)
 
-MTSv is a suite of metagenomic binning and analysis tools. It attempts to accurately identify which taxa are present in a given DNA sample by identifying *signature* reads that are unique to a single taxa. It assumes that read fragments in samples will be in a "shotgun" or short read format, typically ~50-200 bases in length.
+MTSv is a suite of metagenomic binning and analysis tools. It attempts to accurately identify which taxa are present in a given DNA sequencing sample by identifying *signature* reads that are unique to a single taxa. It assumes that read fragments in samples will be in a "shotgun" or short read format, typically ~50-200 bases in length.
 
 ## Pipeline Overview
 The pipeline is broken into two major sections: (1) the download and setup of sequences from the sequence database which only needs to be completed once per database and as needed to include updates and (2) the main binning and analysis pipeline that is completed for each new read set. 
@@ -15,11 +15,10 @@ The pipeline is broken into two major sections: (1) the download and setup of se
 
 
 ## Installation
-MTSv is written in Python but calls compiled rust binaries for most of the core functionality. It is currently available as a conda package (on OSX and linux-64 platforms) and we recommend that it is installed into a Python 3.6 conda environment.
+MTSv is written in Python but calls compiled rust binaries for most of the core functionality. It is currently available as a conda package (on linux-64 platforms) and we recommend that it is installed into a Python 3.6 conda environment.
 
 ### Dependencies
-1. [Anaconda or Miniconda](https://conda.io/docs/user-guide/install/index.html)
-2. Greater than GCC/5.2.0 on the PATH for runtime compilation of the C++11 code required for initial setup of the sequence databases.
+- [Anaconda or Miniconda](https://conda.io/docs/user-guide/install/index.html)
 
 
 ### Create Conda environment with Python3.6.
@@ -33,7 +32,7 @@ $ source activate [ENV_NAME]
 ```
 #### Install MTSv
 ```
-$ conda install mtsv -c fofanov -c bioconda -c etetoolkit -c conda-forge
+$ conda install mtsv -c bioconda -c conda-forge
 ```
 #### Deactivate Conda Environment
 ```
