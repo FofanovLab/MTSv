@@ -116,7 +116,7 @@ rule wgfast_fasta_to_fastq:
                     # in the sample
                     for rep in range(int(name.split("_")[-1])):
                         record.id = "{0}_{1}".format(name, rep)
-                        SeqIO.write(record, qhandle, "fastq")
+                        SeqIO.write(record, fastq_handle, "fastq")
 
 
 
