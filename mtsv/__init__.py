@@ -6,7 +6,8 @@ DEFAULT_LOG_FNAME = "mtsv_{COMMAND}_{TIMESTAMP}.log"
 
 CONFIG_STRING = """
 # NOTE: Changes to the config file in the middle of the pipeline
-# may force previous steps to be rerun. 
+# may force previous steps to be rerun.
+#  
 # ===============================================================
 #
 # READPREP: {readprep_description}
@@ -57,6 +58,7 @@ binning_mode: {binning_mode_default}
 
 # {seed_size_description}
 # Uncomment (remove "#" before name) to modify this parameter
+# This will override the value set for the BINNING_MODE.
 
  
 # seed_size: 
@@ -64,6 +66,7 @@ binning_mode: {binning_mode_default}
 
 # {min_seeds_description}
 # Uncomment (remove "#" before name) to modify this parameter
+# This will override the value set for the BINNING_MODE.
 
  
 # min_seeds:
@@ -71,6 +74,7 @@ binning_mode: {binning_mode_default}
 
 # {seed_gap_description}
 # Uncomment (remove "#" before name) to modify this parameter
+# This will override the value set for the BINNING_MODE.
 
  
 # seed_gap: 
@@ -203,7 +207,7 @@ CLUSTER_CONFIG = """
 __default__:
   cpus: '{threads}'
   mem: 5000
-  log: 'logs/cluster_{log}'
+  log: '{log}.cluster'
   jobname: '{rule}'
   time: "30:00"
 
@@ -215,16 +219,20 @@ readprep:
 
 binning:
   jobname: "binning"
-  mem: 30000
+  mem: 32000
+  cpus: 12
   time: "2:00:00"
 
 collapse:
   jobname: "collapse"
 
+init_taxdump:
+  jobname: "init_taxdump"
+
 summary:
   jobname: "summary"
   time: "1:00:00"
-  mem: 8000
+  mem: 20000
 
 filter_candidate_taxa:
   jobname: "filter_candidate_taxa"
