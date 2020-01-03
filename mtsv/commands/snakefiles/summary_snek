@@ -4,11 +4,36 @@ from mtsv.utils import (script_path, get_item_from_artifact)
 SUMMARY_SCRIPT = script_path('summary.py')
 TAXDUMP = get_item_from_artifact(config['database_config'], "taxdump-path")
 
+
+rule init_taxdump:
+    """
+    In case this is the first time loading ete3 database, load before
+    running a bunch of jobs that will try to access it at once.
+    """
+    output: touch("results/.working/ete3_update.done")
+    params:
+        taxdump = TAXDUMP
+    threads: 1
+    log: "logs/update_ete3.log"
+    message:
+        """
+        Touching ete3 database for update.
+        """
+    run:
+        from mtsv.utils import (get_ete_ncbi, config_logging)
+        config_logging(log[0], "INFO")
+        logging.info("Updating ete3 database")
+        get_ete_ncbi(params.taxdump)
+        logging.info("Finished updating ete3 database.")
+
+
 rule summary:
     """
     Summarize query hits.
     """
-    input: "binning/{sample}_merged.clp"
+    input: 
+        merged="binning/{sample}_merged.clp",
+        ete3db="results/.working/ete3_update.done"
     output:
         summary = report(
             "results/{sample}_raw_summary.csv",
@@ -22,7 +47,7 @@ rule summary:
     log: "logs/summary_{sample}.log"
     message:
         """
-        Parsing merged binning file {input}.
+        Parsing merged binning file {input.merged}.
         Writing to summary file: {output}.
         Logging to {log}.
         Using {threads} threads.
