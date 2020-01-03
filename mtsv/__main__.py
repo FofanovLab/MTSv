@@ -63,7 +63,8 @@ def run_command(cmd, cmd_name, final_target=False, config=False):
     # checkpoint is hit.
     if final_target:
         changed_targets.append(final_target)
-    cmd = cmd if not changed_targets else cmd + ["-R"] + changed_targets
+    cmd = cmd if not changed_targets else add_force_targets(
+        cmd, changed_targets)
     if config:
         cmd = add_config(cmd, config)
     dryrun_flag = set(["--dryrun", "--dry-run", "-n"]).intersection(set(cmd))
@@ -74,6 +75,21 @@ def run_command(cmd, cmd_name, final_target=False, config=False):
         p = run_subprocess(cmd)
         info("Finished running MTSv {0}".format(cmd_name))
     
+def add_force_targets(cmd, changed_targets):
+    """
+    Add forced targets to command by appending to an existing
+    --forcerun/-R argument or appending to the end of the command.
+    cmd (list of strings): passed snakemake commands.
+    changed_targets: list of targets that have parameter changes.
+    """
+    force_flag = list(set(["--forcerun", "-R"]).intersection(set(cmd)))
+    if force_flag:
+        idx = max([cmd.index(c) for c in force_flag]) # index of last occurance
+        return cmd[: idx + 1] + changed_targets + cmd[idx + 1: ]
+    else:
+        # add forced targets to end if arg not already used.
+        return cmd + ["-R"] + changed_targets
+
         
 def add_config(cmd, config):
     """
@@ -85,7 +101,7 @@ def add_config(cmd, config):
     config_flag = list(set(["--config", "-C"]).intersection(set(cmd)))
     if config_flag:
         # append to end of config arg if passed
-        idx = min([cmd.index(c) for c in config_flag]) # first occurance
+        idx = max([cmd.index(c) for c in config_flag]) # last occurance
         return cmd[: idx + 1] + config + cmd[idx + 1: ]
     else:
         # add config to end if arg not already used
@@ -125,7 +141,7 @@ def get_cmd(
 
 
 def format_description(description):
-    return "\n#".join(description.split("  "))
+    return "\n#".join(description.strip().split("  "))
 
 def format_config_string(db_path):
     with open(SPECFILE_PATH, 'r') as handle:
