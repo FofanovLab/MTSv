@@ -1,0 +1,92 @@
+from snakemake.utils import validate, makedirs
+from mtsv.utils import specfile_path
+
+
+makedirs(["logs"]) # make sure logs is present before cluster begins writing log file
+
+SPECFILE_PATH = specfile_path("validation")
+validate(config, SPECFILE_PATH)
+
+include: "readprep_snek"
+include: "binning_snek"
+include: "summary_snek"
+include: "analyze_snek"
+include: "extract_snek"
+include: "wgfast_snek"
+include: "concoct_snek"
+
+
+
+def run_extract(wildcards):
+    if config.get('run_extract', False) \
+        and config.get('extract_taxids', []):
+        return expand(
+            "extracted_queries/{sample}_taxid_{taxa}.fasta",
+            sample=SAMPLES, taxa=config['extract_taxids']
+        )
+    else:
+        return []
+
+def run_extract_unaligned(wildcards):
+    if config.get('run_extract_unaligned', False):
+        return expand(
+            "unaligned_queries/{sample}_unaligned.fasta",
+            sample=SAMPLES
+        )
+    else:
+        return []
+
+def run_wgfast(wildcards):
+    if config.get('run_wgfast', False) and \
+        config.get('wgfast_taxids', []):
+        return expand(
+            "wgfast/{sample}_taxid_{taxa}_transformed.png",
+            sample=SAMPLES, taxa=config.get('wgfast_taxids'))
+    else:
+        return []
+
+def run_concoct(wildcards):
+    if config.get('run_concoct', False):
+        return expand(
+            "alignment_free_binning/concoct_{sample}/{sample}.done",
+            sample=SAMPLES)
+    else:
+        return []
+
+
+report: "report/workflow.rst"
+
+
+rule all:
+    input:
+        expand("results/{sample}_analysis.csv", sample=SAMPLES),
+        "results/heatmap.png",
+        expand("results/{sample}_analysis.html", sample=SAMPLES),
+        run_extract,
+        run_extract_unaligned,
+        run_wgfast,
+        run_concoct
+    output:
+        report(
+            "parameters.csv",
+            caption="report/configuration.rst",
+            category="Configuration"),
+        report(
+            "environment.tsv",
+            caption="report/environment.rst",
+            category="Environment")
+    run:
+        import pandas as pd
+        with open(output[0], 'w') as out:
+            config_out = {k: str(v) for k, v in config.items()}
+            df = pd.DataFrame.from_dict(config_out, orient="index")
+            df.index.name = "Parameter"
+            df.columns = ["Setting"]
+            df.to_csv(out)
+        shell("""
+        conda list > {output[1]}
+        """)
+        df = pd.read_csv(output[1], sep='\s+', header=0, comment="#",
+                         names=["Name", "Version", "Build", "Channel"])
+        df.to_csv(output[1], index=False)
+        

@@ -1,151 +1,55 @@
-import os
-import numpy as np
-import json
-from mtsv.utils import (
-    script_path,
-    track_file_params,
-    get_database_params)
-from mtsv.parsing import (
-    parse_query_id, format_cml_params,
-    file_type, outfile_type, make_table)
-shell.prefix("set -euo pipefail;")
-
-SUMMARY_SCRIPT = {"summary": script_path('MTSv_summary.py'),
-          "signature": script_path('MTSv_signature.py')}
-REPORT = outfile_type(os.path.join("Reports", "summary_report.html"))
+from mtsv.utils import (script_path, get_item_from_artifact)
 
 
-if "database_config" not in config:
-    prior_merge_params = json.loads(open(os.path.join(
-    os.path.dirname(config['merge_file']),
-    ".params"),
-    'r').read())['merge_file'][config['merge_file']]
-    config['database_config'] = prior_merge_params['database_config']
-
-if "header" not in config:
-    try:
-        prior_merge_params = json.loads(open(os.path.join(
-        os.path.dirname(config['merge_file']),
-        ".params"),
-        'r').read())['merge_file'][config['merge_file']]
-        samples = json.loads(open(os.path.join(
-        os.path.dirname(prior_merge_params['fasta']),
-        ".params"),
-        'r').read())['readprep'][prior_merge_params['fasta']]['fastq']
-        config['header'] = [os.path.basename(s) for s in samples]
-    except FileNotFoundError:
-        samples = config['fastq']
-        config['header'] = [os.path.basename(s) for s in samples]
-    
-config['taxdump_path'] = file_type(get_database_params(
-    config['database_config'], 'taxdump-path'))
+SUMMARY_SCRIPT = script_path('summary.py')
+TAXDUMP = get_item_from_artifact(config['database_config'], "taxdump-path")
 
 
-rule summary_all:
-    input:
-        REPORT
-
-rule summary_report:
-    input:
-        sig=config['signature_file'],
-        summary=config['summary_file']
-    output:
-        REPORT
+rule init_taxdump:
+    """
+    In case this is the first time loading ete3 database, load before
+    running a bunch of jobs that will try to access it at once.
+    """
+    output: touch("results/.working/ete3_update.done")
+    params:
+        taxdump = TAXDUMP
+    threads: 1
+    log: "logs/update_ete3.log"
     message:
         """
-        Running summary report.
-        Writing report to {output}
-        Snakemake scheduler assuming {threads} thread(s)""" 
-    # resources:
-    #     mem_mb=lambda wildcards, attempt, input: max(1,
-    #         attempt * int(os.path.getsize(input[0]) * 0.0000011))
-    run:
-        from snakemake.utils import report
-        sig = np.genfromtxt(
-            input['sig'], delimiter=":", dtype=str, usecols=0)
-        n_sig_unique = len(sig)
-        n_total_sig = np.sum(
-            np.array(
-                [parse_query_id(s) for s in sig],
-                dtype=int), axis=0)
-        n_tot_sig = np.sum(n_total_sig)
-        n_total_sig = np.array(n_total_sig, dtype=str)
-        n_unique_sig = np.array(np.sum(
-            np.array(
-                [parse_query_id(s) for s in sig],
-                dtype=bool), axis=0), dtype=str)
-
-        table = make_table(
-            [config['header'], n_total_sig, n_unique_sig],
-            ["Sample",
-            "Total Queries with Signature Hits",
-            "Unique Queries with Signature Hits"] )
-        track_file_params(
-            'summary_file', config['summary_file'], config)
-        report(
-            """ 
-            Summary Report
-            ============================
-            **Signature hits are reported in:**\n
-            {input.sig}\n
-            **Summary table:** \n
-            {input.summary}\n
-            There were **{n_tot_sig}** total signature hits and 
-            **{n_sig_unique}** unique signature hits.\n
-            {table}
-            """, output[0])
-
-rule signature:
-    """Find signature hits"""
-    output:
-        config['signature_file']
-    input:
-        infile = config['merge_file']
-    params:
-        taxdump=config['taxdump_path'],
-        rank = config['tax_level']
-    # resources:
-    #     mem_mb=lambda wildcards, attempt, input: max(1,
-    #         attempt * int(
-    #             os.path.getsize(input.index) * 0.000001 +
-    #             os.path.getsize(input.infile) * 0.0000002))
-    log:
-        config['log_file']
-    threads: 1
-    message: 
+        Touching ete3 database for update.
         """
-        Finding signature hits from {input.infile}.
-        Writing to {output} 
-        Logging to {log}
-        Snakemake scheduler assuming {threads} thread(s)"""
-    script: SUMMARY_SCRIPT['signature']
+    run:
+        from mtsv.utils import (get_ete_ncbi, config_logging)
+        config_logging(log[0], "INFO")
+        logging.info("Updating ete3 database")
+        get_ete_ncbi(params.taxdump)
+        logging.info("Finished updating ete3 database.")
+
 
 rule summary:
-    """Summarize number of total and signature hits for each taxa"""
-    output: config['summary_file']
+    """
+    Summarize query hits.
+    """
     input: 
-        sig=config['signature_file'],
-        clp=config['merge_file']
-    # resources:
-    #     mem_mb=lambda wildcards, input, attempt: max(1, (attempt * int(
-    #         os.path.getsize(input[0]) * 0.000001 +
-    #         os.path.getsize(input[1]) * 0.000001)) if attempt == 1
-    #         else ((2000 * attempt) + int(
-    #         os.path.getsize(input[0]) * 0.000001 +
-    #         os.path.getsize(input[1]) * 0.000001)))
+        merged="binning/{sample}_merged.clp",
+        ete3db="results/.working/ete3_update.done"
+    output:
+        summary = report(
+            "results/{sample}_raw_summary.csv",
+            caption="report/raw_summary.rst",
+            category="2 Summary")
     params:
-        taxdump=config['taxdump_path'],
-        header=config['header']
-    threads:
-        config['threads']
-    log:
-        config['log_file']
+        max_taxa_per_query = config.get("max_taxa_per_query", 200),
+        taxdump = TAXDUMP,
+        chunksize = 100000
+    threads: 1
+    log: "logs/summary_{sample}.log"
     message:
         """
-        Running summary on signature file {input.sig}
-        and merge file {input.clp}
-        Writing summary to {output} 
-        Logging to {log}
-        Snakemake scheduler assuming {threads} thread(s)"""
-
-    script: SUMMARY_SCRIPT["summary"]
+        Parsing merged binning file {input.merged}.
+        Writing to summary file: {output}.
+        Logging to {log}.
+        Using {threads} threads.
+        """
+    script: SUMMARY_SCRIPT
