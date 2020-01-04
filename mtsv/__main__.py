@@ -38,27 +38,38 @@ def run_subprocess(cmd):
             "Unexpected error running command: {0}".format("\n".join(e.cmd)))
     return result
 
-def run_command(cmd, cmd_name, final_target=False, config=False):
+def run_command(
+    cmd, cmd_name, ignore_changed=False, final_target=False, config=False):
     if "--unlock" in cmd:
         # Bypass run command if --unlock is passed
         info("Unlocking working directory", color="blue")
         run_subprocess(cmd)
         return
-    # try to capture snakemake utility options
-    if set(PASSTHROUGH_ARGS).intersection(set(cmd)):
-        sp.run(cmd)
-        return
+    
     info("Running MTSv {0}".format(cmd_name))
-    info(
-        "Checking if parameters have changed.",
-        color="blue")
-    changed_targets = get_targets_with_changed_params(cmd)
-    if changed_targets:
-        warn(
-            "Parameters changed for targets: {0}\nRerunning".format(
-                "\n".join(changed_targets)))
+    if ignore_changed:
+        changed_targets = []
+        warn("""
+            Ignoring parameter changes.
+            This is may cause down stream analysis to be wrong.
+            Do not ignore parameter changes if binning parameters,
+            kmer size, or sequence database have been modified.
+            """)
     else:
-        info("No parameters have changed.", color="blue")
+        # try to capture snakemake utility options
+        if set(PASSTHROUGH_ARGS).intersection(set(cmd)):
+            sp.run(cmd)
+            return
+        info(
+            "Checking if parameters have changed.",
+            color="blue")
+        changed_targets = get_targets_with_changed_params(cmd)
+        if changed_targets:
+            warn(
+                "Parameters changed for targets: {0}\nRerunning".format(
+                    "\n".join(changed_targets)))
+        else:
+            info("No parameters have changed.", color="blue")
     # add filter_candidate_taxa because it is not revaluated after 
     # checkpoint is hit.
     if final_target:
@@ -103,6 +114,7 @@ def add_config(cmd, config):
         # append to end of config arg if passed
         idx = max([cmd.index(c) for c in config_flag]) # last occurance
         return cmd[: idx + 1] + config + cmd[idx + 1: ]
+
     else:
         # add config to end if arg not already used
         return cmd + ["--config"] + config 
@@ -132,11 +144,11 @@ def get_targets_with_changed_params(cmd):
 def get_cmd(
     configfile_name, snakemake_args, until=False):
     cmd = [
-            "snakemake", "--snakefile", SNAKEPATH, "--configfile",
-            configfile_name]
+            "snakemake", "--snakefile", SNAKEPATH]
     if until:
         cmd += ["--until", until]
     cmd += list(snakemake_args)
+    cmd += ["--configfile", configfile_name]
     return cmd
 
 
@@ -209,10 +221,14 @@ def cluster_init(configfile):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters."
+)
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def pipeline(configfile, snakemake_args):
+def pipeline(configfile, ignore_changes, snakemake_args):
     """
     Run MTSv pipeline from readprep to analyze.\n
     Additional Snakemake parameters should be passed
@@ -223,7 +239,7 @@ def pipeline(configfile, snakemake_args):
     --configfile CONFIGFILE'
     """
     cmd = get_cmd(configfile.name, snakemake_args)
-    run_command(cmd, "Pipeline")
+    run_command(cmd, "Pipeline", ignore_changed=ignore_changes)
 
 
 
@@ -233,10 +249,13 @@ def pipeline(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
     )
-def readprep(configfile, snakemake_args):
+def readprep(configfile, ignore_changes, snakemake_args):
     """
     QC reads, generate and deduplicate query kmers.\n
     Additional Snakemake parameters should be passed
@@ -247,7 +266,7 @@ def readprep(configfile, snakemake_args):
     --configfile CONFIGFILE --until readprep'
     """
     cmd = get_cmd(configfile.name, snakemake_args, until="readprep")
-    run_command(cmd, "Readprep")
+    run_command(cmd, "Readprep", ignore_changed=ignore_changes)
 
 
 @cli.command(context_settings=dict(
@@ -256,10 +275,13 @@ def readprep(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def binning(configfile, snakemake_args):
+def binning(configfile, ignore_changes, snakemake_args):
     """
     Alignment-based metagenomic binning.\n
     Additional Snakemake parameters should be passed
@@ -270,7 +292,7 @@ def binning(configfile, snakemake_args):
     --configfile CONFIGFILE --until collapse'
     """
     cmd = get_cmd(configfile.name, snakemake_args, until="collapse")
-    run_command(cmd, "Binning")
+    run_command(cmd, "Binning", ignore_changed=ignore_changes)
 
 
 
@@ -280,10 +302,14 @@ def binning(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters."
+)
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def summary(configfile, snakemake_args):
+def summary(configfile, ignore_changes, snakemake_args):
     """
     Summarize taxa hits.\n
     Additional Snakemake parameters should be passed
@@ -294,7 +320,7 @@ def summary(configfile, snakemake_args):
     --configfile CONFIGFILE --until summary'
     """
     cmd = get_cmd(configfile.name, snakemake_args, until="summary")
-    run_command(cmd, "Summary")
+    run_command(cmd, "Summary", ignore_changed=ignore_changes)
 
 
 
@@ -304,10 +330,13 @@ def summary(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def analyze(configfile, snakemake_args):
+def analyze(configfile, ignore_changes, snakemake_args):
     """
     Perform statistical analysis on candidate taxa.\n
     Additional Snakemake parameters should be passed
@@ -318,7 +347,7 @@ def analyze(configfile, snakemake_args):
     --configfile CONFIGFILE'
     """
     cmd = get_cmd(configfile.name, snakemake_args)
-    run_command(cmd, "Analyze")
+    run_command(cmd, "Analyze", ignore_changed=ignore_changes)
 
 
 @cli.command(context_settings=dict(
@@ -346,10 +375,10 @@ def report(configfile, report, snakemake_args):
     'snakemake --snakefile SNAKEPATH
     --configfile CONFIGFILE --report results/report.html'
     """
-    info("Running MTSv Report")
     cmd = get_cmd(configfile.name,
         ["--report", report] + list(snakemake_args))
-    run_command(cmd, "Report")
+    run_command(
+        cmd, "Report")
     info("")
     info("Report written to {}".format(report))
 
@@ -360,10 +389,13 @@ def report(configfile, report, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def extract(configfile, snakemake_args):
+def extract(configfile, ignore_changes, snakemake_args):
     """
     Extract queries that hit a given taxid.\n
     Additional Snakemake parameters should be passed
@@ -377,8 +409,8 @@ def extract(configfile, snakemake_args):
     cmd = get_cmd(configfile.name, snakemake_args)
     run_command(
         cmd, "Extract",
-        final_target="extract",
-        config=["run_extract=True"])
+        config=["run_extract=True"],
+        ignore_changed=ignore_changes)
 
 @cli.command(context_settings=dict(
     ignore_unknown_options=True,))
@@ -386,10 +418,13 @@ def extract(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")    
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def extract_unaligned(configfile, snakemake_args):
+def extract_unaligned(configfile, ignore_changes, snakemake_args):
     """
     Extract queries that did not align to any taxa.\n
     Additional Snakemake parameters should be passed
@@ -402,8 +437,8 @@ def extract_unaligned(configfile, snakemake_args):
     """
     cmd = get_cmd(configfile.name, snakemake_args)
     run_command(cmd, "Extract Unaligned",
-        final_target="unaligned_queries",
-        config=["run_extract_unaligned=True"])
+                config=["run_extract_unaligned=True"],
+                ignore_changed=ignore_changes)
 
 @cli.command(context_settings=dict(
     ignore_unknown_options=True,))
@@ -411,10 +446,13 @@ def extract_unaligned(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def wgfast(configfile, snakemake_args):
+def wgfast(configfile, ignore_changes, snakemake_args):
     """
     SNP typing for strain-level resolution.\n
     Additional Snakemake parameters should be passed
@@ -426,8 +464,7 @@ def wgfast(configfile, snakemake_args):
     --config run_wgfast=True CONFIG'
     """
     cmd = get_cmd(configfile.name, snakemake_args)
-    run_command(cmd, "WGFAST",
-                final_target="wgfast",
+    run_command(cmd, "WGFAST", ignore_changed=ignore_changes,
                 config=["run_wgfast=True"])
 
 
@@ -437,10 +474,13 @@ def wgfast(configfile, snakemake_args):
     '--configfile', '-c', type=click.File(mode='r'),
     required=True,
     help="Specify path to write config file.")
+@click.option(
+    '--ignore-changes', is_flag=True, default=False,
+    help="Do not check for changes to config parameters.")
 @click.argument(
     'snakemake_args', nargs=-1, type=click.UNPROCESSED,
 )
-def concoct(configfile, snakemake_args):
+def concoct(configfile, ignore_changes, snakemake_args):
     """
     Alignment-free binning of unaligned queries.\n
     Additional Snakemake parameters should be passed
@@ -453,7 +493,7 @@ def concoct(configfile, snakemake_args):
     """
     cmd = get_cmd(configfile.name, snakemake_args)
     run_command(cmd, "Concoct",
-                final_target="concoct_fasta_bins",
+                ignore_changed=ignore_changes,
                 config=["run_concoct=True"])
 
 

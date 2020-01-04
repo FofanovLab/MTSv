@@ -84,8 +84,12 @@ rule wgfast_draw_tree:
         Using {threads} thread(s).
         """
     run:
+        import os
+        os.environ['QT_QPA_PLATFORM'] = 'offscreen'
         from Bio import Phylo
         from ete3 import Tree
+        import matplotlib
+        matplotlib.use('Agg')
         Phylo.convert(input.nexus, "nexus",
                       output.newick, "newick")
         t = Tree(output.newick)
