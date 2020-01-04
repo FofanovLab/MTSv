@@ -7,7 +7,7 @@ shell.prefix("set -euo pipefail;")
 PATTERN = config.get('fastq_pattern', "reads/{sample}_R{pair}_001.fastq")
 WILDCARDS = glob_wildcards(PATTERN)
 
-SAMPLES = list(set(WILDCARDS.sample))
+SAMPLES = config.get('samples', list(set(WILDCARDS.sample)))
 
 
 def get_wildcards_dataframe(wildcards):
