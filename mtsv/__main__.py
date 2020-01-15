@@ -410,6 +410,7 @@ def extract(configfile, ignore_changes, snakemake_args):
     run_command(
         cmd, "Extract",
         config=["run_extract=True"],
+        final_target="extract",
         ignore_changed=ignore_changes)
 
 @cli.command(context_settings=dict(
@@ -437,6 +438,7 @@ def extract_unaligned(configfile, ignore_changes, snakemake_args):
     """
     cmd = get_cmd(configfile.name, snakemake_args)
     run_command(cmd, "Extract Unaligned",
+                final_target="unaligned_queries",
                 config=["run_extract_unaligned=True"],
                 ignore_changed=ignore_changes)
 
@@ -465,7 +467,7 @@ def wgfast(configfile, ignore_changes, snakemake_args):
     """
     cmd = get_cmd(configfile.name, snakemake_args)
     run_command(cmd, "WGFAST", ignore_changed=ignore_changes,
-                config=["run_wgfast=True"])
+                config=["run_wgfast=True"], final_target="wgfast_draw_tree")
 
 
 @cli.command(context_settings=dict(
@@ -494,6 +496,7 @@ def concoct(configfile, ignore_changes, snakemake_args):
     cmd = get_cmd(configfile.name, snakemake_args)
     run_command(cmd, "Concoct",
                 ignore_changed=ignore_changes,
+                final_target="concoct_fasta_bins",
                 config=["run_concoct=True"])
 
 
