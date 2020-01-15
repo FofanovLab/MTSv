@@ -151,17 +151,15 @@ def get_proportions(df, suffix):
 
 def get_upper_tost_bound(p1, h):
     upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
-    sign = 1
     if upper > p1:
-        sign = -1
-    return (p1 - upper) * sign
+        upper = 0
+    return abs(p1 - upper)
 
 def get_lower_tost_bound(p1, h):
     lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
-    sign = 1
     if lower < p1:
-        sign = -1
-    return (p1 - lower) * sign
+        lower = 1
+    return abs(p1 - lower)
 
 def p_value_apply(row, h):
     """
@@ -176,9 +174,10 @@ def p_value_apply(row, h):
     n1 = row['unique_exp']
     n2 = row['unique']
     p1 = row['prop_exp']
+    h_value = max(get_lower_tost_bound(p1, h), get_upper_tost_bound(p1, h))
+
     return proportions_ztost(
-        [y1, y2], [n1, n2], get_lower_tost_bound(p1, h),
-        get_upper_tost_bound(p1, h),
+        [y1, y2], [n1, n2], -h_value, h_value,
         prop_var="sample")[0]
 
 

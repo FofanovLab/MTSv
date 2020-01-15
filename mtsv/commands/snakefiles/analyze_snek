@@ -50,7 +50,7 @@ rule filter_candidate_taxa:
     params: **FILTER_PARAMS
     run:
         from mtsv.scripts.analyze import get_candidate_taxa
-        from mtsv.utils import (config_logging, warn)
+        from mtsv.utils import (config_logging, warn, info)
         config_logging(log[0], "INFO")
         with open(output[0], 'w') as out:
             candidates = set()

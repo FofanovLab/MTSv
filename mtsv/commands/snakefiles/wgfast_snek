@@ -1,12 +1,7 @@
 from mtsv.utils import error
-from snakemake.utils import makedirs
 import os
 
-makedirs(
-    ["wgfast"] +
-    ["wgfast/{}".format(taxid) for taxid in config.get("wgfast_taxids", [])] + 
-    ["wgfast/{}/tmp".format(taxid) for taxid in config.get("wgfast_taxids", [])] + 
-    ["wgfast/{}/reads".format(taxid) for taxid in config.get("wgfast_taxids", [])])
+
 
 if len(config.get("wgfast_taxids", [])) != len(
     config.get("wgfast_reference_dirs", [])):
@@ -34,15 +29,9 @@ rule wgfast:
             "wgfast/{{taxa}}/reads/S{sample}_taxid_{{taxa}}_R1_001.fastq.gz",
             sample=SAMPLES)
     output:
-        tree = report(
-            "wgfast/{taxa}/transformed.tree",
-            category="WGFAST"),
-        nasp = report(
-            "wgfast/{taxa}/nasp_matrix.with_unknowns.txt",
-            category="WGFAST"),
-        pat = report(
-            "wgfast/{taxa}/all_patristic_distances.txt",
-            category="WGFAST")
+        tree = "wgfast/{taxa}/transformed.tree",
+        nasp = "wgfast/{taxa}/nasp_matrix.with_unknowns.txt",
+        pat = "wgfast/{taxa}/all_patristic_distances.txt"
     log: "logs/wgfast_taxid_{taxa}.log"
     params:
         wd = lambda wc: "wgfast/{}".format(wc.taxa),
@@ -73,7 +62,10 @@ rule wgfast_draw_tree:
         nexus = "wgfast/{taxa}/transformed.tree"
     output:
         newick = "wgfast/{taxa}/transformed.newick",
-        tree = report("wgfast/{taxa}/transformed.png")
+        tree = report(
+            "wgfast/{taxa}/transformed.png",
+            caption="report/wgfast.rst",
+            category="WGFAST")
     log: "logs/wgfast_tree_taxid_{taxa}.log"
     threads: 1
     message:
@@ -87,12 +79,21 @@ rule wgfast_draw_tree:
         import os
         os.environ['QT_QPA_PLATFORM'] = 'offscreen'
         from Bio import Phylo
-        from ete3 import Tree
+        from ete3 import Tree, TreeStyle, NodeStyle
         import matplotlib
         matplotlib.use('Agg')
         Phylo.convert(input.nexus, "nexus",
                       output.newick, "newick")
         t = Tree(output.newick)
+        ts = TreeStyle()
+        nstyle = NodeStyle()
+        nstyle["shape"] = "circle"
+        nstyle["size"] = 8
+        nstyle["fgcolor"] = "darkred"
+        for n in t.traverse():
+            if "QUERY" in n.name:
+                n.set_style(nstyle)
+        ts.show_leaf_name = True
         t.render(output.tree, w=183, units="mm")
 
 

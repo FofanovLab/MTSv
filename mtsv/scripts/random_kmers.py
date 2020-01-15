@@ -15,11 +15,17 @@ def random_kmers(taxid, fasta, pickle, kmer, n_kmers, outfile):
             n_kmers, kmer, taxid))
 
     kmers = set()
-    while len(kmers) < n_kmers:
+    tries = 0
+    while (len(kmers) < n_kmers) and (tries <= 5):
         kmers.update(get_random_kmers_from_position(
             mmap, taxid, tx_ids, positions, n_kmers, kmer))
+        tries += 1
 
     kmers = list(kmers)[:n_kmers]
+    if len(kmers) < n_kmers:
+        logging.warn(
+            "Could only sample {0} kmers from {1}".format(
+                len(kmers), taxid))
     logging.info("Finished sampling.")
     logging.info("Writing to {0}".format(outfile))
     write_kmers_to_fasta(kmers, outfile)

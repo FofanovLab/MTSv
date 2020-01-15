@@ -5,4 +5,4 @@
 
 | An alignment based metagenomic binning pipeline. 
 | Binning was performed against the sequence database defined at: **{{ snakemake.config["database_config"] }}**.
-| See `Configuration`_ for additional parameters.
+| See Configuration for additional parameters.
