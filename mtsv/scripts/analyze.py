@@ -153,13 +153,13 @@ def get_upper_tost_bound(p1, h):
     upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
     if upper > p1:
         upper = 0
-    return p1 - upper
+    return abs(p1 - upper)
 
 def get_lower_tost_bound(p1, h):
     lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
     if lower < p1:
         lower = 1
-    return p1 - lower
+    return abs(p1 - lower)
 
 def p_value_apply(row, h):
     """
