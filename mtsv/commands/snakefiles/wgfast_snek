@@ -62,7 +62,10 @@ rule wgfast_draw_tree:
         nexus = "wgfast/{taxa}/transformed.tree"
     output:
         newick = "wgfast/{taxa}/transformed.newick",
-        tree = report("wgfast/{taxa}/transformed.png", category="WGFAST")
+        tree = report(
+            "wgfast/{taxa}/transformed.png",
+            caption="report/wgfast.rst",
+            category="WGFAST")
     log: "logs/wgfast_tree_taxid_{taxa}.log"
     threads: 1
     message:
@@ -76,12 +79,21 @@ rule wgfast_draw_tree:
         import os
         os.environ['QT_QPA_PLATFORM'] = 'offscreen'
         from Bio import Phylo
-        from ete3 import Tree
+        from ete3 import Tree, TreeStyle, NodeStyle
         import matplotlib
         matplotlib.use('Agg')
         Phylo.convert(input.nexus, "nexus",
                       output.newick, "newick")
         t = Tree(output.newick)
+        ts = TreeStyle()
+        nstyle = NodeStyle()
+        nstyle["shape"] = "circle"
+        nstyle["size"] = 8
+        nstyle["fgcolor"] = "darkred"
+        for n in t.traverse():
+            if "QUERY" in n.name:
+                n.set_style(nstyle)
+        ts.show_leaf_name = True
         t.render(output.tree, w=183, units="mm")
 
 
