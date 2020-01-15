@@ -197,7 +197,9 @@ rule concoct:
         if [[ -s {input.cov} ]]
         then
             concoct -l {params.threshold} -t {threads} --composition_file {input.cut} \
-            --coverage_file {input.cov} -b concoct_{wildcards.sample}/ {params.opts} &>> {log}
+            --coverage_file {input.cov} \
+            -b alignment_free_binning/concoct_{wildcards.sample}/ \
+            {params.opts} &>> {log}
         else
             touch {output}
             echo "SKIPPING CONCOCT" >> {log}
