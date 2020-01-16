@@ -149,17 +149,34 @@ def get_proportions(df, suffix):
     return df
 
 
+def cohen_h(p1, p2):
+    try:
+        return abs(
+            2 * np.arcsin(np.sqrt(p1)) -
+            2 * np.arcsin(np.sqrt(p2)))
+    except ValueError:
+        return np.nan
+
+
+
 def get_upper_tost_bound(p1, h):
-    upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
-    if upper > p1:
+    min_value = cohen_h(p1, 0)
+    if h > min_value:
         upper = 0
-    return abs(p1 - upper)
+    else:
+        upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
+    return p1 - upper
+
 
 def get_lower_tost_bound(p1, h):
-    lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
-    if lower < p1:
+    min_value = cohen_h(p1, 1)
+    if h > min_value:
         lower = 1
-    return abs(p1 - lower)
+    else:
+        lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
+    return p1 - lower
+
+
 
 def p_value_apply(row, h):
     """
@@ -174,10 +191,10 @@ def p_value_apply(row, h):
     n1 = row['unique_exp']
     n2 = row['unique']
     p1 = row['prop_exp']
-    h_value = max(get_lower_tost_bound(p1, h), get_upper_tost_bound(p1, h))
 
     return proportions_ztost(
-        [y1, y2], [n1, n2], -h_value, h_value,
+        [y1, y2], [n1, n2], get_lower_tost_bound(p1, h),
+        get_upper_tost_bound(p1, h),
         prop_var="sample")[0]
 
 
@@ -210,18 +227,21 @@ def user_filter(summary, filter_params):
 
 def combine_species_and_genus(df):
     """
-    Adds species that are significant. If a si
+    Adds species that are significant. If none of the species
+    in a genus are significant, a significant genus will be added.
     """
-    species = df[(df['Level'] == "species") & (df['Significant'])].copy()
+    species = df[(df['Level'] == "species") & (df['Significant']) & 
+        (df['User_Filter'])].copy()
     genera_in_species = np.array(species['Genus'].unique(), dtype='int64')
-    genera = df[(df['Level'] == "genus") & (df['Significant']) & (
+    genera = df[(df['Level'] == "genus") & (df['Significant']) &
+        (df['User_Filter']) & (
         ~df['TaxID'].isin(genera_in_species))].copy()
     return species.append(genera)
 
 
 def calculate_abundance(df):
-    df['abundance'] = df['Weighted_Support'] / \
-        df['Unique_Weighted_Support']
+    df['abundance'] = df['Signature_Hits'] / \
+        df['Unique_Signature_Hits']
     return df
 
 
@@ -277,7 +297,7 @@ def draw_figure(df, kwargs):
 
 
 
-def heatmap_figure(analysis_files, output, kwargs):
+def heatmap_figure(analysis_files, output, table_output, kwargs):
     df = cat_analysis_files(analysis_files)
     if len(df['sample'].unique()) == 1:
         msg = """
@@ -296,6 +316,7 @@ def heatmap_figure(analysis_files, output, kwargs):
         warn(msg)
         df = duplicate_row(df) # need to have more than one row to work
     df = get_pivot_table(df)
+    df.to_csv(table_output)
     fig = draw_figure(df, kwargs)
     fig.savefig(output, bbox_inches="tight")
 
