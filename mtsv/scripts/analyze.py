@@ -149,17 +149,33 @@ def get_proportions(df, suffix):
     return df
 
 
+def cohen_h(p1, p2):
+    try:
+        return abs(
+            2 * np.arcsin(np.sqrt(p1)) -
+            2 * np.arcsin(np.sqrt(p2)))
+    except ValueError:
+        return np.nan
+
+
+
 def get_upper_tost_bound(p1, h):
-    upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
-    if upper > p1:
-        return p1
+    min_value = cohen_h(p1, 0)
+    if h > min_value:
+        upper = 0
+    else:
+        upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
     return p1 - upper
 
+
 def get_lower_tost_bound(p1, h):
-    lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
-    if lower < p1:
+    min_value = cohen_h(p1, 1)
+    if h > min_value:
         lower = 1
+    else:
+        lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
     return p1 - lower
+
 
 
 def p_value_apply(row, h):
