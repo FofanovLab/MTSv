@@ -325,7 +325,8 @@ rule analysis_figure:
         report(
             "results/heatmap.png",
             caption="report/analysis_heatmap.rst",
-            category="3 Analysis")
+            category="3 Analysis"),
+            "results/heatmap_data.csv"
     log: "logs/heatmap_figure.log"
     params:
         kwargs=config.get("figure_kwargs", {})
@@ -342,7 +343,7 @@ rule analysis_figure:
         from mtsv.utils import config_logging
         config_logging(log[0], "INFO")
         logging.info("START Generating heatmap figure")
-        heatmap_figure(input, output[0], params.kwargs)
+        heatmap_figure(input, output[0], output[1], params.kwargs)
         logging.info("FINISHED Generating heatmap figure")
 
 
