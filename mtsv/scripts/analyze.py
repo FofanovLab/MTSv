@@ -119,6 +119,7 @@ def analyze(summary_data, expected_data, alpha, h, filter_params):
     # Calculate p-value and perform equivalence test
     summary_data = hypothesis_test(get_pvalue(summary_data, h), alpha)
     summary_data = user_filter(summary_data, filter_params)
+    summary_data = calculate_cohens_h(summary_data)
     return format_summary_data(summary_data)
 
 def format_summary_data(summary_data):
@@ -126,7 +127,7 @@ def format_summary_data(summary_data):
     "signature", "unique_signature",
     "weighted_support", "unique_weighted_support", "unique_exp",
             "unique_signature_exp", "prop_exp", "prop", "p-value",
-    "significant", "user_filter"
+    "significant", "user_filter", "cohens_h",
     ] + LEVELS[::-1]
     summary_data = summary_data[cols]
     summary_data.columns = [
@@ -135,8 +136,11 @@ def format_summary_data(summary_data):
         "Unique_Weighted_Support", "Exp_Unique_Hits",
         "Exp_Unique_Signature_Hits",
         "Exp_Prop(USH/UH)", "Obs_Prop(USH/UH)",
-        "P_value", "Significant", "User_Filter"] + \
+        "P_value", "Significant", "User_Filter", "Cohens H"] + \
             [level.capitalize() for level in LEVELS[::-1]]
+    summary_data = summary_data.sort_values(
+        by=["Unique_Signature_Hits"],
+        ascending=False)
     return summary_data
     
 def get_proportions(df, suffix):
@@ -157,23 +161,24 @@ def cohen_h(p1, p2):
     except ValueError:
         return np.nan
 
-
+def calculate_cohens_h(df):
+    df['cohens_h'] = df.apply(
+        lambda row: cohen_h(row['prop'], row['prop_exp']), axis=1)
+    return df
 
 def get_upper_tost_bound(p1, h):
     min_value = cohen_h(p1, 0)
+    upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
     if h > min_value:
-        upper = 0
-    else:
-        upper = np.sin((h - (2 * np.arcsin(np.sqrt(p1))))/-2)**2
+        return p1 + upper
     return p1 - upper
 
 
 def get_lower_tost_bound(p1, h):
     min_value = cohen_h(p1, 1)
+    lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
     if h > min_value:
-        lower = 1
-    else:
-        lower = np.sin((h + (2 * np.arcsin(np.sqrt(p1))))/2)**2
+        return p1 - (2-lower)
     return p1 - lower
 
 
