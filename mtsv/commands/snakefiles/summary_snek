@@ -35,10 +35,7 @@ rule summary:
         merged="binning/{sample}_merged.clp",
         ete3db="results/.working/ete3_update.done"
     output:
-        summary = report(
-            "results/{sample}_raw_summary.csv",
-            caption="report/raw_summary.rst",
-            category="2 Summary")
+        summary = "results/{sample}_raw_summary.csv"
     params:
         max_taxa_per_query = config.get("max_taxa_per_query", 200),
         taxdump = TAXDUMP,

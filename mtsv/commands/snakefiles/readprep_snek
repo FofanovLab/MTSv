@@ -49,7 +49,7 @@ rule fastp:
         html = report(
             "qc_reads/{sample}_qc.html",
             caption="report/readprep_qc.rst",
-            category="1 Readprep"),
+            category="Readprep"),
         json = "qc_reads/{sample}_qc.json"
     log: "logs/{sample}_qc.log"
     threads: 1

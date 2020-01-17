@@ -356,7 +356,7 @@ rule analysis_html:
         report(
             "results/{sample}_analysis.html",
             caption="report/analysis_expandable_table.rst",
-            category="3 Analysis")
+            category="Analysis")
     log: "logs/{sample}_analysis_report_page.log"
     threads: 1
     message:
