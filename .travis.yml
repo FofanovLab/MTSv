@@ -15,7 +15,7 @@ before_install:
 
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda config --set anaconda_upload no
+  - conda config --set anaconda_upload yes
   - conda config --add channels defaults
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
