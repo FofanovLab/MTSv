@@ -243,10 +243,15 @@ def update_genus_expected_dataframe(
         clp_file_list, taxid_list, queries_list, exp_df,
         bloom_df, bloom_meta, taxdump, max_taxa_per_query):
     bloom_store = BloomDataStore(bloom_df)
-    lineage = Lineage(get_ete_ncbi(taxdump))
+    ncbi = get_ete_ncbi(taxdump)
+    lineage = Lineage(ncbi)
     genera = [
         lineage.get_lineage_levels(taxid)['genus'] for taxid in taxid_list]
     for genus, queries, clp_file in zip(genera, queries_list, clp_file_list):
+        # Do not run species that have been rolled up to genus level
+        # (aka species that don't have a genus)
+        if ncbi.get_rank([genus])[int(genus)] != 'genus':
+            continue
         # add new genus if not in metadata
         if genus not in bloom_meta:
             # add new empty zeros array column
