@@ -27,6 +27,6 @@ install:
   - conda install mtsv --use-local 
 script:
   - mtsv --help
-cache:
-  directories:
-  - $HOME/.etetoolkit
+# cache:
+#   directories:
+#   - $HOME/.etetoolkit
