@@ -25,7 +25,7 @@ requirements:
     - click
   run:
     - python
-    - snakemake>=5.4
+    - snakemake>=5.8
     - pandas>=0.20.3
     - ete3
     - matplotlib
