@@ -286,7 +286,7 @@ rule analysis:
         report(
             "results/{sample}_analysis.csv",
             caption="report/analysis_raw_table.rst",
-            category="3 Analysis")
+            category="Analysis")
     log: "logs/{sample}_analysis.log"
     params:
         main_ds_path=MAIN_DATASTORE_PATH,
@@ -325,7 +325,7 @@ rule analysis_figure:
         report(
             "results/heatmap.png",
             caption="report/analysis_heatmap.rst",
-            category="3 Analysis"),
+            category="Analysis"),
             "results/heatmap_data.csv"
     log: "logs/heatmap_figure.log"
     params:
