@@ -26,7 +26,7 @@ rule wgfast:
     """
     input:
         reads = expand(
-            "wgfast/{{taxa}}/reads/S{sample}_taxid_{{taxa}}_R1_001.fastq.gz",
+            "wgfast/{{taxa}}/reads/S{sample}_taxid_{{taxa}}_R1_001.fastq",
             sample=SAMPLES)
     output:
         tree = "wgfast/{taxa}/transformed.tree",
@@ -35,6 +35,7 @@ rule wgfast:
     log: "logs/wgfast_taxid_{taxa}.log"
     params:
         wd = lambda wc: "wgfast/{}".format(wc.taxa),
+        min_size = config.get("wgfast_min_file_size", 250000),
         reads_dir = "reads",
         wgfast_params = config.get('wgfast_params', ''),
         reference_dir = lambda wc: os.path.abspath(reference_map[int(wc.taxa)])
@@ -47,12 +48,18 @@ rule wgfast:
         Using {threads} thread(s).
         WGFAST Params: {params.wgfast_params}
         """
-    shell:
-        """
-        cd {params.wd}
-        wgfast -d {params.reads_dir} -r {params.reference_dir} \
+    run:
+        import os
+        for r in input.reads:
+            if os.path.getsize(r) > params.min_size:
+                if not os.path.isfile("{0}.gz".format(r)):
+                    shell("gzip -c {0} > {0}.gz".format(r))
+
+        shell("""
+            cd {params.wd}; wgfast -d {params.reads_dir} -r {params.reference_dir} \
             -p {threads} --temp tmp {params.wgfast_params} > ../../{log} 2>&1
-        """
+            """)
+
 
 rule wgfast_draw_tree:
     """
@@ -132,25 +139,31 @@ rule wgfast_fasta_to_fastq:
 
 
 
-rule wgfast_gzip:
-    """
-    Gzip fastqs for WGFAST.
-    """
-    input: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
-    output: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
-    threads: 1
-    log: "logs/wgfast_gzip_fastq_{sample}_taxid_{taxa}.log"
-    message:   
-        """
-        Gzip fastq file {input}.
-        Writing to {output}.
-        Logging to {log}.
-        Using {threads} thread(s).
-        """
-    shell:
-        """
-        gzip {input[0]} > {log} 2>&1
-        """
+# rule wgfast_gzip:
+#     """
+#     Gzip fastqs for WGFAST.
+#     """
+#     input: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq",
+#     output: "wgfast/{taxa}/reads/S{sample}_taxid_{taxa}_R1_001.fastq.gz"
+#     threads: 1
+#     log: "logs/wgfast_gzip_fastq_{sample}_taxid_{taxa}.log"
+#     message:   
+#         """
+#         Gzip fastq file {input}.
+#         Writing to {output}.
+#         Logging to {log}.
+#         Using {threads} thread(s).
+#         """
+#     shell:
+#         """
+#         if [[ -s {input} ]]
+#         then
+#             gzip {input[0]} > {log} 2>&1
+#         else
+#             touch {output}
+#             echo "WARNING: Empty fastq file" > {log}
+#         fi
+#         """
 
 
 
