@@ -39,7 +39,9 @@ def run_subprocess(cmd):
     return result
 
 def run_command(
-    cmd, cmd_name, ignore_changed=False, final_target=False, config=False):
+    cmd, cmd_name, ignore_changed=False,
+    final_target=False, config=False,
+    check_result=False):
     if "--unlock" in cmd:
         # Bypass run command if --unlock is passed
         info("Unlocking working directory", color="blue")
@@ -57,9 +59,11 @@ def run_command(
             """)
     else:
         # try to capture snakemake utility options
-        if set(PASSTHROUGH_ARGS).intersection(set(cmd)):
-            sp.run(cmd)
+        passthrough = set(PASSTHROUGH_ARGS).intersection(set(cmd))
+        if passthrough:
+            sp.run(cmd, check=check_result)
             return
+
         info(
             "Checking if parameters have changed.",
             color="blue")
@@ -377,10 +381,15 @@ def report(configfile, report, snakemake_args):
     """
     cmd = get_cmd(configfile.name,
         ["--report", report] + list(snakemake_args))
-    run_command(
-        cmd, "Report")
-    info("")
-    info("Report written to {}".format(report))
+    try:
+        run_command(
+            cmd, "Report", check_result=True)
+        info("")
+        info("Report written to {}".format(report))
+    except sp.CalledProcessError:
+        error("Report Failed")
+
+    
 
 
 @cli.command(context_settings=dict(
