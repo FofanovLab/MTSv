@@ -41,7 +41,7 @@ requirements:
     - fastp
     - click
     - zlib
-    - wgfast==1.0.3
+    - wgfast
     - concoct
     - megahit
     - bwa
