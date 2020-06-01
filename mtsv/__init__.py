@@ -1,5 +1,5 @@
 PROG_NAME = "MTSv"
-VERSION = "1.1.0"
+VERSION = "2.0.0"
 
 DEFAULT_CFG_FNAME = "mtsv.cfg"
 DEFAULT_LOG_FNAME = "mtsv_{COMMAND}_{TIMESTAMP}.log"
@@ -54,6 +54,13 @@ edits: {edits_default}
 
  
 binning_mode: {binning_mode_default}
+
+
+# {max_hits_description}
+
+
+max_hits: {max_hits_default}
+
  
 
 # {seed_size_description}
@@ -146,60 +153,6 @@ figure_kwargs: {figure_kwargs_default}
 extract_taxids: {extract_taxids_default}
 
 
-# ===============================================================
-#
-# WGFAST: {wgfast_description}
-#
-# ===============================================================
-
-# {wgfast_taxids_description}
-
-
-wgfast_taxids: {wgfast_taxids_default}
-
-
-# {wgfast_reference_dirs_description}
-
-
-wgfast_reference_dirs: {wgfast_reference_dirs_default}
-
-
-# {wgfast_params_description}
-
-
-wgfast_params: {wgfast_params_default}
-
-
-# ===============================================================
-#
-# CONCOCT: {concoct_description}
-#
-# ===============================================================
-
-# {megahit_params_description}
-
-
-megahit_params: {megahit_params_default}
-
-
-# {cutup_params_description}
-
-
-cutup_params: {cutup_params_default}
-
-
-# {bwa_params_description}
-
-
-bwa_params: {bwa_params_default}
-
-
-# {concoct_params_description} 
-
-
-concoct_params: {concoct_params_default}
-
-
 """
 
 
@@ -269,45 +222,5 @@ extract:
 unaligned_queries:
   jobname: "unaligned_queries"
   mem: 8000
-
-wgfast:
-  jobname: "wgfast"
-  time: "1:00:00"
-  mem: 8000
-
-wgfast_draw_tree:
-  jobname: "wgfast_draw_tree"
-
-wgfast_fasta_to_fastq:
-  jobname: "wgfast_fasta_to_fastq"
-
-wgfast_gzip:
-  jobname: "wgfast_gzip"
-
-megahit:
-  jobname: "megahit"
-  time: "1:00:00"
-  mem: 8000
-
-concoct_cut_up:
-  jobname: "concoct_cut_up"
-
-concoct_fasta2fastq:
-  jobname: "concoct_fasta2fastq"
-
-concoct_make_bam:
-  jobname: "concoct_make_bam"
-
-concoct_coverage_table:
-  jobname: "concoct_coverage_table"
-
-concoct:
-  jobname: "concoct"
-
-concoct_merge:
-  jobname: "concoct_merge"
-
-concoct_fasta_bins:
-  jobname: "concoct_fasta_bins"
 
 """
