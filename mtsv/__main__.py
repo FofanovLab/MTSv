@@ -451,62 +451,6 @@ def extract_unaligned(configfile, ignore_changes, snakemake_args):
                 config=["run_extract_unaligned=True"],
                 ignore_changed=ignore_changes)
 
-@cli.command(context_settings=dict(
-    ignore_unknown_options=True,))
-@click.option(
-    '--configfile', '-c', type=click.File(mode='r'),
-    required=True,
-    help="Specify path to write config file.")
-@click.option(
-    '--ignore-changes', is_flag=True, default=False,
-    help="Do not check for changes to config parameters.")
-@click.argument(
-    'snakemake_args', nargs=-1, type=click.UNPROCESSED,
-)
-def wgfast(configfile, ignore_changes, snakemake_args):
-    """
-    SNP typing for strain-level resolution.\n
-    Additional Snakemake parameters should be passed
-    at the command line.
-
-    Runs:\n
-    'snakemake --snakefile SNAKEPATH
-    --configfile CONFIGFILE -R wgfast
-    --config run_wgfast=True CONFIG'
-    """
-    cmd = get_cmd(configfile.name, snakemake_args)
-    run_command(cmd, "WGFAST", ignore_changed=ignore_changes,
-                config=["run_wgfast=True"], final_target="wgfast_draw_tree")
-
-
-@cli.command(context_settings=dict(
-    ignore_unknown_options=True,))
-@click.option(
-    '--configfile', '-c', type=click.File(mode='r'),
-    required=True,
-    help="Specify path to write config file.")
-@click.option(
-    '--ignore-changes', is_flag=True, default=False,
-    help="Do not check for changes to config parameters.")
-@click.argument(
-    'snakemake_args', nargs=-1, type=click.UNPROCESSED,
-)
-def concoct(configfile, ignore_changes, snakemake_args):
-    """
-    Alignment-free binning of unaligned queries.\n
-    Additional Snakemake parameters should be passed
-    at the command line.
-
-    Runs:\n
-    'snakemake --snakefile SNAKEPATH
-    --configfile CONFIGFILE -R fasta_bins
-    --config run_concoct=True CONFIG'
-    """
-    cmd = get_cmd(configfile.name, snakemake_args)
-    run_command(cmd, "Concoct",
-                ignore_changed=ignore_changes,
-                final_target="concoct_fasta_bins",
-                config=["run_concoct=True"])
 
 
 @cli.command()
