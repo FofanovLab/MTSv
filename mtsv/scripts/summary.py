@@ -12,7 +12,6 @@ from functools import partial
 from mtsv.utils import (get_ete_ncbi, config_logging)
 
 
-
 LEVELS = ['species', 'genus', 'family',
                    'order', 'class', 'phylum', 'superkingdom']
 
@@ -123,9 +122,9 @@ def summary(
     logging.info(
         "Parsing merged binning file: {}".format(
             os.path.abspath(infile)))
+    ncbi = get_ete_ncbi(taxdump)
     summary_table = parse_merged_file_in_chunks(
         taxdump, infile, chunksize, max_taxa_per_query, threads)
-    ncbi = get_ete_ncbi(taxdump)
     summary_table = format_summary_table(summary_table, ncbi)
     summary_table.to_csv(outfile, index=False, float_format="%.0f")
     logging.info(
@@ -185,12 +184,13 @@ def parse_merged_file_in_chunks(taxdump, infile, chunksize,
         max_taxa_per_query=max_taxa_per_query)
     
     for result in p.imap(process_chunk_func,
-                         enumerate(get_chunked_reader(infile, chunksize))):
-        summary_table.append(result)
-
+            enumerate(get_chunked_reader(infile, chunksize))):
+        summary_table = summary_table.append(result)
+    logging.info("Aggregating summary data")
     # total up multiple entries for each taxid from chunks.
     summary_table = aggregate_rows(summary_table, 'taxid', AGG_FUNCT)
     summary_table['taxid'] = summary_table.index
+    logging.info("Finished aggregating summary data")
     return summary_table
 
 def agg_function_for_levels(x):
