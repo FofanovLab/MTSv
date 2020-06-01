@@ -61,7 +61,7 @@ rule binning:
         index = lambda wc: INDEX_MAP[wc.index]
     output: temp("binning/sample_{sample}_index_{index}.bn")
     log: "logs/binning_sample_{sample}_index_{index}.log"
-    threads: 128
+    threads: 24
     params:
         edits=config.get('edits', 3),
         max_hits=config.get('max_hits', 20000),
