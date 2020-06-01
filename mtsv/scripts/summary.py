@@ -150,20 +150,23 @@ def format_summary_table(summary_table, ncbi):
     return summary_table
 
 
+
 def parse_merged_file_in_chunks(ncbi, infile, chunksize, max_taxa_per_query):
     """
     Main loop for parsing chunks of merged binning file.
     Returns a summary dataframe with counts and lineage information
     for each taxon.
     """
-    lineage = Lineage(ncbi)
+
     summary_table = pd.DataFrame([])
     for i, chunk in enumerate(get_chunked_reader(infile, chunksize)):
         chunk_size = chunk.shape[0]
         chunk = process_merged_dataframe(chunk, max_taxa_per_query)
+        lineage = Lineage(ncbi)
         lineage.update_lineage(chunk['taxa'])
         summary_table = summary_table.append(
-            calculate_summary(chunk, lineage))
+            calculate_summary(chunk, lineage)
+            )
         logging.info(
             "Finished processing chunk: {0} to {1}".format(
                 i * chunksize, i * chunksize + chunk_size
