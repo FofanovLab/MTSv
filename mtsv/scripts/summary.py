@@ -7,6 +7,8 @@ from itertools import chain
 from ete3 import NCBITaxa
 from Bio import SeqIO
 import click
+from multiprocessing import Pool
+from functools import partial
 from mtsv.utils import (get_ete_ncbi, config_logging)
 
 
@@ -112,7 +114,7 @@ class Lineage:
 
 def summary(
     infile, outfile, max_taxa_per_query,
-    ncbi, chunksize=100000):
+    taxdump, chunksize=100000, threads=1):
     """
     Parses merged output from binning process into a csv with
     rows that have more than max_taxa_per_query hits removed.
@@ -121,9 +123,9 @@ def summary(
     logging.info(
         "Parsing merged binning file: {}".format(
             os.path.abspath(infile)))
-
     summary_table = parse_merged_file_in_chunks(
-        ncbi, infile, chunksize, max_taxa_per_query)
+        taxdump, infile, chunksize, max_taxa_per_query, threads)
+    ncbi = get_ete_ncbi(taxdump)
     summary_table = format_summary_table(summary_table, ncbi)
     summary_table.to_csv(outfile, index=False, float_format="%.0f")
     logging.info(
@@ -151,7 +153,24 @@ def format_summary_table(summary_table, ncbi):
 
 
 
-def parse_merged_file_in_chunks(ncbi, infile, chunksize, max_taxa_per_query):
+def process_chunk(chunk, taxdump, chunk_setting, max_taxa_per_query):
+    chunk_index, chunk = chunk
+    chunk_size = chunk.shape[0]
+    chunk = process_merged_dataframe(chunk, max_taxa_per_query)
+    ncbi = get_ete_ncbi(taxdump, quiet=True)
+    lineage = Lineage(ncbi)
+    lineage.update_lineage(chunk['taxa'])
+    result = calculate_summary(chunk, lineage)
+    logging.info(
+        "Finished processing chunk: {0} to {1}".format(
+            chunk_index * chunk_setting,
+            chunk_index * chunk_setting + chunk_size
+        ))
+    return result
+    
+
+def parse_merged_file_in_chunks(taxdump, infile, chunksize,
+    max_taxa_per_query, threads):
     """
     Main loop for parsing chunks of merged binning file.
     Returns a summary dataframe with counts and lineage information
@@ -159,18 +178,16 @@ def parse_merged_file_in_chunks(ncbi, infile, chunksize, max_taxa_per_query):
     """
 
     summary_table = pd.DataFrame([])
-    for i, chunk in enumerate(get_chunked_reader(infile, chunksize)):
-        chunk_size = chunk.shape[0]
-        chunk = process_merged_dataframe(chunk, max_taxa_per_query)
-        lineage = Lineage(ncbi)
-        lineage.update_lineage(chunk['taxa'])
-        summary_table = summary_table.append(
-            calculate_summary(chunk, lineage)
-            )
-        logging.info(
-            "Finished processing chunk: {0} to {1}".format(
-                i * chunksize, i * chunksize + chunk_size
-            ))
+    p = Pool(threads)
+    process_chunk_func = partial(
+        process_chunk, taxdump=taxdump,
+        chunk_setting=chunksize,
+        max_taxa_per_query=max_taxa_per_query)
+    
+    for result in p.imap(process_chunk_func,
+                         enumerate(get_chunked_reader(infile, chunksize))):
+        summary_table.append(result)
+
     # total up multiple entries for each taxid from chunks.
     summary_table = aggregate_rows(summary_table, 'taxid', AGG_FUNCT)
     summary_table['taxid'] = summary_table.index
@@ -504,25 +521,27 @@ def parse_clp_file_in_chunks_for_extract(
     help="""
     Provide path to taxdump file, otherwise default setting for 
     ete3 will be used.""")
+@click.option(
+    "--threads", "-t", default=1, type=click.IntRange(min=1, max=24),
+    help="Set number of processes."
+)
 @click.argument('infile', type=click.Path(exists=True, dir_okay=False))
 @click.argument('outfile', type=click.Path(writable=True))
-def main(infile, outfile, taxdump, max_taxa_per_query, chunksize):
+def main(infile, outfile, taxdump, max_taxa_per_query, chunksize, threads):
     logging.basicConfig(
         datefmt='%m/%d/%Y %I:%M:%S %p',
         level=getattr(logging, "INFO"),
         format='%(asctime)s %(levelname)s: [%(name)s] %(message)s')
-    ncbi = NCBITaxa(taxdump_file=taxdump)
-    summary(infile, outfile, max_taxa_per_query, ncbi, chunksize)
+    summary(infile, outfile, max_taxa_per_query, taxdump, chunksize, threads)
 
 
 def main_snake(
     infile, outfile, max_taxa_per_query,
-    taxdump, chunksize, log):
-    
-    
-    ncbi = get_ete_ncbi(taxdump)
+    taxdump, chunksize, log, threads):
     config_logging(log, "INFO")
-    summary(infile, outfile, max_taxa_per_query, ncbi, chunksize)
+    summary(
+        infile, outfile, max_taxa_per_query,
+        taxdump, chunksize, threads)
 
 
 if __name__ == "__main__":
@@ -530,6 +549,6 @@ if __name__ == "__main__":
         main_snake(snakemake.input[0], snakemake.output[0],
         snakemake.params["max_taxa_per_query"],
         snakemake.params['taxdump'], snakemake.params['chunksize'],
-        snakemake.log[0])
+        snakemake.log[0], snakemake.threads)
     except NameError:
         main()
