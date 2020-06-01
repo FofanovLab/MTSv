@@ -186,6 +186,7 @@ summary:
   jobname: "summary"
   time: "1:00:00"
   mem: 20000
+  cpus: 12
 
 filter_candidate_taxa:
   jobname: "filter_candidate_taxa"
