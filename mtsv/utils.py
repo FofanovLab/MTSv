@@ -121,7 +121,7 @@ def ete_database_data():
             outfile.write("{}")
     return fp
 
-def get_ete_ncbi(taxdump):
+def get_ete_ncbi(taxdump, quiet=False):
     #sqlite3.OperationalError
     ete_json = json.loads(open(ete_database_data(), 'r').read())
     mod_time = os.path.getmtime(taxdump)
@@ -131,15 +131,18 @@ def get_ete_ncbi(taxdump):
         db_path = entry['db_path']
         if entry['modtime'] == mod_time:
             if os.path.isfile(db_path):
-                LOGGER.info("Ete taxdump database already exists")
+                if not quiet:
+                    LOGGER.info("Ete taxdump database already exists")
                 ncbi = NCBITaxa(dbfile=db_path)
                 return ncbi
             else:
-                LOGGER.info(
-                    "Ete taxdump database has been deleted, rebuilding")
+                if not quiet:
+                    LOGGER.info(
+                        "Ete taxdump database has been deleted, rebuilding")
         else:
-            LOGGER.info(
-                "Old version of ete taxdump database exists, updating")
+            if not quiet:
+                LOGGER.info(
+                    "Old version of ete taxdump database exists, updating")
             ete_json[user][taxdump]['modtime'] == mod_time
     else:
         new_name = "mtsv_{}_taxa.sqlite".format(
@@ -149,7 +152,8 @@ def get_ete_ncbi(taxdump):
             os.makedirs(db_path)
         db_path = os.path.join(db_path, new_name)
         ete_json[user]= {taxdump: {'modtime': mod_time, 'db_path': db_path}}
-        LOGGER.info(
+        if not quiet:
+            LOGGER.info(
                 "New ete taxdump database created for taxdump {}".format(
                     taxdump))
     ncbi = NCBITaxa(dbfile=db_path, taxdump_file=taxdump)
