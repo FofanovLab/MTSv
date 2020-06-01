@@ -20,7 +20,7 @@ requirements:
     - {{ compiler('cxx')}}
   host:
     - python
-    - pip
+    - setuptools
     - zlib
     - click
   run:
