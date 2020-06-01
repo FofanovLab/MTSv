@@ -39,8 +39,8 @@ rule summary:
     params:
         max_taxa_per_query = config.get("max_taxa_per_query", 200),
         taxdump = TAXDUMP,
-        chunksize = 100000
-    threads: 1
+        chunksize = config.get("chunksize", 100000)
+    threads: 12
     log: "logs/summary_{sample}.log"
     message:
         """
