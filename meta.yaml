@@ -19,7 +19,7 @@ requirements:
   build:
     - {{ compiler('cxx')}}
   host:
-    - python>=3.6
+    - python
     - pip
     - zlib
     - click

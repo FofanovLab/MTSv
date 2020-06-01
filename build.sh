@@ -10,4 +10,3 @@ mkdir -p ${PREFIX}/bin
 cp mtsv-db-build ${PREFIX}/bin
 
 $PYTHON -m pip install --no-deps --ignore-installed .
-
