@@ -101,6 +101,11 @@ properties:
     default: 3
     group: binning
     description: Edit distance to tolerate in matched reference sites.
+  max_hits:
+    type: number
+    default: 20000
+    group: binning
+    description: Skip seeds with more than MAX_HITS hits.
   database_config:
     type: string
     group: binning
@@ -187,69 +192,7 @@ properties:
     default: []
     group: extract
     description: Extract queries that hit taxids in this list.
-  wgfast_taxids:
-    type: array
-    default: []
-    group: wgfast
-    description: Run wgfast on taxids in this list.
-  wgfast_reference_dirs:
-    type: array
-    default: []
-    group: wgfast
-    description: >
-      Reference directories that correspond to each taxid in WGFAST_TAXIDS.  
-      Use "wgfastdb" to setup the reference directories.
-  wgfast_params:
-    type: string
-    default: '""'
-    group: wgfast
-    description: >
-      Default WGFAST (https://github.com/jasonsahl/wgfast)  
-      parameters are used but parameters can be modified  
-      by passing them as a string. Run "wgfast --help" for  
-      options (avoid changing input/output and thread  
-      parameters as these are handled in the snakemake rule.)
-  megahit_params:
-    type: string
-    default: '""'
-    group: concoct
-    description: >
-      The queries are assembled using Megahit  
-      (https://github.com/voutcn/megahit). Default parameters are  
-      used but parameters can be modified by passing them as a string.  
-      Run megahit --help for options (avoid changing input/output and thread  
-      parameters as these are handled in the snakemake rule.)  
-  cutup_params: 
-    type: string
-    default: '""'
-    group: concoct
-    description: >
-      Concoct (https://github.com/BinPro/CONCOCT) cuts up contigs that  
-      are over a certain length. Default parameters are used but  
-      parameters can be modified by passing them as a string.  
-      Run "cut_up_fasta.py --help" for options (avoid changing  
-      input/output and thread parameters as these are handled  
-      in the snakemake rule.)
-  bwa_params:
-    type: string
-    default: '""'
-    group: concoct
-    description: >
-      Queries are mapped to the contigs using BWA (https://github.com/lh3/bwa).  
-      Default parameters are used but parameters can be modified by passing  
-      them as a string. Run "bwa mem" for options (avoid changing input/output  
-      and thread parameters as these are handled in the snakemake rule.)
-  concoct_params:
-    type: string
-    default: '""'
-    group: concoct
-    description: >
-      Concoct clusters contigs using nucleotide composition and coverage data  
-      across multiple samples (currently our pipeline runs samples separately).  
-      Default parameters are used but parameters can be modified by passing  
-      them as a string. Run "concoct --help" for options (avoid changing  
-      input/output and thread parameters as these are handled in the  
-      snakemake rule.)
+  
 
 
 required:
@@ -270,11 +213,5 @@ groups:
       total unique hits.
   extract:
     description: Extract queries that hit a given taxid.
-  wgfast:
-    description: SNP typing for strain-level resolution.
-  concoct:
-    description: >
-      Alignment-free binning of unaligned queries.  
-      See concoct documentation (https://github.com/BinPro/CONCOCT)  
-      for details on alignment free binning pipeline.
+  
 

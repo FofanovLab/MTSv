@@ -61,9 +61,10 @@ rule binning:
         index = lambda wc: INDEX_MAP[wc.index]
     output: temp("binning/sample_{sample}_index_{index}.bn")
     log: "logs/binning_sample_{sample}_index_{index}.log"
-    threads: 128
+    threads: 24
     params:
         edits=config.get('edits', 3),
+        max_hits=config.get('max_hits', 20000),
         seed_size=config['seed_size'],
         min_seeds=config['min_seeds'],
         seed_gap=config['seed_gap']
@@ -84,6 +85,7 @@ rule binning:
                 mtsv-binner \
                 --index {input.index} --fasta {input.queries} \
                 --results {output} --threads {threads} \
+                --max-hits {params.max_hits} \
                 --edits {params.edits} --seed-size {params.seed_size} \
                 --min-seeds {params.min_seeds} \
                 --seed-gap {params.seed_gap} >> {log} 2>&1

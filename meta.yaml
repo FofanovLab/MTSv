@@ -1,15 +1,15 @@
-{% set data = load_setup_py_data() %}
+{% set name = "mtsv" %}
+{% set version = "2.0.0" %}
 
 package:
-  name: 'mtsv'
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+  name: {{ name }}
+  version: {{ version }}
 
 source:
   path: .
 
 build:
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
-  # string: {{ environ.get('GIT_BUILD_STR', '') }}
+  number: 0
   entry_points:
     - mtsv = mtsv.__main__:cli
     - mtsv_setup = mtsv.mtsv_prep.main:main
@@ -20,7 +20,7 @@ requirements:
     - {{ compiler('cxx')}}
   host:
     - python
-    - setuptools
+    - pip
     - zlib
     - click
   run:
@@ -35,29 +35,23 @@ requirements:
     - jinja2
     - statsmodels
     - six
-    - mtsv-tools
+    - mtsv-tools>=1.0.1
     - numpy
     - pyyaml
     - fastp
     - click
     - zlib
-    - wgfast
-    - concoct
-    - megahit
-    - bwa
-    - samtools
     - gsl
     - pytables
 
 test:
   imports:
     - mtsv
-  # requires:
-  #   - pytest
+
   commands:
     - mtsv --help > /dev/null
     - mtsv_setup --help > /dev/null
-    # - py.test --pyargs mtsv
+
     
 about:
   home: https://github.com/FofanovLab/MTSv

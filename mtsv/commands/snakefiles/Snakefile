@@ -12,8 +12,7 @@ include: "binning_snek"
 include: "summary_snek"
 include: "analyze_snek"
 include: "extract_snek"
-include: "wgfast_snek"
-include: "concoct_snek"
+
 
 
 
@@ -36,27 +35,7 @@ def run_extract_unaligned(wildcards):
     else:
         return []
 
-def run_wgfast(wildcards):
-    if config.get('run_wgfast', False) and \
-        config.get('wgfast_taxids', []):
-        makedirs(
-            ["wgfast"] +
-            ["wgfast/{}".format(taxid) for taxid in config.get("wgfast_taxids", [])] +
-            ["wgfast/{}/tmp".format(taxid) for taxid in config.get("wgfast_taxids", [])] +
-            ["wgfast/{}/reads".format(taxid) for taxid in config.get("wgfast_taxids", [])])
-        return expand(
-            "wgfast/{taxa}/transformed.png",
-            taxa=config.get('wgfast_taxids'))
-    else:
-        return []
 
-def run_concoct(wildcards):
-    if config.get('run_concoct', False):
-        return expand(
-            "alignment_free_binning/concoct_{sample}/{sample}.done",
-            sample=SAMPLES)
-    else:
-        return []
 
 
 report: "report/workflow.rst"
@@ -68,9 +47,7 @@ rule all:
         "results/heatmap.png",
         expand("results/{sample}_analysis.html", sample=SAMPLES),
         run_extract,
-        run_extract_unaligned,
-        run_wgfast,
-        run_concoct
+        run_extract_unaligned
     output:
         report(
             "parameters.csv",
