@@ -9,4 +9,5 @@ $GXX -std=c++11 -pthread $SRC_DIR/mtsv/mtsv_prep/taxidtool.cpp -o mtsv-db-build
 mkdir -p ${PREFIX}/bin
 cp mtsv-db-build ${PREFIX}/bin
 
-$PYTHON setup.py install --single-version-externally-managed --record=record.txt
+$PYTHON -m pip install --no-deps --ignore-installed .
+
