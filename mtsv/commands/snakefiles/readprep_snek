@@ -80,6 +80,8 @@ rule fastp:
                     shell("""
                     gzip -d -c {fn} > {d_fn}
                     """.format(fn=fn, d_fn=d_fn))
+            else:
+                input_files.append(fn)
         if len(input) > 1:
             shell("""
                 fastp -i {input_files[0]} -I {input_files[1]} --stdout \
@@ -102,7 +104,7 @@ rule readprep:
     threads: 8
     params:
         kmer_size = config.get('kmer_size', 50)
-    message: 
+    message:
         """
         Running Readprep on {input}.
         Writing to {output}.
@@ -114,6 +116,3 @@ rule readprep:
             mtsv-readprep {input} -o {output} \
             --segment {params.kmer_size}  >> {log} 2>&1
             """)
-        
-
-
