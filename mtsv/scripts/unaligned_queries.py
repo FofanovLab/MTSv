@@ -23,7 +23,7 @@ def get_unaligned_query_ids(max_query_id, hit_ids):
     queries = np.ones(max_query_id, dtype=np.bool)
     hit_ids = np.subtract(hit_ids, 1)
     queries[hit_ids] = False
-    return np.where(queries)[0]
+    return np.where(queries)[0] + 1
 
 
 def get_hit_ids(clp_file):
