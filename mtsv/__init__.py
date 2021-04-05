@@ -161,7 +161,7 @@ __default__:
   cpus: '{threads}'
   mem: 5000
   log: '{log}.cluster'
-  jobname: '{rule}'
+  jobname: 'mtsv_{rule}'
   time: "30:00"
 
 fastp:
